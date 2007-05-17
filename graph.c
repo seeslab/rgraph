@@ -1,6 +1,7 @@
 #include <math.h>
 #include <string.h>
 #include <search.h>
+
 #include "prng.h"
 
 #include "tools.h"
@@ -636,9 +637,7 @@ int IsThereLinkSoft(struct node_gra *n1,int n2_num)
 int RemoveIsolatedNodes(struct node_gra *root)
 {
   struct node_gra *p=NULL, *temp=NULL;
-  struct node_lis *n=NULL;
   int nrem=0;
-  int count=0;
 
   // Revome isolated nodes
   p = root;
@@ -1113,7 +1112,7 @@ void FPrintDistanceHistogram(FILE *file, struct node_gra *root)
   int a, d, nodes, *size, i, counter, size_ant;
   struct node_gra *p = root;
   struct node_bfs *list, *lp;
-  double av_dis, norm, max_dis=0;
+  double av_dis, norm;
   int **max_dis_pairs;
 
   max_dis_pairs = allocate_i_mat(CountNodes(root), 2);
@@ -1401,7 +1400,6 @@ double ClusteringCoefficient(struct node_gra *root)
   struct node_gra *p = root;
   double C_av;
   int k_v;
-  int kk;
   int C_v;
 
   C_av = 0.0;
@@ -1449,7 +1447,6 @@ double ClusteringCoefficient2(struct node_gra *root)
   struct node_gra *p = root;
   int tri,ctr;  //#triangles and #connected triplets
   int k_v;
-  int kk;
   double C;
 
   tri = ctr = 0;
@@ -1497,7 +1494,6 @@ double SquareClustering(struct node_gra *root)
   struct node_gra *p = root;
   double C_av;
   int k1,k2;
-  int kk;
   int C_v;
   int npre;
   int totnodes;
@@ -1568,10 +1564,9 @@ double SquareClustering(struct node_gra *root)
 double OneNodeClusteringCoefficient(struct node_gra *node,
 				    struct node_gra *root)
 {
-  int nodes,*size,res_size;
+  int *size, res_size;
   struct node_bfs *list;
   int k_v;
-  int kk;
   int C_v;
   double C;
 
@@ -1606,13 +1601,11 @@ double OneNodeClusteringCoefficient(struct node_gra *node,
 double OneNodeSquareClustering(struct node_gra *node,
 			       struct node_gra *root)
 {
-  int nodes,*size,res_size;
+  int *size, res_size;
   struct node_bfs *list;
   struct node_bfs *lp;
   struct node_bfs *pl;
-  double C_av;
   int k1,k2;
-  int kk;
   int C_v;
   int npre;
   double T;
@@ -1865,7 +1858,6 @@ double Assortativity(struct node_gra *net)
   struct node_gra *p;
   struct node_lis *li;
   int *deg;
-  int i;
   int jk,jpk,j2pk2;
   int M;
   double r;
@@ -2008,7 +2000,7 @@ int AreConnectedList(struct node_gra *root,
 int CountStronglyConnectedSets(struct node_gra *root)
 {
   struct node_gra *root_cop = NULL;
-  struct node_gra *p,*p2;
+  struct node_gra *p;
   struct node_bfs *list,*lp,*lp2;
   int nnod = CountNodes(root);
   int anod = 0;
@@ -2018,8 +2010,6 @@ int CountStronglyConnectedSets(struct node_gra *root)
   int i;
   int size_ant;
   int d;
-  int z;
-  double C,T;
   int nclus = 0;
 
   selected = allocate_i_vec(nnod);
@@ -2091,7 +2081,7 @@ struct node_gra *GetLargestStronglyConnectedSet(struct node_gra *root,
 {
   struct node_gra *root_cop=NULL;
   struct node_gra *root_loc=NULL;
-  struct node_gra *p, *p2;
+  struct node_gra *p;
   struct node_gra *temp;
   struct node_bfs *list, *lp, *lp2;
   int nnod=CountNodes(root);
@@ -2102,7 +2092,6 @@ struct node_gra *GetLargestStronglyConnectedSet(struct node_gra *root,
   int i;
   int size_ant;
   int d;
-  int z;
   int maxS = 0;
   struct node_gra *giant = NULL;
 
@@ -2198,7 +2187,7 @@ struct node_gra *GetLargestWeaklyConnectedSet(struct node_gra *root,int thres)
 {
   struct node_gra *root_cop = NULL;
   struct node_gra *root_loc = NULL;
-  struct node_gra *p, *p2, *p3;
+  struct node_gra *p, *p3;
   struct node_gra *temp;
   struct node_bfs *list,*lp,*lp2;
   int nnod=CountNodes(root);
@@ -2209,7 +2198,6 @@ struct node_gra *GetLargestWeaklyConnectedSet(struct node_gra *root,int thres)
   int i;
   int size_ant;
   int d;
-  int z;
   int maxS = 0;
   struct node_gra *giant = NULL;
 
