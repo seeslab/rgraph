@@ -2,8 +2,8 @@
 #include <string.h>
 #include <search.h>
 #include "prng.h"
-#include "tools.h"
 
+#include "tools.h"
 #include "graph.h"
 
 

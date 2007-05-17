@@ -1,4 +1,7 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <search.h>
+
 #include "prng.h"
 
 #define MAX_LABEL_LENGTH 20
