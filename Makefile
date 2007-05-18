@@ -1,9 +1,7 @@
-
-
-PRNGDIR=/home/rguimera/Software/prng-3.0.2
+PRNGDIR=${HOME}/Software/prng-3.0.2
 
 test : main_test.c libgraph.a
-	gcc -o test main_test.c -I${PRNGDIR}/include/ \
+	gcc -Wall -o test main_test.c -I${PRNGDIR}/include/ \
 	-L${PRNGDIR}/lib/ -L./ -lprng -lgraph -lm
 
 libgraph.a :  graph.o tools.o
@@ -11,7 +9,7 @@ libgraph.a :  graph.o tools.o
 	ranlib libgraph.a
 
 tools.o : tools.c tools.h
-	gcc -c tools.c
+	gcc -c tools.c -Wall
 
 graph.o : graph.c graph.h tools.h
-	gcc -c graph.c -I /home/rguimera/Software/prng-3.0.2/include/
+	gcc -c graph.c -I${PRNGDIR}/include -Wall

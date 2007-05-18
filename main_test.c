@@ -4,7 +4,7 @@
 
 #include "graph.h"
 
-main()
+int main()
 {
   FILE *inFile;
   struct node_gra *net = NULL;
@@ -19,6 +19,9 @@ main()
 
   S = CountNodes(net);
   printf("The net has %d nodes\n", S);
+  printf("C = %g\n", ClusteringCoefficient(net));
 
   RemoveGraph(net);
+
+  return 0;
 }
