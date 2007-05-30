@@ -1,5 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <search.h>
 
 #include "prng.h"
@@ -18,7 +16,7 @@ struct node_gra{
   int state;               // to control wether visited or not
   struct node_lis *neig;   // header of the adjacency list
   struct node_gra *next;   // next node in the graph
-  int n_pack;              // number of packets currently at the node
+  int ivar1;              // number of packets currently at the node
   int inGroup;             // group to which the node belongs
   double dvar1;            // rush variable to store doubles
 };

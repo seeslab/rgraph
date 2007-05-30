@@ -9,7 +9,13 @@ libgraph.a :  graph.o tools.o
 	ranlib libgraph.a
 
 tools.o : tools.c tools.h
-	gcc -c tools.c -Wall
+	gcc -c tools.c
 
 graph.o : graph.c graph.h tools.h
-	gcc -c graph.c -I${PRNGDIR}/include -Wall
+	gcc -c graph.c -I${PRNGDIR}/include
+
+modules.o : modules.c modules.h tools.h
+	gcc -c modules.c -I${PRNGDIR}/include
+
+clean:
+	rm -f *.o

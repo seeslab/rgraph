@@ -31,8 +31,8 @@ struct node_gra *CreateHeaderGraph()
   temp->state = 0;
   temp->neig = NULL;
   temp->next = NULL;
-  temp->n_pack = -1;
   temp->inGroup = -1;
+  temp->ivar1 = -1;
   temp->dvar1 = -1.;
 
   return temp;
@@ -59,7 +59,7 @@ struct node_gra *CreateNodeGraph(struct node_gra *p,
     (struct node_lis *) calloc(1, sizeof(struct node_lis));
   ((p->next)->neig)->node = -1;
   ((p->next)->neig)->next = NULL;
-  (p->next)->n_pack = 0;
+  (p->next)->ivar1 = 0;
   (p->next)->inGroup = -1;
   (p->next)->coorX = -1.0;
   (p->next)->coorY = -1.0;
@@ -263,7 +263,7 @@ struct node_gra *CopyNetwork(struct node_gra *p1)
     p2->coorY = p1->coorY;
     p2->coorZ = p1->coorZ;
     p2->state = p1->state;
-    p2->n_pack = p1->n_pack;
+    p2->ivar1 = p1->ivar1;
     p2->inGroup = p1->inGroup;
     p2->dvar1 = p1->dvar1;
     last = p2;
