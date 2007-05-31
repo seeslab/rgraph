@@ -15,7 +15,7 @@ graph.o : graph.c graph.h tools.h
 	gcc -c graph.c -I${PRNGDIR}/include
 
 modules.o : modules.c modules.h tools.h
-	gcc -c modules.c -I${PRNGDIR}/include
+	gcc -c modules.c -I${PRNGDIR}/include -Wall
 
 clean:
 	rm -f *.o

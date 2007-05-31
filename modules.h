@@ -36,6 +36,12 @@ void RemovePartition(struct group *part);
 // ---------------------------------------------------------------------
 // Node-group functions
 // ---------------------------------------------------------------------
+void AddNodeToGroup(struct group *g, struct node_gra *node);
+void AddNodeToGroupSoft(struct group *g, int node);
+int RemoveNodeFromGroup(struct group *g, struct node_gra *node);
+int MoveNode(struct node_gra *node,
+	     struct group *old,
+	     struct group *new);
 
 // ---------------------------------------------------------------------
 // Group and partition operations
@@ -51,10 +57,14 @@ double **BlockModel(FILE *outf,
 		    struct group *part,
 		    char type_sw,
 		    int list_sw);
-int NLinksInGroup(struct node_gra* node, struct group *g);
+int NLinksToGroup(struct node_gra* node, struct group *g);
 double StrengthToGroup(struct node_gra* node, struct group *g);
 int NG2GLinks(struct group *g1, struct group *g2);
 double NG2GLinksWeight(struct group *g1, struct group *g2);
+void MergeGroups(struct group *g1, struct group *g2);
+struct group *CopyGroup(struct group *copy_root, struct group *g);
+struct group *CopyPartition(struct group *original);
+struct node_gra *BuildNetFromPart(struct group *part);
 
 // ---------------------------------------------------------------------
 // Partition reseting
