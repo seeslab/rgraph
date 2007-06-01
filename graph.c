@@ -283,6 +283,30 @@ struct node_gra *CopyNetwork(struct node_gra *p1)
 
 
 // ---------------------------------------------------------------------
+// Frees the memory allocated to a node_tree (needed by
+// tdestroy). VISIT value and int level are not used but are required
+// by tdestroy.
+// ---------------------------------------------------------------------
+void *MakeLabelDict(struct node_gra *net)
+{
+  void *nodeDict = NULL;
+  struct node_gra *p = net;
+  struct node_tree *treeNode=NULL;
+
+  while ((p = p->next) != NULL) {
+    treeNode = CreateNodeTree();
+    strcpy(treeNode->label, p->label);
+    treeNode = *(struct node_tree **)tsearch((void *)treeNode,
+					     &nodeDict,
+					     NodeTreeLabelCompare);
+    treeNode->ref = p;
+  }
+
+  return nodeDict;
+}
+
+
+// ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
 // Node, link, and graph removal
 // ---------------------------------------------------------------------

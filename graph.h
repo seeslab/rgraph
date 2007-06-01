@@ -88,6 +88,7 @@ void RewireAdjacency(struct node_gra *root);
 void CopyAdjacencyList(struct node_gra *n1,
 		       struct node_gra *n2);
 struct node_gra *CopyNetwork(struct node_gra *p1);
+void *MakeLabelDict(struct node_gra *net);
 
 // ---------------------------------------------------------------------
 // Node, link, and graph removal
