@@ -25,7 +25,8 @@ struct node_gra{
 // Definition of the node_lis structure
 // ---------------------------------------------------------------------
 struct node_lis{
-  int node;                // label of the referenced node
+  int node;                // num of the referenced node
+  char *nodeLabel;         // label of the referenced node
   int status;
   struct node_lis *next;   // next node in the adjacency list
   struct node_gra *ref;    // pointer to the reference node

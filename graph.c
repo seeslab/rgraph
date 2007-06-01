@@ -140,6 +140,7 @@ int AddAdjacency(struct node_gra *node1,
     // Create a new adjacency
     adja->next = (struct node_lis *)calloc(1, sizeof(struct node_lis));
     (adja->next)->node = node2->num;
+    (adja->next)->nodeLabel = node2->label;
     (adja->next)->status = status;
     (adja->next)->next = NULL;
     (adja->next)->ref = node2;
@@ -188,6 +189,7 @@ int AddAdjacencySoft(struct node_gra *node1,
     // Create a new adjacency
     adja->next = (struct node_lis *) calloc(1, sizeof(struct node_lis));
     (adja->next)->node = node2_num;
+    (adja->next)->nodeLabel = NULL;
     (adja->next)->status = status;
     (adja->next)->next = NULL;
     (adja->next)->ref = NULL;
@@ -217,12 +219,13 @@ void RewireAdjacency(struct node_gra *net)
     nlist[p->num] = p;
   }
 
-  // Point the adjacency pointers to the nodes
+  // Point the adjacency pointers to the nodes and add the labels
   p = net;
   while ((p = p->next) != NULL) {
     adja = p->neig;
     while ((adja = adja->next) != NULL) {
       adja->ref = nlist[adja->node];
+      adja->nodeLabel = nlist[adja->node]->label;
     }
   }
 
@@ -270,7 +273,8 @@ struct node_gra *CopyNetwork(struct node_gra *p1)
     CopyAdjacencyList(p1, p2);
   }
 
-  // Rewire the network to make all soft links hard
+  // Rewire the network to make all soft links hard and to set the
+  // labels
   RewireAdjacency(root2);
 
   // Done
