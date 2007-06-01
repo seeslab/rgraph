@@ -597,6 +597,20 @@ struct node_lis *GetLink(struct node_gra *n1, int n2)
 }
 
 // ---------------------------------------------------------------------
+// Returns 1 if the network hanging from p already contains a node
+// with label "label"
+// ---------------------------------------------------------------------
+int IsThereNode(char *label, struct node_gra *p)
+{
+  
+  while ((p = p->next) != NULL)
+    if (p->label == label)
+      return 1;
+
+  return 0;
+}
+
+// ---------------------------------------------------------------------
 // Returns 1 if there is a link between two nodes a and b
 // ---------------------------------------------------------------------
 int IsThereLink(struct node_gra *n1, struct node_gra *n2)
@@ -616,7 +630,7 @@ int IsThereLink(struct node_gra *n1, struct node_gra *n2)
 // Returns 1 if there is a link between n1 and a node with number
 // n2_num, and 0 otherwise
 // ---------------------------------------------------------------------
-int IsThereLinkSoft(struct node_gra *n1,int n2_num)
+int IsThereLinkSoft(struct node_gra *n1, int n2_num)
 {
   struct node_lis *pn;
 

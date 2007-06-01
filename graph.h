@@ -136,6 +136,7 @@ struct node_gra *GetNode(int label,
 			 struct node_gra *p);
 struct node_lis *GetLink(struct node_gra *n1,
 			 int n2);
+int IsThereNode(char *label, struct node_gra *p);
 int IsThereLink(struct node_gra *n1,
 		struct node_gra *n2);
 int IsThereLinkSoft(struct node_gra *n1,
