@@ -662,18 +662,37 @@ int RemoveIsolatedNodes(struct node_gra *root)
 
 
 // ---------------------------------------------------------------------
-// Given a soft-linked network and an array that tells which nodes are
-// in the network, remove all links that involve nodes that are not in
-// the network.
+// Given a soft-linked network, remove all links that involve nodes
+// that are not in the network.
 // ---------------------------------------------------------------------
-void CleanAdjacencies(struct node_gra *p, int *nlist)
+void CleanAdjacencies(struct node_gra *net)
 {
-  struct node_lis *nei,*temp;
+  struct node_lis *nei, *temp;
+  int maxNNode = 0;
+  struct node_gra *p = NULL;
+  int *nodeList = NULL;
+  int i;
 
+  // Determine the largest label in the network
+  p = net;
+  while ((p = p->next) != NULL)
+    if (p->num > maxNNode)
+      maxNNode = p->num;
+
+  // Build a list with the nodes in the network
+  nodeList = allocate_i_vec(maxNNode + 1);
+  for (i=0; i<=maxNNode; i++)
+    nodeList[i] = 0;
+  p = net;
+  while ((p = p->next) != NULL)
+    nodeList[p->num] = 1;
+
+  // Clean the adjacencies
+  p = net;
   while ((p = p->next) != NULL) {
     nei = p->neig;
     while (nei->next != NULL) {
-      if (nlist[(nei->next)->node] == 0) {
+      if (nodeList[(nei->next)->node] == 0) {
 	temp = nei->next;
 	if (temp->next == NULL)
 	  nei->next = NULL;
@@ -687,6 +706,10 @@ void CleanAdjacencies(struct node_gra *p, int *nlist)
     }
   }
 
+  // Free memory
+  free_i_vec(nodeList);
+
+  // Done
   return;
 }
 
@@ -2151,7 +2174,7 @@ struct node_gra *GetLargestStronglyConnectedSet(struct node_gra *root,
       d++;
     }while(*size != size_ant);
 
-    CleanAdjacencies(root_loc,this_net);
+    CleanAdjacencies(root_loc);
     RewireAdjacency(root_loc);
     RenumberNodes(root_loc);
 
@@ -2290,7 +2313,7 @@ struct node_gra *GetLargestWeaklyConnectedSet(struct node_gra *root,int thres)
     }
 
     // Rewire the cluster
-    CleanAdjacencies(root_loc,this_net);
+    CleanAdjacencies(root_loc);
     RewireAdjacency(root_loc);
     RenumberNodes(root_loc);
 

@@ -141,7 +141,7 @@ int IsThereLink(struct node_gra *n1,
 int IsThereLinkSoft(struct node_gra *n1,
 		    int n2_num);
 int RemoveIsolatedNodes(struct node_gra *root);
-void CleanAdjacencies(struct node_gra *net, int *nlist);
+void CleanAdjacencies(struct node_gra *net);
 
 // ---------------------------------------------------------------------
 // BFS list operations
