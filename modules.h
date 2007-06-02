@@ -23,10 +23,15 @@ struct group{
 
 
 // ---------------------------------------------------------------------
-// Creation and memory allocation
+// Group creation and memory allocation
 // ---------------------------------------------------------------------
 struct group *CreateHeaderGroup();
 struct group *CreateGroup(struct group *part, int label);
+
+// ---------------------------------------------------------------------
+// Partition creation
+// ---------------------------------------------------------------------
+struct group *FBuildPartition(FILE *inF);
 
 // ---------------------------------------------------------------------
 // Partition removal
@@ -36,8 +41,8 @@ void RemovePartition(struct group *part);
 // ---------------------------------------------------------------------
 // Node-group functions
 // ---------------------------------------------------------------------
-void AddNodeToGroup(struct group *g, struct node_gra *node);
-void AddNodeToGroupSoft(struct group *g, int node);
+struct node_lis *AddNodeToGroup(struct group *g, struct node_gra *node);
+struct node_lis *AddNodeToGroupSoft(struct group *g, char *label);
 int RemoveNodeFromGroup(struct group *g, struct node_gra *node);
 int MoveNode(struct node_gra *node,
 	     struct group *old,
@@ -67,17 +72,24 @@ struct group *CopyPartition(struct group *original);
 struct node_gra *BuildNetFromPart(struct group *part);
 
 // ---------------------------------------------------------------------
-// Partition reseting
+// Network-partition operations
 // ---------------------------------------------------------------------
 void ResetNetGroup(struct node_gra *net);
+struct group *ClustersPartition(struct node_gra *net);
+void MapPartToNet(struct group *part, struct node_gra *net);
+void MapPartToNetSoft(struct group *part, struct node_gra *net);
 
 // ---------------------------------------------------------------------
 // Group and partition output
 // ---------------------------------------------------------------------
-void FPrintGroups(FILE *outf, struct group *partition, int list_sw);
+void FPrintPartition(FILE *outf, struct group *partition, int list_sw);
 
 // ---------------------------------------------------------------------
 // Module indentification
 // ---------------------------------------------------------------------
 double Modularity(struct group *part);
 double ModularityWeight(struct group *part);
+struct group *SAGroupSplit(struct group *targ,
+			   double Ti, double Tf, double Ts,
+			   int cluster_sw,
+			   struct prng *gen);

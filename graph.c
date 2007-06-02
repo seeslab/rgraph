@@ -44,14 +44,13 @@ struct node_gra *CreateHeaderGraph()
 struct node_gra *CreateNodeGraph(struct node_gra *p,
 				 char *label)
 {
-  char *label_str;
 
   while (p->next != NULL)
     p = p->next;
       
   p->next = (struct node_gra *) calloc(1, sizeof(struct node_gra));
-  label_str = (char *) calloc(MAX_LABEL_LENGTH, sizeof(char));
-  (p->next)->label = strcpy(label_str, label);
+  (p->next)->label = (char *) calloc(MAX_LABEL_LENGTH, sizeof(char));
+  strcpy((p->next)->label, label);
   (p->next)->num = p->num + 1;
   (p->next)->state = 0;
   (p->next)->next = NULL;
@@ -140,7 +139,8 @@ int AddAdjacency(struct node_gra *node1,
     // Create a new adjacency
     adja->next = (struct node_lis *)calloc(1, sizeof(struct node_lis));
     (adja->next)->node = node2->num;
-    (adja->next)->nodeLabel = node2->label;
+    (adja->next)->nodeLabel = (char *) calloc(MAX_LABEL_LENGTH, sizeof(char));
+    strcpy((adja->next)->nodeLabel, node2->label);
     (adja->next)->status = status;
     (adja->next)->next = NULL;
     (adja->next)->ref = node2;
@@ -189,7 +189,8 @@ int AddAdjacencySoft(struct node_gra *node1,
     // Create a new adjacency
     adja->next = (struct node_lis *) calloc(1, sizeof(struct node_lis));
     (adja->next)->node = node2_num;
-    (adja->next)->nodeLabel = NULL;
+    (adja->next)->nodeLabel = (char *) calloc(MAX_LABEL_LENGTH, sizeof(char));
+    strcpy((adja->next)->nodeLabel, "\0");
     (adja->next)->status = status;
     (adja->next)->next = NULL;
     (adja->next)->ref = NULL;
@@ -225,7 +226,7 @@ void RewireAdjacency(struct node_gra *net)
     adja = p->neig;
     while ((adja = adja->next) != NULL) {
       adja->ref = nlist[adja->node];
-      adja->nodeLabel = nlist[adja->node]->label;
+      strcpy(adja->nodeLabel, nlist[adja->node]->label);
     }
   }
 
@@ -283,9 +284,7 @@ struct node_gra *CopyNetwork(struct node_gra *p1)
 
 
 // ---------------------------------------------------------------------
-// Frees the memory allocated to a node_tree (needed by
-// tdestroy). VISIT value and int level are not used but are required
-// by tdestroy.
+// Creates a binary tree for fast access to nodes by label
 // ---------------------------------------------------------------------
 void *MakeLabelDict(struct node_gra *net)
 {
@@ -332,6 +331,7 @@ void FreeAdjacencyList(struct node_lis *p)
   if (p->next != NULL) {
     FreeAdjacencyList(p->next);
   }
+  free(p->nodeLabel);
   free(p);
 }
 
@@ -356,6 +356,7 @@ void RemoveGraph(struct node_gra *p)
   if (p->next != NULL) {
     RemoveGraph(p->next);
   }
+  free(p->label);
   FreeNode(p);
 }
 

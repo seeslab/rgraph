@@ -11,7 +11,7 @@
 
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
-// Creation and memory allocation
+// Group creation and memory allocation
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
 
@@ -85,6 +85,41 @@ struct group *CreateGroup(struct group *part, int label)
 
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
+// Partition creation
+// ---------------------------------------------------------------------
+// ---------------------------------------------------------------------
+
+// ---------------------------------------------------------------------
+// Build a partition from a file. The file should contain
+// ---------------------------------------------------------------------
+struct group *FBuildPartition(FILE *inF)
+{
+  char label[MAX_LABEL_LENGTH];
+  char *separator = "///";
+  struct group *g = NULL;
+  struct group *part = NULL;
+  int npart = 0;
+
+  // Create the header of the partition
+  part = CreateHeaderGroup();
+
+  // Read the file
+  while (!feof(inF)) {
+    g = CreateGroup(part, npart);
+    npart++;
+    fscanf(inF, "%s\n", &label);
+    while (strcmp(label, separator) != 0) {
+      AddNodeToGroupSoft(g, label);
+      fscanf(inF, "%s\n", &label);
+    }
+  }
+
+  return part;
+}
+
+
+// ---------------------------------------------------------------------
+// ---------------------------------------------------------------------
 // Partition removal
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
@@ -117,7 +152,7 @@ void RemovePartition(struct group *part)
 // Add a node to a group, pointing all pointers and updating group and
 // node properties.
 // ---------------------------------------------------------------------
-void AddNodeToGroup(struct group *g, struct node_gra *node)
+struct node_lis *AddNodeToGroup(struct group *g, struct node_gra *node)
 {
   struct node_lis *p = g->nodeList;
   int totlink, inlink;
@@ -130,6 +165,8 @@ void AddNodeToGroup(struct group *g, struct node_gra *node)
   // Create the node_lis and point it to the node
   p->next = (struct node_lis *)calloc(1, sizeof(struct node_lis));
   (p->next)->node = node->num;
+  (p->next)->nodeLabel = (char *) calloc(MAX_LABEL_LENGTH, sizeof(char));
+  strcpy((p->next)->nodeLabel, node->label);
   (p->next)->status = 0;
   (p->next)->next = NULL;
   (p->next)->ref = node;
@@ -154,14 +191,14 @@ void AddNodeToGroup(struct group *g, struct node_gra *node)
   node->inGroup = g->label;
 
   // Done
-  return;
+  return p->next;
 }
 
 // ---------------------------------------------------------------------
 // Softly add a node to a group. Pointers do NOT point anywhere and
 // there is NO updating group or node properties.
 // ---------------------------------------------------------------------
-void AddNodeToGroupSoft(struct group *g, int node)
+struct node_lis *AddNodeToGroupSoft(struct group *g, char *label)
 {
   struct node_lis *p = g->nodeList;
 
@@ -171,7 +208,9 @@ void AddNodeToGroupSoft(struct group *g, int node)
 
   // Create the node_lis
   p->next = (struct node_lis *)calloc(1, sizeof(struct node_lis));
-  (p->next)->node = node;
+  (p->next)->node = -1;
+  (p->next)->nodeLabel = (char *) calloc(MAX_LABEL_LENGTH, sizeof(char));
+  strcpy((p->next)->nodeLabel, label);
   (p->next)->status = 0;
   (p->next)->next = NULL;
   (p->next)->ref = NULL;
@@ -183,7 +222,7 @@ void AddNodeToGroupSoft(struct group *g, int node)
   g->size++;
 
   // Done
-  return;
+  return p->next;
 }
 
 // ---------------------------------------------------------------------
@@ -206,6 +245,7 @@ int RemoveNodeFromGroup(struct group *g, struct node_gra *node)
   else{
     temp = p->next;
     p->next = (p->next)->next;
+    free(temp->nodeLabel);
     free(temp);
 
     // Update the properties of the group
@@ -615,70 +655,62 @@ struct node_gra *BuildNetFromPart(struct group *part)
 }
 
 
-/* // Creates a network that contains only the nodes in one of the groups */
-/* // of a partition AND its neighbors */
-/* struct node_gra *BuildNetFromPartNeig(struct group *part) */
-/* { */
-/*   struct node_gra *net = NULL; */
-/*   struct node_gra *last = NULL; */
-/*   struct node_gra *new = NULL; */
-/*   struct node_lis *p = part->nodeList; */
-/*   struct node_lis *nei = NULL; */
+// ---------------------------------------------------------------------
+// Creates a network that contains only the nodes in one of the groups
+// of a partition AND its neighbors
+// ---------------------------------------------------------------------
+struct node_gra *BuildNetFromPartNeig(struct group *part)
+{
+  struct node_gra *net = NULL;
+  struct node_gra *last = NULL;
+  struct node_gra *new = NULL;
+  struct node_lis *p = part->nodeList;
+  struct node_lis *nei = NULL;
 
-/*   net = CreateHeaderGraph(); */
-/*   last = net; */
+  net = CreateHeaderGraph();
+  last = net;
 
-/*   // Loop over nodes in the partition */
-/*   while(p->next != NULL){ */
-/*     p = p->next; */
-    
-/*     // Add the node */
-/*     new = CreateNodeGraph(last, p->ref->num, */
-/* 			  p->ref->pos_x, p->ref->pos_y); */
-/*     new->state = p->ref->state; */
-/*     new->coorX = p->ref->coorX; */
-/*     new->coorY = p->ref->coorY; */
-/*     new->coorZ = p->ref->coorZ; */
-/*     new->inGroup = p->ref->inGroup; */
+  // Loop over nodes in the partition
+  while ((p = p->next) != NULL){
+    // Add the node
+    new = CreateNodeGraph(last, p->ref->label);
+    new->state = p->ref->state;
+    new->coorX = p->ref->coorX;
+    new->coorY = p->ref->coorY;
+    new->coorZ = p->ref->coorZ;
+    new->inGroup = p->ref->inGroup;
+    last = new;
+    CopyAdjacencyList(p->ref, new);
 
-/*     last = new; */
-
-/*     CopyAdjacencyList(p->ref, new); */
-
-/*     // Add the neighbors of the node */
-/*     nei = p->ref->neig; */
-/*     while (nei->next != NULL) { */
-/*       nei = nei->next; */
-      
-/*       // If the node does not exist and is in another module, add it */
-/*       // to the network */
-/*       if ( (Exist(nei->node, net) == 0) && */
-/* 	   (nei->ref->inGroup != p->ref->inGroup) ) { */
-/* 	new = CreateNodeGraph(last, nei->ref->num, */
-/* 			      nei->ref->pos_x, nei->ref->pos_y); */
-/* 	new->state = nei->ref->state; */
-/* 	new->coorX = nei->ref->coorX; */
-/* 	new->coorY = nei->ref->coorY; */
-/* 	new->coorZ = nei->ref->coorZ; */
-/* 	new->inGroup = nei->ref->inGroup; */
-
-/* 	last = new; */
-
-/* 	CopyAdjacencyList(nei->ref, new); */
-/*       } */
-/*     } */
-/*   } */
+    // Add the neighbors of the node
+    nei = p->ref->neig;
+    while ((nei = nei->next) != NULL) {
+      // If the node does not exist and is in another module, add it
+      // to the network
+      if ((IsThereNode(nei->ref->label, net) == 0) &&
+	  (nei->ref->inGroup != p->ref->inGroup)) {
+	new = CreateNodeGraph(last, nei->ref->label);
+	new->state = nei->ref->state;
+	new->coorX = nei->ref->coorX;
+	new->coorY = nei->ref->coorY;
+	new->coorZ = nei->ref->coorZ;
+	new->inGroup = nei->ref->inGroup;
+	last = new;
+	CopyAdjacencyList(nei->ref, new);
+      }
+    }
+  }
   
-/*   CleanAdjacencies(net); */
-/*   RewireAdjacency(net); */
+  CleanAdjacencies(net);
+  RewireAdjacency(net);
 
-/*   return net; */
-/* } */
+  return net;
+}
 
 
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
-// Partition reseting
+// Network-partition operations
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
 
@@ -691,6 +723,199 @@ void ResetNetGroup(struct node_gra *net)
     net->inGroup = -1;
 
   return;
+}
+
+// ---------------------------------------------------------------------
+// Given a partition and a network, set all the pointers and all the
+// group and node attributes to the right values.
+// ---------------------------------------------------------------------
+void MapPartToNet(struct group *part, struct node_gra *net)
+{
+  struct group *g = NULL;
+  struct node_lis *nod;
+  int totlink, inlink;
+  double totlinkW, inlinkW;
+  void *nodeDict = NULL;
+  struct node_tree *treeNode = NULL;
+  struct node_gra *node = NULL;
+
+  // Reset the group of all nodes
+  ResetNetGroup(net);
+
+  // Create the nodeDict for fast access to nodes by label
+  nodeDict = MakeLabelDict(net);
+
+  // Go through the groups, reset attributes, and point pointers
+  g = part;
+  while ((g = g->next) != NULL) {
+    g->totlinks = 0;
+    g->inlinks = 0;
+    g->outlinks = 0;
+    g->totlinksW = 0.0;
+    g->inlinksW = 0.0;
+    g->outlinksW = 0.0;
+
+    nod = g->nodeList;
+    while ((nod = nod->next) != NULL) {
+      printf("HERE --%s--\n", nod->nodeLabel);
+      // Get the node_gra by label
+      treeNode = CreateNodeTree();
+      strcpy(treeNode->label, nod->nodeLabel);
+      printf("HERE --%s--\n", nod->nodeLabel);
+      treeNode = *(struct node_tree **)tfind((void *)treeNode,
+					     &nodeDict,
+					     NodeTreeLabelCompare);
+      printf("HERE\n");
+      node = treeNode->ref;
+      FreeNodeTree(treeNode, preorder, 0);
+      printf("HERE\n");
+
+      // Update the properties of the group
+      nod->ref = node;
+      // Update the properties of the node
+      node->inGroup = g->label;
+    }
+  }
+
+  // Count links in groups
+  g = part;
+  while ((g = g->next) != NULL) {
+    nod = g->nodeList;
+    while ((nod = nod->next) != NULL) {
+      totlink = CountLinks(nod->ref);
+      inlink = NLinksToGroup(nod->ref,g);
+      totlinkW = NodeStrength(nod->ref);
+      inlinkW = StrengthToGroup(nod->ref, g);
+      g->totlinks += totlink;
+      g->inlinks += inlink;
+      g->totlinksW += totlinkW;
+      g->inlinksW += inlinkW;
+    }
+    g->inlinks /= 2;
+    g->totlinks -= g->inlinks;
+    g->outlinks = g->totlinks - g->inlinks;
+    g->inlinksW /= 2.0;
+    g->totlinksW -= g->inlinksW;
+    g->outlinksW = g->totlinksW - g->inlinksW;
+  }
+
+  return;
+}
+
+// ---------------------------------------------------------------------
+// Same as MapPartToNet but ONLY the network (not the partition) is
+// updated. This enables one to map a partition to networks that are a
+// subset of the original network on which the partition is based.
+// ---------------------------------------------------------------------
+void MapPartToNetSoft(struct group *part, struct node_gra *net)
+{
+  struct group *g = NULL;
+  struct node_lis *nod;
+  void *nodeDict = NULL;
+  struct node_tree *treeNode = NULL;
+  struct node_gra *node = NULL;
+
+  // Reset the group of all nodes
+  ResetNetGroup(net);
+
+  // Create the nodeDict for fast access to nodes by label
+  nodeDict = MakeLabelDict(net);
+
+  // Go through the groups, reset attributes, and point pointers
+  g = part;
+  while ((g = g->next) != NULL) {
+    g->totlinks = 0;
+    g->inlinks = 0;
+    g->outlinks = 0;
+    g->totlinksW = 0.0;
+    g->inlinksW = 0.0;
+    g->outlinksW = 0.0;
+
+    nod = g->nodeList;
+    while ((nod = nod->next) != NULL) {
+      // Get the node_gra by label
+      treeNode = CreateNodeTree();
+      strcpy(treeNode->label, nod->nodeLabel);
+      node = (*(struct node_tree **)tfind((void *)treeNode,
+					  &nodeDict,
+					  NodeTreeLabelCompare))->ref;
+      FreeNodeTree(treeNode, preorder, 0);
+      // Update the properties of the node
+      node->inGroup = g->label;
+    }
+  }
+
+  return;
+}
+
+// ---------------------------------------------------------------------
+// Given an undirected network, create a partition in which each group
+// corresponds to an isolated cluster of the network.
+// ---------------------------------------------------------------------
+struct group *ClustersPartition(struct node_gra *net)
+{
+  struct node_gra *p, *last;
+  struct node_bfs *list,*lp,*lp2;
+  int nnod=0;
+  int anod=0;
+  int size;
+  int size_ant;
+  struct group *part = NULL;
+  struct group *thisgroup = NULL;
+  int groupcoun = 0;
+  int d;
+
+  // Initialize some variables
+  part = CreateHeaderGroup();
+  size=0;
+  ResetNetGroup(net);
+  nnod = CountNodes(net);
+  list = CreateHeaderList();
+
+  // Start the search for clusters
+  last = net;
+  do{
+    // Find the first unclassified node...
+    p = last->next;
+    while (p->inGroup >= 0)
+      p = p->next;
+    last = p;
+
+    // Create a new group in the partition and add the node
+    thisgroup = CreateGroup(part, groupcoun++);
+    AddNodeToGroup(thisgroup, p);
+
+    // ...and enqueue it
+    ResetNodesState(net);
+    d = 0;
+    Enqueue(p, list, list, &size, d);
+    anod++;
+    lp = list;
+
+    // Update the list with successive neighbors
+    do{
+      size_ant = size;
+      lp = RenewQueue(list, lp, &size, d);
+      lp2 = lp;
+
+      while (lp2->next != NULL) {
+	lp2 = lp2->next;
+	anod++;
+
+	// Add the node to the group
+	AddNodeToGroup(thisgroup, lp2->ref);
+      }
+      d++;
+    } while(size != size_ant);
+
+    ClearList(list, &size);
+  } while(anod < nnod);
+
+  // Free memory
+  free(list);
+
+  // Done
+  return part;
 }
 
 
@@ -706,7 +931,7 @@ void ResetNetGroup(struct node_gra *net)
 // etc.). Otherwise, each node is printed in a row and groups are
 // separated by a line with '//'
 // ---------------------------------------------------------------------
-void FPrintGroups(FILE *outf, struct group *partition, int list_sw)
+void FPrintPartition(FILE *outf, struct group *partition, int list_sw)
 {
   struct group *g = partition;
   struct node_lis *p;
@@ -725,9 +950,9 @@ void FPrintGroups(FILE *outf, struct group *partition, int list_sw)
       p = g->nodeList;
       while ((p = p->next) != NULL) {
 	if (list_sw == 0)
-	  fprintf(outf, " %g", p->ref->label);
+	  fprintf(outf, " %s", p->ref->label);
 	else
-	  fprintf(outf, "%g\n", p->ref->label);
+	  fprintf(outf, "%s\n", p->ref->label);
       }
 
       // End group
@@ -793,930 +1018,165 @@ double ModularityWeight(struct group *part)
   return modul;
 }
 
+// ---------------------------------------------------------------------
+// Given a group, SAGroupSplit returns a split of the nodes into two
+// subgroups. It uses SA, so initial and final temperature must be
+// provided. If cluster_sw == 1, then the function checks first
+// whether the group is disconnected; if it is, then it returns (with
+// some probability) a partition along the lines of the existing
+// clusters without any SA (with complementary probability, it still
+// does the SA).
+// ---------------------------------------------------------------------
+struct group *SAGroupSplit(struct group *targ,
+			   double Ti, double Tf, double Ts,
+			   int cluster_sw,
+			   struct prng *gen)
+{
+  struct group *glist[2];
+  struct group *split = NULL;
+  struct node_gra **nodeList;
+  struct node_gra *net = NULL;
+  struct node_gra *p = NULL;
+  struct node_p;
+  int nnod = 0;
+  int i;
+  int des;
+  int target, oldg, newg;
+  int innew, inold, nlink;
+  int totallinks=0;
+  double dE=0.0, energy=0.0;
+  double T;
+  int ngroups, g1, g2;
+  double prob = 0.5;
 
+  nodeList = (struct node_gra**)malloc(targ->size * sizeof(struct node_gra *));
+  glist[0] = NULL;
+  glist[1] = NULL;
 
+  // Build a network from the nodes in the target group
+  net = BuildNetFromPart(targ);
 
+  // Check if the network is connected
+  split = ClustersPartition(net);
+  ngroups = NGroups(split);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* // Creates a Pajek file with the nodes of a module (and its neighbors) */
-/* // only */
-/* PrintPajekOneModule(struct node_gra *net, */
-/* 		    struct group *mod, struct group *part, */
-/* 		    struct group *part2,  */
-/* 		    char netF[], char parF[], char par2F[]) */
-/* { */
-/*   struct node_gra *p = net; */
-/*   struct node_lis *li; */
-/*   FILE *fit1, *fit2, *fit3; */
-/*   int trans[maxim_int]; */
-/*   int i, co; */
-/*   int nnod = 0; */
-
-/*   for(i=0; i<maxim_int; i++){ */
-/*     trans[i] = 0; */
-/*   } */
-
-/*   // Count the nodes */
-/*   p = net; */
-/*   while (p->next != NULL) { */
-/*     p = p->next; */
-/*     if ( (p->inGroup == mod->label) || */
-/* 	 (NLinksToGroup(p, mod) > 0) ) */
-/*       nnod ++; */
-/*   } */
+  if (
+      cluster_sw == 1 &&         // cluster switch is on
+      ngroups > 1 &&             // network is not connected
+      prng_get_next(gen) < prob  // with some probability
+      ) {
+    
+    // Merge groups randomly until only two are left
+    while (ngroups > 2) {
+      // Select two random groups
+      g1 = ceil(prng_get_next(gen)* (double)ngroups);
+      do {
+	g2 = ceil(prng_get_next(gen)* (double)ngroups);
+      } while (g2 == g1);
       
-/*   // Open the files  */
-/*   fit1 = fopen(netF, "w"); */
-/*   fit2 = fopen(parF, "w"); */
-/*   if (part2 != NULL) */
-/*     fit3 = fopen(par2F, "w"); */
-
-/*   fprintf(fit1,"*Vertices %d\n", nnod); */
-/*   fprintf(fit2,"*Vertices %d\n", nnod); */
-/*   if (part2 != NULL) */
-/*     fprintf(fit3,"*Vertices %d\n", nnod); */
-
-/*   // Write the files */
-/*   co = 1; */
-/*   p = net; */
-/*   while (p->next != NULL) { */
-/*     p = p->next; */
-
-/*     // Print the node if it is in the module or directly connected to */
-/*     // the module */
-/*     if ( (p->inGroup == mod->label) || */
-/* 	 (NLinksToGroup(p, mod) > 0) ) { */
-/*       trans[p->num] = co++; */
-/*       // Print the node */
-/*       fprintf(fit1,"%d \"%d\"           %lf %lf %lf\n", */
-/* 	      trans[p->num], p->num+1, p->coorX, p->coorY, p->coorZ); */
-/*       // Print if the node is in the module (1) or directly connected */
-/*       // to the module (2) */
-/*       if (p->inGroup == mod->label) */
-/* 	fprintf(fit2,"   1\n"); */
-/*       else */
-/* 	fprintf(fit2,"   2\n"); */
-/*       // Print the additional partition, if any */
-/*       if (part2 != NULL) { */
-/* 	MapPartToNet(part2, net); */
-/* 	fprintf(fit3,"   %d\n", p->inGroup+1); */
-/* 	MapPartToNet(part, net); */
-/*       } */
-/*     } */
-/*   } */
-
-/*   fprintf(fit1, "*Arcs\n"); */
-/*   fprintf(fit1, "*Edges\n"); */
-/*   p = net; */
-/*   while (p->next != NULL) { */
-/*     p = p->next; */
-/*     if (trans[p->num] != 0) { */
-/*       li = p->neig; */
-/*       while (li->next != NULL) { */
-/* 	li = li->next; */
-/* 	if(trans[li->node] != 0) */
-/* 	  fprintf(fit1,"%d   %d   1\n",trans[p->num],trans[li->node]); */
-/*       } */
-/*     } */
-/*   } */
-
-/*   fclose(fit1); */
-/*   fclose(fit2); */
-/*   if (part2 != NULL) */
-/*     fclose(fit3); */
-/* } */
-
-
-/* PrintPajekGraphPartition(struct node_gra *net) */
-/* { */
-/*   struct node_gra *p=net; */
-/*   struct node_lis *li; */
-/*   FILE *fit1,*fit2; */
-/*   int trans[maxim_int]; */
-/*   int transg[maxim_int]; */
-/*   int i,co; */
-/*   int nnod; */
-/*   int gcount = 0; */
-
-/*   for(i=0;i<maxim_int;i++){ */
-/*     trans[i] = 0; */
-/*     transg[i] = 0; */
-/*   } */
-
-
-/*   nnod = CountNodes(net); */
-
-/*   fit1=fopen("graph.net","w"); */
-/*   fit2=fopen("partition.clu","w"); */
-
-/*   fprintf(fit1,"*Vertices %d\n",nnod); */
-/*   fprintf(fit2,"*Vertices %d\n",nnod); */
-
-/*   co=1; */
-/*   p=net; */
-/*   while(p->next!=NULL){ */
-/*     p=p->next; */
-/*     if(trans[p->num]==0){ */
-/*       trans[p->num]=co; */
-/*       co++; */
-/*     } */
-/*     fprintf(fit1,"%d *%d*           %lf %lf %lf\n",trans[p->num],p->num+1,p->coorX,p->coorY,p->coorZ); */
-/* /\*     fprintf(fit1,"%d *%d*\n",trans[p->num],p->num+1); *\/ */
-
-/*     if (transg[p->inGroup] == 0){ */
-/*       gcount++; */
-/*       transg[p->inGroup] = gcount; */
-/*     } */
-/* /\*     fprintf(fit2,"   %d\n",transg[p->inGroup]); *\/ */
-/*     fprintf(fit2,"   %d\n", p->inGroup+1); */
-/*   } */
-
-/*   fprintf(fit1,"*Arcs\n"); */
-/*   fprintf(fit1,"*Edges\n"); */
-/*   p=net; */
-/*   while(p->next!=NULL){ */
-/*     p=p->next; */
-/*     li=p->neig; */
-/*     while(li->next!=NULL){ */
-/*       li=li->next; */
-/* /\*        if(p->num<li->node) *\/ */
-/* 	fprintf(fit1,"%d   %d   1\n",trans[p->num],trans[li->node]); */
-/*     } */
-/*   } */
-
-/*   fclose(fit1); */
-/*   fclose(fit2); */
-/* } */
-
-/* PrintPajekGraphPartitionFName(struct node_gra *net, */
-/* 			      char netf[], char parf[]) */
-/* { */
-/*   struct node_gra *p=net; */
-/*   struct node_lis *li; */
-/*   FILE *fit1,*fit2; */
-/*   int trans[maxim_int]; */
-/*   int i,co; */
-/*   int nnod; */
-/*   int gcount = 0; */
-
-/*   for(i=0; i<maxim_int; i++){ */
-/*     trans[i] = 0; */
-/*   } */
-
-/*   nnod = CountNodes(net); */
-
-/*   fit1=fopen(netf,"w"); */
-/*   fit2=fopen(parf,"w"); */
-
-/*   fprintf(fit1,"*Vertices %d\n",nnod); */
-/*   fprintf(fit2,"*Vertices %d\n",nnod); */
-
-/*   co = 1; */
-/*   p = net; */
-/*   while ((p = p->next) != NULL) { */
-/*     trans[p->num] = co++; */
-
-/*     fprintf(fit1,"%d \"%d\"           %lf %lf %lf\n", */
-/* 	    trans[p->num], p->num+1, p->coorX, p->coorY, p->coorZ); */
-/* /\*     fprintf(fit1,"%d *%d*\n",trans[p->num],p->num+1); *\/ */
-
-/*     fprintf(fit2,"   %d\n", p->inGroup+1); */
-/*   } */
-
-/*   fprintf(fit1,"*Arcs\n"); */
-/*   fprintf(fit1,"*Edges\n"); */
-/*   p=net; */
-/*   while(p->next!=NULL){ */
-/*     p=p->next; */
-/*     li=p->neig; */
-/*     while(li->next!=NULL){ */
-/*       li=li->next; */
-/* /\*        if(p->num<li->node) *\/ */
-/*       fprintf(fit1,"%d   %d   1\n", */
-/* 	      trans[p->num],trans[li->node]); */
-/*     } */
-/*   } */
-
-/*   fclose(fit1); */
-/*   fclose(fit2); */
-/* } */
-
-/* // Same as PrintPajekGraphPartition but the labels of the nodes */
-/* // are taken from the "original" vector */
-/* PrintPajekGraphPartitionTrans(struct node_gra *net,int label[]) */
-/* { */
-/*   struct node_gra *p=net; */
-/*   struct node_lis *li; */
-/*   FILE *fit1,*fit2; */
-/*   int trans[max_size]; */
-/*   int transg[max_size]; */
-/*   int i,co; */
-/*   int nnod; */
-/*   int gcount = 0; */
-
-/*   for(i=0;i<max_size;i++){ */
-/*     trans[i] = 0; */
-/*     transg[i] = 0; */
-/*   } */
-
-/*   nnod = CountNodes(net); */
-
-/*   fit1=fopen("graph.net","w"); */
-/*   fit2=fopen("partition.clu","w"); */
-
-/*   fprintf(fit1,"*Vertices %d\n",nnod); */
-/*   fprintf(fit2,"*Vertices %d\n",nnod); */
-
-/*   co=1; */
-/*   p=net; */
-/*   while(p->next!=NULL){ */
-/*     p=p->next; */
-/*     if(trans[p->num]==0){ */
-/*       trans[p->num]=co; */
-/*       co++; */
-/*     } */
-/*     fprintf(fit1,"%d *%d*           %lf %lf %lf\n",trans[p->num],p->num+1,p->coorX,p->coorY,p->coorZ); */
-/* /\*     fprintf(fit1,"%d *%d*\n",trans[p->num],label[p->num]+1); *\/ */
-
-/*     if (transg[p->inGroup] == 0){ */
-/*       gcount++; */
-/*       transg[p->inGroup] = gcount; */
-/*     } */
-/*     fprintf(fit2,"   %d\n",transg[p->inGroup]); */
-/*   } */
-
-/*   fprintf(fit1,"*Arcs\n"); */
-/*   fprintf(fit1,"*Edges\n"); */
-/*   p=net; */
-/*   while(p->next!=NULL){ */
-/*     p=p->next; */
-/*     li=p->neig; */
-/*     while(li->next!=NULL){ */
-/*       li=li->next; */
-/* /\*        if(p->num<li->node) *\/ */
-/* 	fprintf(fit1,"%d   %d   1\n",trans[p->num],trans[li->node]); */
-/*     } */
-/*   } */
-
-/*   fclose(fit1); */
-/*   fclose(fit2); */
-/* } */
-
-
-/* // Same as PrintPajekGraphPartition but groups smaller than */
-/* // min are all marked as group 1 */
-/* PrintPajekGraphPartitionMin(struct node_gra *net,struct group *part,int min) */
-/* { */
-/*   struct node_gra *p=net; */
-/*   struct node_lis *li; */
-/*   FILE *fit1,*fit2; */
-/*   int trans[max_size]; */
-/*   int transg[max_size]; */
-/*   int i,co; */
-/*   int nnod; */
-/*   int gcount = 1; */
-/*   struct group *glist[max_size]; */
-/*   struct group *g = NULL; */
-
-/*   for(i=0;i<max_size;i++){ */
-/*     trans[i] = 0; */
-/*     transg[i] = 0; */
-/*     glist[i] = NULL; */
-/*   } */
-
-/*   g = part; */
-/*   while(g->next != NULL){ */
-/*     g = g->next; */
-/*     glist[g->label] = g; */
-/*   } */
-
-/*   nnod = CountNodes(net); */
-
-/*   fit1=fopen("graph.net","w"); */
-/*   fit2=fopen("partition.clu","w"); */
-
-/*   fprintf(fit1,"*Vertices %d\n",nnod); */
-/*   fprintf(fit2,"*Vertices %d\n",nnod); */
-
-/*   co=1; */
-/*   p=net; */
-/*   while(p->next!=NULL){ */
-/*     p=p->next; */
-/*     if(trans[p->num]==0){ */
-/*       trans[p->num]=co; */
-/*       co++; */
-/*     } */
-/*     fprintf(fit1,"%d *%d*           %lf %lf %lf\n",trans[p->num],p->num+1,p->coorX,p->coorY,p->coorZ); */
-/* /\*     fprintf(fit1,"%d *%d*\n",trans[p->num],p->num+1); *\/ */
-
-/*     if (transg[p->inGroup] == 0){ */
-/*       if(glist[p->inGroup]->size >= min){ */
-/* 	gcount++; */
-/* 	transg[p->inGroup] = gcount; */
-/*       } */
-/*       else{ //groups smaller than min are pooled into partition 1 */
-/* 	transg[p->inGroup] = 1; */
-/*       } */
-/*     } */
-/*     fprintf(fit2,"   %d\n",transg[p->inGroup]); */
-/*   } */
-
-/*   fprintf(fit1,"*Arcs\n"); */
-/*   fprintf(fit1,"*Edges\n"); */
-/*   p=net; */
-/*   while(p->next!=NULL){ */
-/*     p=p->next; */
-/*     li=p->neig; */
-/*     while(li->next!=NULL){ */
-/*       li=li->next; */
-/* /\*        if(p->num<li->node) *\/ */
-/* 	fprintf(fit1,"%d   %d   1\n",trans[p->num],trans[li->node]); */
-/*     } */
-/*   } */
-
-/*   fclose(fit1); */
-/*   fclose(fit2); */
-/* } */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* struct group *SCSPartition(struct node_gra *root) */
-/* { */
-/*   struct node_gra *root_cop=NULL; */
-/*   struct node_gra *root_loc=NULL; */
-/*   struct node_gra *p,*p2; */
-/*   struct node_gra *anode; */
-/*   struct node_gra *temp;   */
-/*   struct node_bfs *list,*lp,*lp2; */
-/*   int nnod=0; */
-/*   int anod=0; */
-/*   int *size,res1; */
-/*   int selected[max_size]; */
-/*   int this_net[max_size]; */
-/*   int i; */
-/*   int size_ant; */
-/*   struct group *part = NULL; */
-/*   struct group *thisgroup = NULL; */
-/*   int groupcoun = 0; */
-/*   int d; */
-
-/*   part = CreateHeaderGroup(); */
-
-/*   for(i=0;i<max_size;i++) */
-/*     selected[i]=0; */
-  
-/*   root_cop=CopyNetwork(root); */
-
-/*   res1=0; */
-/*   size=&res1; */
-
-/*   nnod=CountNodes(root); */
-/*   list=CreateHeaderList(); */
-
-/*   do{ */
-/*     root_loc=CreateHeaderGraph(); */
-/*     p=root->next; */
-/*     while(selected[p->num]!=0) */
-/*       p=p->next; */
-/*     selected[p->num]=1; */
-
-/*     for(i=0;i<max_size;i++) */
-/*       this_net[i]=0; */
-/*     d=0; */
-
-/*     ResetNodesState(root); */
-/*     Enqueue(p,list,list,size,d); */
-/*     anod++; */
-/* /\*     printf("Starting network with node %d      Total: %d/%d\n",p->num+1,anod,nnod); *\/ */
-/*     lp=list; */
-/*     temp=CreateNodeGraph(root_loc,p->num,0,0); */
-/*     CopyAdjacencyList(p,temp); */
-/*     this_net[p->num]=1; */
-    
-/*     do{ */
-/*       size_ant=*size; */
-/*       lp=RenewQueue(list,lp,size,d); */
-/*       lp2=lp; */
-/*       while(lp2->next!=NULL){ */
-/* 	if(AreConnectedList(root_cop,GetNode(((lp2->next)->ref)->num,root_cop),this_net)==0){ */
-/* 	  DequeueOne(list,lp2,size); */
-/* 	} */
-/* 	else{ */
-/* 	  temp=CreateNodeGraph(root_loc,((lp2->next)->ref)->num,0,0); */
-/* 	  CopyAdjacencyList(GetNode(((lp2->next)->ref)->num,root),temp); */
-/* 	  this_net[temp->num]=1; */
-/* 	  selected[temp->num]=1; */
-/* 	  anod++; */
-/* /\* 	  printf("   adding %d      Total: %d/%d\n",temp->num+1,anod,nnod); *\/ */
-/* 	  lp2=lp2->next; */
-/* 	} */
-/*       } */
-/*       d++; */
-/*     }while(*size!=size_ant); */
-
-/*     CleanAdjacenciesMat(root_loc,this_net); */
-/*     RewireAdjacency(root_loc); */
-
-/*     //root_loc has been build!!! */
-/*     thisgroup = CreateGroup(part,groupcoun++); */
-    
-/*     anode = root_loc; */
-/*     while(anode->next != NULL){ */
-/*       anode = anode->next; */
-/*       AddNodeToGroup(thisgroup,anode); */
-/*     } */
-
-/*     ClearList(list,size); */
-/*     RemoveGraph(root_loc); */
-
-
-
-/*   }while(anod<nnod); */
-
-/*   RemoveGraph(root_cop); */
-
-/*   MapPartToNet(part, root); */
-
-/*   return part; */
-/* } */
-
-
-/* struct group *ClustersPartition(struct node_gra *root) */
-/* { */
-/*   struct node_gra *p, *last; */
-/*   struct node_gra *anode; */
-/*   struct node_bfs *list,*lp,*lp2; */
-/*   int nnod=0; */
-/*   int anod=0; */
-/*   int size; */
-/*   int i; */
-/*   int size_ant; */
-/*   struct group *part = NULL; */
-/*   struct group *thisgroup = NULL; */
-/*   int groupcoun = 0; */
-/*   int d; */
-
-/*   part = CreateHeaderGroup(); */
-  
-/*   size=0; */
-
-/*   nnod = CountNodes(root); */
-/*   list = CreateHeaderList(); */
-
-/*   // Set all nodes to "group -1" */
-/*   ResetNetGroup(root); */
-
-/*   // Start the search for clusters */
-/*   last = root; */
-
-/*   do{ */
-/*     // Find the first unclassified node... */
-/*     p = last->next; */
-/*     while (p->inGroup >= 0) */
-/*       p = p->next; */
-/* /\*     printf("Starting with: %d\n", p->num+1); *\/ */
-
-/*     last = p; */
-
-/*     // Create a new group in the partition and add the node */
-/*     thisgroup = CreateGroup(part, groupcoun++); */
-/*     AddNodeToGroup(thisgroup, p); */
-
-/*     // ...and enqueue it */
-/*     ResetNodesState(root); */
-/*     d=0; */
-/*     Enqueue(p, list, list, &size, d); */
-/*     anod++; */
-/*     lp = list; */
-    
-/*     do{ */
-/*       size_ant = size; */
-/*       lp = RenewQueue(list, lp, &size, d); */
-/*       lp2 = lp; */
-
-/*       while(lp2->next != NULL){ */
-/* 	lp2 = lp2->next; */
-/* /\* 	printf("\tadding: %d\n", ((lp2->ref)->num)+1);	 *\/ */
-/* 	anod++; */
-
-/* 	// Add the node to the group */
-/* 	AddNodeToGroup(thisgroup, lp2->ref); */
-/*       } */
-/*       d++; */
-/*     } while(size != size_ant); */
-
-/*     ClearList(list, &size); */
-
-/*   } while(anod < nnod); */
-
-/*   free(list); */
-
-/*   return part; */
-/* } */
-
-
-/* struct group *BestNetworkSplit(struct group *targ, struct prng *gen) */
-/* { */
-/*   struct group *glist[2]; */
-/*   struct group *split = NULL; */
-/*   struct node_gra *nlist[max_size]; */
-/*   struct node_gra *net = NULL; */
-/*   struct node_gra *p = NULL; */
-/*   struct node_p; */
-/*   int nnod = 0; */
-/*   int i; */
-/*   int des; */
-/*   int target,oldg,newg; */
-/*   int innew,inold,nlink; */
-/*   int totallinks = 0; */
-/*   double dE=0.0, energy=0.0; */
-/*   double T, Ti = 10e-3, Tf = 10e-5, Ts = 0.95; */
-
-/*   for(i=0; i<max_size; i++){ */
-/*     nlist[i] = NULL; */
-/*   } */
-/*   glist[0] = NULL; */
-/*   glist[1] = NULL; */
-
-/*   // Build a network from the nodes in the target group */
-/*   net = BuildNetFromPart(targ); */
-
-/*   // Create the groups */
-/*   split = CreateHeaderGroup(); */
-/*   glist[0] = CreateGroup(split,0); */
-/*   glist[1] = CreateGroup(split,1); */
-
-/*   // Randomly assign the nodes to the groups */
-/*   p = net; */
-/*   while(p->next != NULL){ */
-/*     p = p->next; */
-/*     nlist[nnod] = p; */
-/*     totallinks += CountLinks(p); */
-/*     nnod++; */
-
-/*     des = floor(prng_get_next(gen)*2.0); */
-/*     AddNodeToGroup(glist[des],p); */
-/*   } */
-
-/*   totallinks /= 2; */
-
-/*   // Do the SA to "optimize" the splitting */
-/*   T = Ti; */
-/*   while( T > Tf){ */
-
-/*     for (i=0; i< nnod; i++){ */
-/*       target = floor(prng_get_next(gen) * (double)nnod); */
-/*       oldg = nlist[target]->inGroup; */
-/*       if(oldg == 0) */
-/* 	newg = 1; */
-/*       else */
-/* 	newg = 0; */
-
-/*       // Calculate the change of energy */
-/*       inold = NLinksToGroup(nlist[target],glist[oldg]); */
-/*       innew = NLinksToGroup(nlist[target],glist[newg]); */
-/*       nlink = CountLinks(nlist[target]); */
-
-/*       dE = 0.0; */
-
-/*       dE -= (double)(2 * glist[oldg]->inlinks) / */
-/* 	(double)totallinks -  */
-/* 	(double)(glist[oldg]->totlinks+glist[oldg]->inlinks) * */
-/* 	(double)(glist[oldg]->totlinks+glist[oldg]->inlinks) / */
-/* 	((double)totallinks * (double)totallinks); */
-
-/*       dE -= (double)(2 * glist[newg]->inlinks) / */
-/* 	(double)totallinks -  */
-/* 	(double)(glist[newg]->totlinks+glist[newg]->inlinks) * */
-/* 	(double)(glist[newg]->totlinks+glist[newg]->inlinks) / */
-/* 	((double)totallinks * (double)totallinks); */
-
-/*       dE += (double)(2*glist[oldg]->inlinks - 2*inold) / */
-/* 	(double)totallinks - */
-/* 	(double)(glist[oldg]->totlinks + glist[oldg]->inlinks - */
-/* 		 nlink ) * */
-/* 	(double)(glist[oldg]->totlinks + glist[oldg]->inlinks - */
-/* 		 nlink ) / */
-/* 	((double)totallinks * (double)totallinks); */
-
-/*       dE += (double)(2*glist[newg]->inlinks + 2*innew) / */
-/* 	(double)totallinks - */
-/* 	(double)(glist[newg]->totlinks + glist[newg]->inlinks + */
-/* 		 nlink ) * */
-/* 	(double)(glist[newg]->totlinks + glist[newg]->inlinks + */
-/* 		 nlink ) / */
-/* 	((double)totallinks * (double)totallinks); */
-
-/*       // Accept the change if it increases the energy function */
-/*       if( (dE >= 0.0) || (prng_get_next(gen) < exp(dE/T)) ){ */
-/* 	MoveNode(nlist[target],glist[oldg],glist[newg]); */
-/* 	energy += dE; */
-/*       } */
-/*     } */
-
-/*     T = T * Ts; */
-/*   } */
-
-/*   RemoveGraph(net); */
-
-/*   return split; */
-/* } */
-
-
-/* struct group *ThermalNetworkSplit(struct group *targ,double Ti, double Tf, struct prng *gen) */
-/* { */
-/*   struct group *glist[2]; */
-/*   struct group *split = NULL; */
-/*   struct node_gra *nlist[max_size]; */
-/*   struct node_gra *net = NULL; */
-/*   struct node_gra *p = NULL; */
-/*   struct node_p; */
-/*   int nnod = 0; */
-/*   int i; */
-/*   int des; */
-/*   int target,oldg,newg; */
-/*   int innew,inold,nlink; */
-/*   int totallinks=0; */
-/*   double dE=0.0, energy=0.0; */
-/*   double T, Ts = 0.95; */
-
-/*   for(i=0; i<max_size; i++){ */
-/*     nlist[i] = NULL; */
-/*   } */
-/*   glist[0] = NULL; */
-/*   glist[1] = NULL; */
-
-/*   // Build a network from the nodes in the target group */
-/*   net = BuildNetFromPart(targ); */
-
-/*   // Create the groups */
-/*   split = CreateHeaderGroup(); */
-/*   glist[0] = CreateGroup(split,0); */
-/*   glist[1] = CreateGroup(split,1); */
-
-/*   // Randomly assign the nodes to the groups */
-/*   p = net; */
-/*   while(p->next != NULL){ */
-/*     p = p->next; */
-/*     nlist[nnod] = p; */
-/*     totallinks += CountLinks(p); */
-/*     nnod++; */
-
-/*     des = floor(prng_get_next(gen)*2.0); */
-/*     AddNodeToGroup(glist[des],p); */
-/*   } */
-
-/*   totallinks /= 2; */
-
-/*   // Do the SA to "optimize" the splitting */
-/*   T = Ti; */
-/*   if ( totallinks > 0 ) { */
-/*     while( T > Tf){ */
-
-/*       for (i=0; i< nnod; i++){ */
-/* 	target = floor(prng_get_next(gen) * (double)nnod); */
-/* 	oldg = nlist[target]->inGroup; */
-/* 	if(oldg == 0) */
-/* 	  newg = 1; */
-/* 	else */
-/* 	  newg = 0; */
-	
-/* 	// Calculate the change of energy */
-/* 	inold = NLinksToGroup(nlist[target],glist[oldg]); */
-/* 	innew = NLinksToGroup(nlist[target],glist[newg]); */
-/* 	nlink = CountLinks(nlist[target]); */
-	
-/* 	dE = 0.0; */
-	
-/* 	dE -= (double)(2 * glist[oldg]->inlinks) / */
-/* 	  (double)totallinks -  */
-/* 	  (double)(glist[oldg]->totlinks+glist[oldg]->inlinks) * */
-/* 	  (double)(glist[oldg]->totlinks+glist[oldg]->inlinks) / */
-/* 	  ((double)totallinks * (double)totallinks); */
-	
-/* 	dE -= (double)(2 * glist[newg]->inlinks) / */
-/* 	  (double)totallinks -  */
-/* 	  (double)(glist[newg]->totlinks+glist[newg]->inlinks) * */
-/* 	  (double)(glist[newg]->totlinks+glist[newg]->inlinks) / */
-/* 	  ((double)totallinks * (double)totallinks); */
-
-/* 	dE += (double)(2*glist[oldg]->inlinks - 2*inold) / */
-/* 	  (double)totallinks - */
-/* 	  (double)(glist[oldg]->totlinks + glist[oldg]->inlinks - */
-/* 		   nlink ) * */
-/* 	  (double)(glist[oldg]->totlinks + glist[oldg]->inlinks - */
-/* 		   nlink ) / */
-/* 	  ((double)totallinks * (double)totallinks); */
+      glist[0] = split;
+      for(i=0; i<g1; i++)
+	glist[0] = glist[0]->next;
+      glist[1] = split;
+      for(i=0; i<g2; i++)
+	glist[1] = glist[1]->next;
+
+      // Merge
+      MergeGroups(glist[0], glist[1]);
+      split = CompressPart(split);
+      ngroups--;
+    }
+  }
+
+  else { // Network is connected or we want to ignore the clusters
+    // Remove SCS partition
+    RemovePartition(split);
+    ResetNetGroup(net);
+
+    // Create the groups
+    split = CreateHeaderGroup();
+    glist[0] = CreateGroup(split, 0);
+    glist[1] = CreateGroup(split, 1);
+
+    // Randomly assign the nodes to the groups
+    p = net;
+    while ((p = p->next) != NULL) {
+      nodeList[nnod] = p;
+      totallinks += CountLinks(p);
+      nnod++;
       
-/* 	dE += (double)(2*glist[newg]->inlinks + 2*innew) / */
-/* 	  (double)totallinks - */
-/* 	  (double)(glist[newg]->totlinks + glist[newg]->inlinks + */
-/* 		   nlink ) * */
-/* 	  (double)(glist[newg]->totlinks + glist[newg]->inlinks + */
-/* 		   nlink ) / */
-/* 	  ((double)totallinks * (double)totallinks); */
-
-/* 	// Accept the change according to the Boltzman factor */
-/* 	if( (dE >= 0.0) || (prng_get_next(gen) < exp(dE/T)) ){ */
-/* 	  MoveNode(nlist[target],glist[oldg],glist[newg]); */
-/* 	  energy += dE; */
-/* 	} */
-/*       } */
-
-/*       T = T * Ts; */
-/*     } // End of temperature loop */
-/*   } // End if totallinks > 0 */
-
-/*   RemoveGraph(net); */
-
-/*   return split; */
-/* } */
-
-
-/* // Same as ThermalNetworkSplit but checking, first, if isolate */
-/* // sub-clusters are present. If there are, the proposed split */
-/* // separates such groups. */
-/* struct group *ThermalPercNetworkSplit(struct group *targ,double Ti, double Tf, struct prng *gen) */
-/* { */
-/*   struct group *glist[2]; */
-/*   struct group *split = NULL; */
-/*   struct node_gra *nlist[max_size]; */
-/*   struct node_gra *net = NULL; */
-/*   struct node_gra *p = NULL; */
-/*   struct node_p; */
-/*   int nnod = 0; */
-/*   int i; */
-/*   int des; */
-/*   int target,oldg,newg; */
-/*   int innew,inold,nlink; */
-/*   int totallinks=0; */
-/*   double dE=0.0, energy=0.0; */
-/*   double T, Ts = 0.95; */
-/*   int ngroups, g1, g2; */
-/*   double prob = 0.5; */
-
-/*   for(i=0; i<max_size; i++){ */
-/*     nlist[i] = NULL; */
-/*   } */
-/*   glist[0] = NULL; */
-/*   glist[1] = NULL; */
-
-/*   // Build a network from the nodes in the target group */
-/*   net = BuildNetFromPart(targ); */
-
-/*   // Check if the network is connected */
-/*   split = ClustersPartition(net); */
-/*   ngroups = CountGroups(split); */
-
-/*   if ( ngroups > 1 && prng_get_next(gen) < prob) { // Network is not */
-/* 						   // connected */
+      des = floor(prng_get_next(gen) * 2.0);
+      AddNodeToGroup(glist[des], p);
+    }
+    totallinks /= 2;
     
-/*     // Merge groups randomly until only two are left */
-/*     while (ngroups > 2) { */
-/*       // Select two random groups */
-/*       g1 = ceil(prng_get_next(gen)* (double)ngroups); */
-/*       do { */
-/* 	g2 = ceil(prng_get_next(gen)* (double)ngroups); */
-/*       } while (g2 == g1); */
-      
-/*       glist[0] = split; */
-/*       for(i=0; i<g1; i++) */
-/* 	glist[0] = glist[0]->next; */
-/*       glist[1] = split; */
-/*       for(i=0; i<g2; i++) */
-/* 	glist[1] = glist[1]->next; */
-
-/*       // Merge */
-/*       MergeGroups(glist[0], glist[1]); */
-/*       split = CompressPart(split); */
-/*       ngroups--; */
-/*     } */
-/*   } */
-
-/*   else { // Network IS connected */
-/*     // Remove SCS partition */
-/*     RemovePartition(split); */
-/*     ResetNetGroup(net); */
-
-/*     // Create the groups */
-/*     split = CreateHeaderGroup(); */
-/*     glist[0] = CreateGroup(split,0); */
-/*     glist[1] = CreateGroup(split,1); */
-
-/*     // Randomly assign the nodes to the groups */
-/*     p = net; */
-/*     while(p->next != NULL){ */
-/*       p = p->next; */
-/*       nlist[nnod] = p; */
-/*       totallinks += CountLinks(p); */
-/*       nnod++; */
-      
-/*       des = floor(prng_get_next(gen)*2.0); */
-/*       AddNodeToGroup(glist[des],p); */
-/*     } */
-
-/*     totallinks /= 2; */
-    
-/*     // Do the SA to "optimize" the splitting */
-/*     if ( totallinks > 0 ) { */
-/*       T = Ti; */
-/*       while( T > Tf){ */
+    // Do the SA to "optimize" the splitting
+    if (totallinks > 0) {
+      T = Ti;
+      while (T > Tf) {
 	
-/* 	for (i=0; i< nnod; i++){ */
-/* 	  target = floor(prng_get_next(gen) * (double)nnod); */
-/* 	  oldg = nlist[target]->inGroup; */
-/* 	  if(oldg == 0) */
-/* 	    newg = 1; */
-/* 	  else */
-/* 	    newg = 0; */
+	for (i=0; i<nnod; i++) {
+	  target = floor(prng_get_next(gen) * (double)nnod);
+	  oldg = nodeList[target]->inGroup;
+	  if(oldg == 0)
+	    newg = 1;
+	  else
+	    newg = 0;
 	
-/* 	  // Calculate the change of energy */
-/* 	  inold = NLinksToGroup(nlist[target],glist[oldg]); */
-/* 	  innew = NLinksToGroup(nlist[target],glist[newg]); */
-/* 	  nlink = CountLinks(nlist[target]); */
+	  // Calculate the change of energy
+	  inold = NLinksToGroup(nodeList[target],glist[oldg]);
+	  innew = NLinksToGroup(nodeList[target],glist[newg]);
+	  nlink = CountLinks(nodeList[target]);
 	  
-/* 	  dE = 0.0; */
+	  dE = 0.0;
 	  
-/* 	  dE -= (double)(2 * glist[oldg]->inlinks) / */
-/* 	    (double)totallinks -  */
-/* 	    (double)(glist[oldg]->totlinks+glist[oldg]->inlinks) * */
-/* 	    (double)(glist[oldg]->totlinks+glist[oldg]->inlinks) / */
-/* 	    ((double)totallinks * (double)totallinks); */
+	  dE -= (double)(2 * glist[oldg]->inlinks) /
+	    (double)totallinks -
+	    (double)(glist[oldg]->totlinks+glist[oldg]->inlinks) *
+	    (double)(glist[oldg]->totlinks+glist[oldg]->inlinks) /
+	    ((double)totallinks * (double)totallinks);
 	  
-/* 	  dE -= (double)(2 * glist[newg]->inlinks) / */
-/* 	  (double)totallinks -  */
-/* 	    (double)(glist[newg]->totlinks+glist[newg]->inlinks) * */
-/* 	    (double)(glist[newg]->totlinks+glist[newg]->inlinks) / */
-/* 	    ((double)totallinks * (double)totallinks); */
+	  dE -= (double)(2 * glist[newg]->inlinks) /
+	  (double)totallinks -
+	    (double)(glist[newg]->totlinks+glist[newg]->inlinks) *
+	    (double)(glist[newg]->totlinks+glist[newg]->inlinks) /
+	    ((double)totallinks * (double)totallinks);
 	  
-/* 	  dE += (double)(2*glist[oldg]->inlinks - 2*inold) / */
-/* 	    (double)totallinks - */
-/* 	    (double)(glist[oldg]->totlinks + glist[oldg]->inlinks - */
-/* 		     nlink ) * */
-/* 	    (double)(glist[oldg]->totlinks + glist[oldg]->inlinks - */
-/* 		     nlink ) / */
-/* 	    ((double)totallinks * (double)totallinks); */
+	  dE += (double)(2*glist[oldg]->inlinks - 2*inold) /
+	    (double)totallinks -
+	    (double)(glist[oldg]->totlinks + glist[oldg]->inlinks -
+		     nlink ) *
+	    (double)(glist[oldg]->totlinks + glist[oldg]->inlinks -
+		     nlink ) /
+	    ((double)totallinks * (double)totallinks);
 	
-/* 	  dE += (double)(2*glist[newg]->inlinks + 2*innew) / */
-/* 	    (double)totallinks - */
-/* 	    (double)(glist[newg]->totlinks + glist[newg]->inlinks + */
-/* 		     nlink ) * */
-/* 	    (double)(glist[newg]->totlinks + glist[newg]->inlinks + */
-/* 		     nlink ) / */
-/* 	    ((double)totallinks * (double)totallinks); */
+	  dE += (double)(2*glist[newg]->inlinks + 2*innew) /
+	    (double)totallinks -
+	    (double)(glist[newg]->totlinks + glist[newg]->inlinks +
+		     nlink ) *
+	    (double)(glist[newg]->totlinks + glist[newg]->inlinks +
+		     nlink ) /
+	    ((double)totallinks * (double)totallinks);
 
-/* 	  // Accept the change according to the Boltzman factor */
-/* 	  if( (dE >=0.0) || (prng_get_next(gen) < exp(dE/T)) ){ */
-/* 	    MoveNode(nlist[target],glist[oldg],glist[newg]); */
-/* 	    energy += dE; */
-/* 	  } */
-/* 	} */
+	  // Accept the move according to Metropolis
+	  if( (dE >=0.0) || (prng_get_next(gen) < exp(dE/T)) ){
+	    MoveNode(nodeList[target],glist[oldg],glist[newg]);
+	    energy += dE;
+	  }
+	}
 
-/* 	T = T * Ts; */
-/*       } // End of temperature loop */
-/*     } // End if totallinks > 0 */
-/*   } */
+	T = T * Ts;
+      } // End of temperature loop
+    } // End if totallinks > 0
+  }
 
-/* /\*   PrintGroups(split); *\/ */
-/* /\*   printf("------------------\n"); *\/ */
-/*   RemoveGraph(net); */
-/*   return split; */
-/* } */
+  // Free memory
+  RemoveGraph(net);
+  free(nodeList);
+
+  // Done
+  return split;
+}
 
 
 /* struct group *ThermalNetworkSplitWeight(struct group *targ,double Ti, double Tf, struct prng *gen) */
@@ -1786,13 +1246,13 @@ double ModularityWeight(struct group *part)
 /*       dE = 0.0; */
 
 /*       dE -= (double)(2 * glist[oldg]->inlinksW) / */
-/* 	(double)totallinks -  */
+/* 	(double)totallinks - */
 /* 	(double)(glist[oldg]->totlinksW+glist[oldg]->inlinksW) * */
 /* 	(double)(glist[oldg]->totlinksW+glist[oldg]->inlinksW) / */
 /* 	((double)totallinks * (double)totallinks); */
 
 /*       dE -= (double)(2 * glist[newg]->inlinksW) / */
-/* 	(double)totallinks -  */
+/* 	(double)totallinks - */
 /* 	(double)(glist[newg]->totlinksW+glist[newg]->inlinksW) * */
 /* 	(double)(glist[newg]->totlinksW+glist[newg]->inlinksW) / */
 /* 	((double)totallinks * (double)totallinks); */
@@ -1933,13 +1393,13 @@ double ModularityWeight(struct group *part)
 /* 	  dE = 0.0; */
 	  
 /* 	  dE -= (double)(2 * glist[oldg]->inlinksW) / */
-/* 	    (double)totallinks -  */
+/* 	    (double)totallinks - */
 /* 	    (double)(glist[oldg]->totlinksW+glist[oldg]->inlinksW) * */
 /* 	    (double)(glist[oldg]->totlinksW+glist[oldg]->inlinksW) / */
 /* 	    ((double)totallinks * (double)totallinks); */
 	  
 /* 	  dE -= (double)(2 * glist[newg]->inlinksW) / */
-/* 	    (double)totallinks -  */
+/* 	    (double)totallinks - */
 /* 	    (double)(glist[newg]->totlinksW+glist[newg]->inlinksW) * */
 /* 	    (double)(glist[newg]->totlinksW+glist[newg]->inlinksW) / */
 /* 	    ((double)totallinks * (double)totallinks); */
@@ -1977,142 +1437,49 @@ double ModularityWeight(struct group *part)
 /* } */
 
 
-/* MapPartToNet(struct group *part, struct node_gra *net) */
-/* { */
-/*   struct node_gra *nlist[maxim_int]; */
-/*   struct node_gra *p = net; */
-/*   struct group *g = NULL; */
-/*   struct node_lis *nod; */
-/*   int totlink,inlink; */
-/*   double totlinkW,inlinkW; */
-/*   int i; */
-
-/*   for (i=0; i<maxim_int; i++) */
-/*     nlist[i] = NULL; */
-
-/*   while((p = p->next) != NULL){ */
-/*     p->inGroup = -1; */
-/*     nlist[p->num] = p; */
-/*   } */
-
-/*   g = part; */
-/*   while(g->next != NULL){ */
-/*     g = g->next; */
-
-/*     g->totlinks = 0; */
-/*     g->inlinks = 0; */
-/*     g->outlinks = 0; */
-
-/*     g->totlinksW = 0.0; */
-/*     g->inlinksW = 0.0; */
-/*     g->outlinksW = 0.0; */
-
-/*     nod = g->nodeList; */
-/*     while(nod->next != NULL){ */
-/*       nod = nod->next; */
-
-/*       // Update the properties of the group */
-/*       nod->ref = nlist[nod->node]; */
-/*       // Update the properties of the node */
-/*       nlist[nod->node]->inGroup = g->label; */
-/*     } */
-/*   } */
-
-/*   // Count links in groups */
-/*   g = part; */
-/*   while(g->next != NULL){ */
-/*     g = g->next; */
-
-/*     nod = g->nodeList; */
-/*     while(nod->next != NULL){ */
-/*       nod = nod->next; */
-/*       totlink = CountLinks(nod->ref); */
-/*       inlink = NLinksToGroup(nod->ref,g); */
-/*       totlinkW = CountLinksWeight(nod->ref); */
-/*       inlinkW = CountLinksWeightInGroup(nod->ref,g); */
-/*       g->totlinks += totlink; */
-/*       g->inlinks += inlink; */
-/*       g->totlinksW += totlinkW; */
-/*       g->inlinksW += inlinkW; */
-/*     } */
-/*     g->inlinks /= 2; */
-/*     g->totlinks -= g->inlinks; */
-/*     g->outlinks = g->totlinks - g->inlinks; */
-
-/*     g->inlinksW /= 2.0; */
-/*     g->totlinksW -= g->inlinksW; */
-/*     g->outlinksW = g->totlinksW - g->inlinksW; */
-/*   } */
-
-/* } */
-
-/* /\* */
-/*   Same as MapPartToNet but ONLY the network (not the partition) is */
-/*   updated. This enables one to map a partition to networks that are a */
-/*   subset of the original network on which the partition is based. */
-/* *\/ */
-/* MapPartToNetSoft(struct group *part, struct node_gra *net) */
-/* { */
-/*   struct node_gra *nlist[maxim_int]; */
-/*   struct node_gra *p = net; */
-/*   struct group *g = NULL; */
-/*   struct node_lis *nod; */
-/*   int totlink, inlink; */
-/*   double totlinkW, inlinkW; */
-/*   int i; */
-
-/*   for (i=0; i<maxim_int; i++) */
-/*     nlist[i] = NULL; */
-
-/*   while((p = p->next) != NULL){ */
-/*     p->inGroup = -1; */
-/*     nlist[p->num] = p; */
-/*   } */
-
-/*   g = part; */
-/*   while(g->next != NULL){ */
-/*     g = g->next; */
-
-/*     g->totlinks = 0; */
-/*     g->inlinks = 0; */
-/*     g->outlinks = 0; */
-
-/*     g->totlinksW = 0.0; */
-/*     g->inlinksW = 0.0; */
-/*     g->outlinksW = 0.0; */
-
-/*     nod = g->nodeList; */
-/*     while ((nod = nod->next) != NULL) { */
-/*       if (nlist[nod->node] != NULL) { */
-/* 	// Update the properties of the node */
-/* 	nlist[nod->node]->inGroup = g->label; */
-/*       } */
-/*     } */
-/*   } */
-/* } */
 
 
-/* struct group *FBuildPartition(FILE *inF) */
-/* { */
-/*   int temp; */
-/*   struct group *g = NULL; */
-/*   struct group *part = NULL; */
-/*   int npart = 0; */
 
-/*   part = CreateHeaderGroup(); */
 
-/*   while(!feof(inF)){ */
-/*     g = CreateGroup(part,npart); */
-/*     npart++; */
-/*     fscanf(inF,"%d\n",&temp); */
-/*     while(temp >= 0){ */
-/*       AddNodeToGroupSoft(g, temp-1); */
-/*       fscanf(inF,"%d\n", &temp); */
-/*     } */
-/*   } */
 
-/*   return part; */
-/* } */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /* struct group *CreateEquiNPartition(struct node_gra *net, int gsize) */
@@ -6190,4 +5557,356 @@ double ModularityWeight(struct group *part)
 /*       return 1; */
 
 /*   return 0; */
+/* } */
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* // Creates a Pajek file with the nodes of a module (and its neighbors) */
+/* // only */
+/* PrintPajekOneModule(struct node_gra *net, */
+/* 		    struct group *mod, struct group *part, */
+/* 		    struct group *part2,  */
+/* 		    char netF[], char parF[], char par2F[]) */
+/* { */
+/*   struct node_gra *p = net; */
+/*   struct node_lis *li; */
+/*   FILE *fit1, *fit2, *fit3; */
+/*   int trans[maxim_int]; */
+/*   int i, co; */
+/*   int nnod = 0; */
+
+/*   for(i=0; i<maxim_int; i++){ */
+/*     trans[i] = 0; */
+/*   } */
+
+/*   // Count the nodes */
+/*   p = net; */
+/*   while (p->next != NULL) { */
+/*     p = p->next; */
+/*     if ( (p->inGroup == mod->label) || */
+/* 	 (NLinksToGroup(p, mod) > 0) ) */
+/*       nnod ++; */
+/*   } */
+      
+/*   // Open the files  */
+/*   fit1 = fopen(netF, "w"); */
+/*   fit2 = fopen(parF, "w"); */
+/*   if (part2 != NULL) */
+/*     fit3 = fopen(par2F, "w"); */
+
+/*   fprintf(fit1,"*Vertices %d\n", nnod); */
+/*   fprintf(fit2,"*Vertices %d\n", nnod); */
+/*   if (part2 != NULL) */
+/*     fprintf(fit3,"*Vertices %d\n", nnod); */
+
+/*   // Write the files */
+/*   co = 1; */
+/*   p = net; */
+/*   while (p->next != NULL) { */
+/*     p = p->next; */
+
+/*     // Print the node if it is in the module or directly connected to */
+/*     // the module */
+/*     if ( (p->inGroup == mod->label) || */
+/* 	 (NLinksToGroup(p, mod) > 0) ) { */
+/*       trans[p->num] = co++; */
+/*       // Print the node */
+/*       fprintf(fit1,"%d \"%d\"           %lf %lf %lf\n", */
+/* 	      trans[p->num], p->num+1, p->coorX, p->coorY, p->coorZ); */
+/*       // Print if the node is in the module (1) or directly connected */
+/*       // to the module (2) */
+/*       if (p->inGroup == mod->label) */
+/* 	fprintf(fit2,"   1\n"); */
+/*       else */
+/* 	fprintf(fit2,"   2\n"); */
+/*       // Print the additional partition, if any */
+/*       if (part2 != NULL) { */
+/* 	MapPartToNet(part2, net); */
+/* 	fprintf(fit3,"   %d\n", p->inGroup+1); */
+/* 	MapPartToNet(part, net); */
+/*       } */
+/*     } */
+/*   } */
+
+/*   fprintf(fit1, "*Arcs\n"); */
+/*   fprintf(fit1, "*Edges\n"); */
+/*   p = net; */
+/*   while (p->next != NULL) { */
+/*     p = p->next; */
+/*     if (trans[p->num] != 0) { */
+/*       li = p->neig; */
+/*       while (li->next != NULL) { */
+/* 	li = li->next; */
+/* 	if(trans[li->node] != 0) */
+/* 	  fprintf(fit1,"%d   %d   1\n",trans[p->num],trans[li->node]); */
+/*       } */
+/*     } */
+/*   } */
+
+/*   fclose(fit1); */
+/*   fclose(fit2); */
+/*   if (part2 != NULL) */
+/*     fclose(fit3); */
+/* } */
+
+
+/* PrintPajekGraphPartition(struct node_gra *net) */
+/* { */
+/*   struct node_gra *p=net; */
+/*   struct node_lis *li; */
+/*   FILE *fit1,*fit2; */
+/*   int trans[maxim_int]; */
+/*   int transg[maxim_int]; */
+/*   int i,co; */
+/*   int nnod; */
+/*   int gcount = 0; */
+
+/*   for(i=0;i<maxim_int;i++){ */
+/*     trans[i] = 0; */
+/*     transg[i] = 0; */
+/*   } */
+
+
+/*   nnod = CountNodes(net); */
+
+/*   fit1=fopen("graph.net","w"); */
+/*   fit2=fopen("partition.clu","w"); */
+
+/*   fprintf(fit1,"*Vertices %d\n",nnod); */
+/*   fprintf(fit2,"*Vertices %d\n",nnod); */
+
+/*   co=1; */
+/*   p=net; */
+/*   while(p->next!=NULL){ */
+/*     p=p->next; */
+/*     if(trans[p->num]==0){ */
+/*       trans[p->num]=co; */
+/*       co++; */
+/*     } */
+/*     fprintf(fit1,"%d *%d*           %lf %lf %lf\n",trans[p->num],p->num+1,p->coorX,p->coorY,p->coorZ); */
+/* /\*     fprintf(fit1,"%d *%d*\n",trans[p->num],p->num+1); *\/ */
+
+/*     if (transg[p->inGroup] == 0){ */
+/*       gcount++; */
+/*       transg[p->inGroup] = gcount; */
+/*     } */
+/* /\*     fprintf(fit2,"   %d\n",transg[p->inGroup]); *\/ */
+/*     fprintf(fit2,"   %d\n", p->inGroup+1); */
+/*   } */
+
+/*   fprintf(fit1,"*Arcs\n"); */
+/*   fprintf(fit1,"*Edges\n"); */
+/*   p=net; */
+/*   while(p->next!=NULL){ */
+/*     p=p->next; */
+/*     li=p->neig; */
+/*     while(li->next!=NULL){ */
+/*       li=li->next; */
+/* /\*        if(p->num<li->node) *\/ */
+/* 	fprintf(fit1,"%d   %d   1\n",trans[p->num],trans[li->node]); */
+/*     } */
+/*   } */
+
+/*   fclose(fit1); */
+/*   fclose(fit2); */
+/* } */
+
+/* PrintPajekGraphPartitionFName(struct node_gra *net, */
+/* 			      char netf[], char parf[]) */
+/* { */
+/*   struct node_gra *p=net; */
+/*   struct node_lis *li; */
+/*   FILE *fit1,*fit2; */
+/*   int trans[maxim_int]; */
+/*   int i,co; */
+/*   int nnod; */
+/*   int gcount = 0; */
+
+/*   for(i=0; i<maxim_int; i++){ */
+/*     trans[i] = 0; */
+/*   } */
+
+/*   nnod = CountNodes(net); */
+
+/*   fit1=fopen(netf,"w"); */
+/*   fit2=fopen(parf,"w"); */
+
+/*   fprintf(fit1,"*Vertices %d\n",nnod); */
+/*   fprintf(fit2,"*Vertices %d\n",nnod); */
+
+/*   co = 1; */
+/*   p = net; */
+/*   while ((p = p->next) != NULL) { */
+/*     trans[p->num] = co++; */
+
+/*     fprintf(fit1,"%d \"%d\"           %lf %lf %lf\n", */
+/* 	    trans[p->num], p->num+1, p->coorX, p->coorY, p->coorZ); */
+/* /\*     fprintf(fit1,"%d *%d*\n",trans[p->num],p->num+1); *\/ */
+
+/*     fprintf(fit2,"   %d\n", p->inGroup+1); */
+/*   } */
+
+/*   fprintf(fit1,"*Arcs\n"); */
+/*   fprintf(fit1,"*Edges\n"); */
+/*   p=net; */
+/*   while(p->next!=NULL){ */
+/*     p=p->next; */
+/*     li=p->neig; */
+/*     while(li->next!=NULL){ */
+/*       li=li->next; */
+/* /\*        if(p->num<li->node) *\/ */
+/*       fprintf(fit1,"%d   %d   1\n", */
+/* 	      trans[p->num],trans[li->node]); */
+/*     } */
+/*   } */
+
+/*   fclose(fit1); */
+/*   fclose(fit2); */
+/* } */
+
+/* // Same as PrintPajekGraphPartition but the labels of the nodes */
+/* // are taken from the "original" vector */
+/* PrintPajekGraphPartitionTrans(struct node_gra *net,int label[]) */
+/* { */
+/*   struct node_gra *p=net; */
+/*   struct node_lis *li; */
+/*   FILE *fit1,*fit2; */
+/*   int trans[max_size]; */
+/*   int transg[max_size]; */
+/*   int i,co; */
+/*   int nnod; */
+/*   int gcount = 0; */
+
+/*   for(i=0;i<max_size;i++){ */
+/*     trans[i] = 0; */
+/*     transg[i] = 0; */
+/*   } */
+
+/*   nnod = CountNodes(net); */
+
+/*   fit1=fopen("graph.net","w"); */
+/*   fit2=fopen("partition.clu","w"); */
+
+/*   fprintf(fit1,"*Vertices %d\n",nnod); */
+/*   fprintf(fit2,"*Vertices %d\n",nnod); */
+
+/*   co=1; */
+/*   p=net; */
+/*   while(p->next!=NULL){ */
+/*     p=p->next; */
+/*     if(trans[p->num]==0){ */
+/*       trans[p->num]=co; */
+/*       co++; */
+/*     } */
+/*     fprintf(fit1,"%d *%d*           %lf %lf %lf\n",trans[p->num],p->num+1,p->coorX,p->coorY,p->coorZ); */
+/* /\*     fprintf(fit1,"%d *%d*\n",trans[p->num],label[p->num]+1); *\/ */
+
+/*     if (transg[p->inGroup] == 0){ */
+/*       gcount++; */
+/*       transg[p->inGroup] = gcount; */
+/*     } */
+/*     fprintf(fit2,"   %d\n",transg[p->inGroup]); */
+/*   } */
+
+/*   fprintf(fit1,"*Arcs\n"); */
+/*   fprintf(fit1,"*Edges\n"); */
+/*   p=net; */
+/*   while(p->next!=NULL){ */
+/*     p=p->next; */
+/*     li=p->neig; */
+/*     while(li->next!=NULL){ */
+/*       li=li->next; */
+/* /\*        if(p->num<li->node) *\/ */
+/* 	fprintf(fit1,"%d   %d   1\n",trans[p->num],trans[li->node]); */
+/*     } */
+/*   } */
+
+/*   fclose(fit1); */
+/*   fclose(fit2); */
+/* } */
+
+
+/* // Same as PrintPajekGraphPartition but groups smaller than */
+/* // min are all marked as group 1 */
+/* PrintPajekGraphPartitionMin(struct node_gra *net,struct group *part,int min) */
+/* { */
+/*   struct node_gra *p=net; */
+/*   struct node_lis *li; */
+/*   FILE *fit1,*fit2; */
+/*   int trans[max_size]; */
+/*   int transg[max_size]; */
+/*   int i,co; */
+/*   int nnod; */
+/*   int gcount = 1; */
+/*   struct group *glist[max_size]; */
+/*   struct group *g = NULL; */
+
+/*   for(i=0;i<max_size;i++){ */
+/*     trans[i] = 0; */
+/*     transg[i] = 0; */
+/*     glist[i] = NULL; */
+/*   } */
+
+/*   g = part; */
+/*   while(g->next != NULL){ */
+/*     g = g->next; */
+/*     glist[g->label] = g; */
+/*   } */
+
+/*   nnod = CountNodes(net); */
+
+/*   fit1=fopen("graph.net","w"); */
+/*   fit2=fopen("partition.clu","w"); */
+
+/*   fprintf(fit1,"*Vertices %d\n",nnod); */
+/*   fprintf(fit2,"*Vertices %d\n",nnod); */
+
+/*   co=1; */
+/*   p=net; */
+/*   while(p->next!=NULL){ */
+/*     p=p->next; */
+/*     if(trans[p->num]==0){ */
+/*       trans[p->num]=co; */
+/*       co++; */
+/*     } */
+/*     fprintf(fit1,"%d *%d*           %lf %lf %lf\n",trans[p->num],p->num+1,p->coorX,p->coorY,p->coorZ); */
+/* /\*     fprintf(fit1,"%d *%d*\n",trans[p->num],p->num+1); *\/ */
+
+/*     if (transg[p->inGroup] == 0){ */
+/*       if(glist[p->inGroup]->size >= min){ */
+/* 	gcount++; */
+/* 	transg[p->inGroup] = gcount; */
+/*       } */
+/*       else{ //groups smaller than min are pooled into partition 1 */
+/* 	transg[p->inGroup] = 1; */
+/*       } */
+/*     } */
+/*     fprintf(fit2,"   %d\n",transg[p->inGroup]); */
+/*   } */
+
+/*   fprintf(fit1,"*Arcs\n"); */
+/*   fprintf(fit1,"*Edges\n"); */
+/*   p=net; */
+/*   while(p->next!=NULL){ */
+/*     p=p->next; */
+/*     li=p->neig; */
+/*     while(li->next!=NULL){ */
+/*       li=li->next; */
+/* /\*        if(p->num<li->node) *\/ */
+/* 	fprintf(fit1,"%d   %d   1\n",trans[p->num],trans[li->node]); */
+/*     } */
+/*   } */
+
+/*   fclose(fit1); */
+/*   fclose(fit2); */
 /* } */
