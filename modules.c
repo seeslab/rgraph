@@ -737,6 +737,7 @@ void MapPartToNet(struct group *part, struct node_gra *net)
   double totlinkW, inlinkW;
   void *nodeDict = NULL;
   struct node_tree *treeNode = NULL;
+  struct node_tree *tempTreeNode = CreateNodeTree();
   struct node_gra *node = NULL;
 
   // Reset the group of all nodes
@@ -757,21 +758,16 @@ void MapPartToNet(struct group *part, struct node_gra *net)
 
     nod = g->nodeList;
     while ((nod = nod->next) != NULL) {
-      printf("HERE --%s--\n", nod->nodeLabel);
       // Get the node_gra by label
-      treeNode = CreateNodeTree();
-      strcpy(treeNode->label, nod->nodeLabel);
-      printf("HERE --%s--\n", nod->nodeLabel);
-      treeNode = *(struct node_tree **)tfind((void *)treeNode,
+      tempTreeNode->label = strcpy(tempTreeNode->label, nod->nodeLabel);
+      treeNode = *(struct node_tree **)tfind((void *)tempTreeNode,
 					     &nodeDict,
 					     NodeTreeLabelCompare);
-      printf("HERE\n");
       node = treeNode->ref;
-      FreeNodeTree(treeNode, preorder, 0);
-      printf("HERE\n");
 
       // Update the properties of the group
       nod->ref = node;
+      nod->node = node->num;
       // Update the properties of the node
       node->inGroup = g->label;
     }
@@ -799,6 +795,11 @@ void MapPartToNet(struct group *part, struct node_gra *net)
     g->outlinksW = g->totlinksW - g->inlinksW;
   }
 
+  // Free memory allocated locally
+  FreeNodeTree(tempTreeNode, preorder, 0);
+  FreeLabelDict(nodeDict);
+
+  // Done
   return;
 }
 

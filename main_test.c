@@ -34,7 +34,6 @@ int main()
   inFile = fopen("testpart.dat", "r");
   part = FBuildPartition(inFile);
   fclose(inFile);
-  printf("First node: %s\n", part->next->nodeList->next->nodeLabel);
   MapPartToNet(part, net);
   FPrintPartition(stdout, part, 0);
 

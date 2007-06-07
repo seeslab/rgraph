@@ -96,6 +96,7 @@ struct node_tree *CreateNodeTree()
   struct node_tree *temp=NULL;
   temp = (struct node_tree *) calloc(1, sizeof(struct node_tree));
   temp->ref = NULL;
+  temp->label = (char *) calloc(MAX_LABEL_LENGTH, sizeof(char));
 
   return temp;
 }
@@ -294,7 +295,7 @@ void *MakeLabelDict(struct node_gra *net)
 
   while ((p = p->next) != NULL) {
     treeNode = CreateNodeTree();
-    strcpy(treeNode->label, p->label);
+    treeNode->label = strcpy(treeNode->label, p->label);
     treeNode = *(struct node_tree **)tsearch((void *)treeNode,
 					     &nodeDict,
 					     NodeTreeLabelCompare);
@@ -318,6 +319,7 @@ void *MakeLabelDict(struct node_gra *net)
 // ---------------------------------------------------------------------
 void FreeNodeTree(struct node_tree *ntree, VISIT value, int level)
 {
+  free(ntree->label);
   free(ntree);
   return;
 }
@@ -395,6 +397,14 @@ void RemoveLink(struct node_gra *n1, struct node_gra *n2,
   }
 }
 
+// ---------------------------------------------------------------------
+// Frees the memory allocated to a label dictionary
+// ---------------------------------------------------------------------
+void FreeLabelDict(void *dict)
+{
+  tdestroy(dict, FreeNodeTree);
+  return;
+}
 
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------

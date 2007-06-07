@@ -39,7 +39,7 @@ struct node_lis{
 // structure
 // ---------------------------------------------------------------------
 struct node_tree{
-  char label[MAX_LABEL_LENGTH]; // label of the node
+  char *label;                  // label of the node
   struct node_gra *ref;         // pointer to the corresponding
 				// node_gra
 };
@@ -103,6 +103,7 @@ void RemoveGraph(struct node_gra *p);
 void RemoveLink(struct node_gra *n1,
 		struct node_gra *n2,
 		int symmetric_sw);
+void FreeLabelDict(void *dict);
 
 // ---------------------------------------------------------------------
 // Network input
