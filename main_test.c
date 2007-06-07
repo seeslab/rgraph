@@ -10,6 +10,7 @@ int main()
   FILE *inFile;
   struct node_gra *net = NULL;
   struct group *part = NULL;
+  struct group *part2 = NULL;
   int S;
 
   while (1) {
@@ -32,12 +33,15 @@ int main()
     // Partition
     // ------------------------------------------------------------
     inFile = fopen("testpart.dat", "r");
-    part = FBuildPartition(inFile);
+    part = FCreatePartition(inFile);
     fclose(inFile);
     part = ClustersPartition(net);
     MapPartToNet(part, net);
 /*     part = CreateEquiNPartitionSoft(4, 5); */
     FPrintPartition(stdout, part, 0);
+    part2 = CreatePartitionFromInGroup(net);
+    MapPartToNet(part2, net);
+    FPrintPartition(stdout, part2, 0);
 
     // ------------------------------------------------------------
     // Free memory

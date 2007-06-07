@@ -92,7 +92,7 @@ struct group *CreateGroup(struct group *part, int label)
 // ---------------------------------------------------------------------
 // Build a partition from a file. The file should contain
 // ---------------------------------------------------------------------
-struct group *FBuildPartition(FILE *inF)
+struct group *FCreatePartition(FILE *inF)
 {
   char label[MAX_LABEL_LENGTH];
   char *separator = "///";
@@ -176,81 +176,46 @@ struct group *CreateEquiNPartitionSoft(int ngroups, int gsize)
   return part;
 }
 
+// ---------------------------------------------------------------------
+// Given a network, create a partition from the inGroup attribute of
+// its nodes
+// ---------------------------------------------------------------------
+struct group *CreatePartitionFromInGroup(struct node_gra *net)
+{
+  int i;
+  int maxNGroup = 0;
+  struct group **glist;
+  struct group *part = NULL;
+  struct node_gra *p = NULL;
 
-/* struct group *CreatePartitionFromInGroup(struct node_gra *net) */
-/* { */
-/*   int i; */
-/*   struct group *glist[max_size]; */
-/*   struct group *part = NULL; */
-/*   struct node_gra *p = NULL; */
+  // Determine the largest group number
+  p = net;
+  while ((p = p->next) != NULL)
+    if (p->inGroup > maxNGroup)
+      maxNGroup = p->inGroup;
 
-/*   for(i=0; i<max_size; i++) */
-/*     glist[i] = NULL; */
+  // Allocate enough memory for a list of pointers to groups (for
+  // faster access to groups), and initialize the list
+  glist = (struct group **) calloc(maxNGroup + 1, sizeof(struct group *));
+  for(i=0; i<=maxNGroup; i++)
+    glist[i] = NULL;
 
-/*   part = CreateHeaderGroup(); */
+  // Create the partition
+  part = CreateHeaderGroup();
 
-/*   // Assign the nodes creating new groups when necessary */
-/*   p = net; */
-/*   while ((p = p->next) != NULL) { */
-/*     if (glist[p->inGroup] == NULL) */
-/*       glist[p->inGroup] = CreateGroup(part, p->inGroup); */
-    
-/*     AddNodeToGroup(glist[p->inGroup], p); */
-/*   } */
+  // Assign the nodes creating new groups when necessary
+  p = net;
+  while ((p = p->next) != NULL) {
+    if (glist[p->inGroup] == NULL) {
+      glist[p->inGroup] = CreateGroup(part, p->inGroup);
+    }
+    AddNodeToGroup(glist[p->inGroup], p);
+  }
 
-/*   return part; */
-/* } */
-
-
-/* struct group *CreateCustomPartition(struct node_gra *net, int group[]) */
-/* { */
-/*   int i; */
-/*   struct group *glist[max_size]; */
-/*   struct group *part = NULL; */
-/*   struct node_gra *p = NULL; */
-
-/*   for(i=0; i<max_size; i++) */
-/*     glist[i] = NULL; */
-
-/*   part = CreateHeaderGroup(); */
-
-/*   // Assign the nodes creating new groups when necessary */
-/*   p = net; */
-/*   while(p->next != NULL){ */
-/*     p = p->next; */
-
-/*     if(glist[group[p->num]] == NULL) */
-/*       glist[group[p->num]] = CreateGroup(part,group[p->num]); */
-
-/*     AddNodeToGroup(glist[group[p->num]],p); */
-/*   } */
-
-/*   return part; */
-/* } */
-
-
-/* struct group *CreateCustomPartitionSoft(int S,int group[]) */
-/* { */
-/*   int i; */
-/*   struct group *glist[max_size]; */
-/*   struct group *part = NULL; */
-
-/*   for(i=0; i<max_size; i++) */
-/*     glist[i] = NULL; */
-
-/*   part = CreateHeaderGroup(); */
-
-/*   // Assign the nodes creating new groups when necessary */
-/*   for(i=0; i<S; i++){ */
-
-/*     if(glist[group[i]] == NULL) */
-/*       glist[group[i]] = CreateGroup(part,group[i]); */
-
-/*     AddNodeToGroupSoft(glist[group[i]],i); */
-/*   } */
-
-/*   return part; */
-/* } */
+  // Free memory and return
+  free(glist);
+  return part;
+}
 
 
 // ---------------------------------------------------------------------

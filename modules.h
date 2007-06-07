@@ -31,9 +31,10 @@ struct group *CreateGroup(struct group *part, int label);
 // ---------------------------------------------------------------------
 // Partition creation
 // ---------------------------------------------------------------------
-struct group *FBuildPartition(FILE *inF);
+struct group *FCreatePartition(FILE *inF);
 struct group *CreateEquiNPartition(struct node_gra *net, int gsize);
 struct group *CreateEquiNPartitionSoft(int ngroups, int gsize);
+struct group *CreatePartitionFromInGroup(struct node_gra *net);
 
 // ---------------------------------------------------------------------
 // Partition removal
