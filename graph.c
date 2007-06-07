@@ -136,11 +136,11 @@ int AddAdjacency(struct node_gra *node1,
 	}
       }
     }
-    
+
     // Create a new adjacency
     adja->next = (struct node_lis *)calloc(1, sizeof(struct node_lis));
     (adja->next)->node = node2->num;
-    (adja->next)->nodeLabel = (char *) calloc(MAX_LABEL_LENGTH, sizeof(char));
+    (adja->next)->nodeLabel = (char *)calloc(MAX_LABEL_LENGTH, sizeof(char));
     strcpy((adja->next)->nodeLabel, node2->label);
     (adja->next)->status = status;
     (adja->next)->next = NULL;
@@ -358,7 +358,6 @@ void RemoveGraph(struct node_gra *p)
   if (p->next != NULL) {
     RemoveGraph(p->next);
   }
-  free(p->label);
   FreeNode(p);
 }
 
@@ -383,16 +382,18 @@ void RemoveLink(struct node_gra *n1, struct node_gra *n2,
   }
   temp1 = nn1->next;
   nn1->next = temp1->next;
+  free(temp1->nodeLabel);
   free(temp1);
 
   // Link n2-n1
-  if (symmetric_sw != 0) {
+  if (symmetric_sw != 0 && n1 != n2) {
     nn2 = n2->neig;
     while ((nn2->next)->ref != n1) {
       nn2 = nn2->next;
     }
     temp2 = nn2->next;
     nn2->next = temp2->next;
+    free(temp2->nodeLabel);
     free(temp2);
   }
 }
@@ -466,7 +467,6 @@ struct node_gra *FBuildNetwork(FILE *inFile,
       FreeNodeTree(n_tree, preorder, 0);
     }
     n1 = ntree1->ref;
-/*     printf("Node: %d\tLabel: %s\n", n1->num, n1->label); */
     
     n_tree = CreateNodeTree();
     strcpy(n_tree->label, label2);
@@ -480,7 +480,6 @@ struct node_gra *FBuildNetwork(FILE *inFile,
       FreeNodeTree(n_tree, preorder, 0);
     }
     n2 = ntree2->ref;
-/*     printf("Node: %d\tLabel: %s\n", n2->num, n2->label); */
     
     // Add the link
     AddAdjacency(n1, n2, auto_link_sw, add_weight_sw, weight, 0);
