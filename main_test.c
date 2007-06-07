@@ -31,17 +31,19 @@ int main()
   // ------------------------------------------------------------
   // Partitions
   // ------------------------------------------------------------
-  inFile = fopen("testpart.dat", "r");
-  part = FBuildPartition(inFile);
-  fclose(inFile);
-  MapPartToNet(part, net);
-  FPrintPartition(stdout, part, 0);
+  while (1) {
+    inFile = fopen("testpart.dat", "r");
+    part = FBuildPartition(inFile);
+    fclose(inFile);
+    MapPartToNet(part, net);
+    FPrintPartition(stdout, part, 0);
+    RemovePartition(part);
+  }
 
   // ------------------------------------------------------------
   // Free memory
   // ------------------------------------------------------------
   RemoveGraph(net);
-  RemovePartition(part);
 
   return 0;
 }

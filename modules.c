@@ -737,7 +737,6 @@ void MapPartToNet(struct group *part, struct node_gra *net)
   double totlinkW, inlinkW;
   void *nodeDict = NULL;
   struct node_tree *treeNode = NULL;
-  struct node_tree *tempTreeNode = CreateNodeTree();
   struct node_gra *node = NULL;
 
   // Reset the group of all nodes
@@ -759,11 +758,7 @@ void MapPartToNet(struct group *part, struct node_gra *net)
     nod = g->nodeList;
     while ((nod = nod->next) != NULL) {
       // Get the node_gra by label
-      tempTreeNode->label = strcpy(tempTreeNode->label, nod->nodeLabel);
-      treeNode = *(struct node_tree **)tfind((void *)tempTreeNode,
-					     &nodeDict,
-					     NodeTreeLabelCompare);
-      node = treeNode->ref;
+      node = GetNodeDict(nod->nodeLabel, nodeDict);
 
       // Update the properties of the group
       nod->ref = node;
@@ -796,7 +791,6 @@ void MapPartToNet(struct group *part, struct node_gra *net)
   }
 
   // Free memory allocated locally
-  FreeNodeTree(tempTreeNode, preorder, 0);
   FreeLabelDict(nodeDict);
 
   // Done

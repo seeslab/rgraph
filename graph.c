@@ -614,13 +614,33 @@ void FPrintPajekFile(char *fname,
 // ---------------------------------------------------------------------
 
 // ---------------------------------------------------------------------
-// Find and return a given node
+// Find and return a given node by number. The search is linear in the
+// size of the network because it starts at the first node of the
+// network and proceeds sequentially.
 // ---------------------------------------------------------------------
 struct node_gra *GetNode(int num, struct node_gra *p)
 {
   while((p->next)->num != num)
     p = p->next;
   return p->next;
+}
+
+// ---------------------------------------------------------------------
+// Find and return a given node by label. The search is logarithmic
+// because a search tree is used.
+// ---------------------------------------------------------------------
+struct node_gra *GetNodeDict(char *label, void *dict)
+{
+  struct node_tree *tempTreeNode = CreateNodeTree();
+  struct node_tree *treeNode = NULL;
+  
+  tempTreeNode->label = strcpy(tempTreeNode->label, label);
+  treeNode = *(struct node_tree **)tfind((void *)tempTreeNode,
+					 &dict,
+					 NodeTreeLabelCompare);
+  FreeNodeTree(tempTreeNode, preorder, 0);
+  
+  return treeNode->ref;
 }
 
 // ---------------------------------------------------------------------
