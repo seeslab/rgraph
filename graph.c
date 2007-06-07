@@ -446,11 +446,11 @@ struct node_gra *FBuildNetwork(FILE *inFile,
   while (!feof(inFile)) {
     // Read the data
     if (weight_sw == 0) {
-      fscanf(inFile,"%s %s\n", &label1, &label2);
+      fscanf(inFile,"%s %s\n", &label1[0], &label2[0]);
       weight = 1.;
     }
     else {
-      fscanf(inFile,"%s %s %lf\n", &label1, &label2, &weight);
+      fscanf(inFile,"%s %s %lf\n", &label1[0], &label2[0], &weight);
     }
 /*     printf("%s %s\n", label1, label2); */
     

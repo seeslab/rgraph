@@ -107,15 +107,150 @@ struct group *FBuildPartition(FILE *inF)
   while (!feof(inF)) {
     g = CreateGroup(part, npart);
     npart++;
-    fscanf(inF, "%s\n", &label);
+    fscanf(inF, "%s\n", &label[0]);
     while (strcmp(label, separator) != 0) {
       AddNodeToGroupSoft(g, label);
-      fscanf(inF, "%s\n", &label);
+      fscanf(inF, "%s\n", &label[0]);
     }
   }
 
   return part;
 }
+
+// ---------------------------------------------------------------------
+// For an arbitrary network, create a partition with groups of nodes
+// of a given size. The nodes are placed in groups in order.
+// ---------------------------------------------------------------------
+struct group *CreateEquiNPartition(struct node_gra *net, int gsize)
+{
+  int i,j;
+  int ngroups;
+  struct group *g = NULL;
+  struct group *part = NULL;
+  struct node_gra *p = NULL;
+
+  // Initialize stuff
+  p = net;
+  part = CreateHeaderGroup();
+  ngroups = CountNodes(net) / gsize;
+
+  // Create the groups and assign the nodes
+  for (i=0; i<=ngroups; i++) {
+    g = CreateGroup(part,i);
+    for (j=0; j<gsize; j++) {
+      if ((p = p->next) != NULL) {
+	AddNodeToGroup(g, p);
+      }
+    }
+  }
+
+  // Done
+  return CompressPart(part);
+}
+
+// ---------------------------------------------------------------------
+// Create a partition with a given number of groups of a given
+// size. The partition is not mapped to any network, and labels are
+// set to integer numbers from 1 to N.
+// ---------------------------------------------------------------------
+struct group *CreateEquiNPartitionSoft(int ngroups, int gsize)
+{
+  int i, j;
+  struct group *g = NULL;
+  struct group *part = NULL;
+  char label[MAX_LABEL_LENGTH];
+
+  // Initialize
+  part = CreateHeaderGroup();
+
+  // Create the groups and assign the nodes
+  for (i=0; i<ngroups; i++) {
+    g = CreateGroup(part, i);
+    for (j=0; j<gsize; j++) {
+      sprintf(&label[0], "%d", (j + i*gsize + 1));
+      AddNodeToGroupSoft(g, label);
+    }
+  }
+  
+  // Done
+  return part;
+}
+
+
+/* struct group *CreatePartitionFromInGroup(struct node_gra *net) */
+/* { */
+/*   int i; */
+/*   struct group *glist[max_size]; */
+/*   struct group *part = NULL; */
+/*   struct node_gra *p = NULL; */
+
+/*   for(i=0; i<max_size; i++) */
+/*     glist[i] = NULL; */
+
+/*   part = CreateHeaderGroup(); */
+
+/*   // Assign the nodes creating new groups when necessary */
+/*   p = net; */
+/*   while ((p = p->next) != NULL) { */
+/*     if (glist[p->inGroup] == NULL) */
+/*       glist[p->inGroup] = CreateGroup(part, p->inGroup); */
+    
+/*     AddNodeToGroup(glist[p->inGroup], p); */
+/*   } */
+
+/*   return part; */
+/* } */
+
+
+/* struct group *CreateCustomPartition(struct node_gra *net, int group[]) */
+/* { */
+/*   int i; */
+/*   struct group *glist[max_size]; */
+/*   struct group *part = NULL; */
+/*   struct node_gra *p = NULL; */
+
+/*   for(i=0; i<max_size; i++) */
+/*     glist[i] = NULL; */
+
+/*   part = CreateHeaderGroup(); */
+
+/*   // Assign the nodes creating new groups when necessary */
+/*   p = net; */
+/*   while(p->next != NULL){ */
+/*     p = p->next; */
+
+/*     if(glist[group[p->num]] == NULL) */
+/*       glist[group[p->num]] = CreateGroup(part,group[p->num]); */
+
+/*     AddNodeToGroup(glist[group[p->num]],p); */
+/*   } */
+
+/*   return part; */
+/* } */
+
+
+/* struct group *CreateCustomPartitionSoft(int S,int group[]) */
+/* { */
+/*   int i; */
+/*   struct group *glist[max_size]; */
+/*   struct group *part = NULL; */
+
+/*   for(i=0; i<max_size; i++) */
+/*     glist[i] = NULL; */
+
+/*   part = CreateHeaderGroup(); */
+
+/*   // Assign the nodes creating new groups when necessary */
+/*   for(i=0; i<S; i++){ */
+
+/*     if(glist[group[i]] == NULL) */
+/*       glist[group[i]] = CreateGroup(part,group[i]); */
+
+/*     AddNodeToGroupSoft(glist[group[i]],i); */
+/*   } */
+
+/*   return part; */
+/* } */
 
 
 // ---------------------------------------------------------------------
@@ -736,7 +871,6 @@ void MapPartToNet(struct group *part, struct node_gra *net)
   int totlink, inlink;
   double totlinkW, inlinkW;
   void *nodeDict = NULL;
-  struct node_tree *treeNode = NULL;
   struct node_gra *node = NULL;
 
   // Reset the group of all nodes
@@ -862,7 +996,7 @@ struct group *ClustersPartition(struct node_gra *net)
 
   // Initialize some variables
   part = CreateHeaderGroup();
-  size=0;
+  size = 0;
   ResetNetGroup(net);
   nnod = CountNodes(net);
   list = CreateHeaderList();
@@ -945,9 +1079,9 @@ void FPrintPartition(FILE *outf, struct group *partition, int list_sw)
       p = g->nodeList;
       while ((p = p->next) != NULL) {
 	if (list_sw == 0)
-	  fprintf(outf, " %s", p->ref->label);
+	  fprintf(outf, " %s", p->nodeLabel);
 	else
-	  fprintf(outf, "%s\n", p->ref->label);
+	  fprintf(outf, "%s\n", p->nodeLabel);
       }
 
       // End group
@@ -1477,132 +1611,6 @@ struct group *SAGroupSplit(struct group *targ,
 
 
 
-/* struct group *CreateEquiNPartition(struct node_gra *net, int gsize) */
-/* { */
-/*   int i,j; */
-/*   int ngroups; */
-/*   struct group *g = NULL; */
-/*   struct group *part = NULL; */
-/*   struct node_gra *p = NULL; */
-
-/*   ngroups = CountNodes(net)/gsize; */
-
-/*   p = net; */
-
-/*   // Create the groups and assign the nodes */
-/*   part = CreateHeaderGroup(); */
-
-/*   for( i=0; i<=ngroups; i++ ) { */
-/*     g = CreateGroup(part,i); */
-
-/*     for( j=0; j<gsize; j++ ) { */
-      
-/*       if (p->next != NULL){ */
-/* 	p = p->next; */
-/* 	AddNodeToGroup(g,p); */
-/*       } */
-/*     } */
-/*   } */
-
-/*   return CompressPart(part); */
-/* } */
-
-/* struct group *CreateEquiNPartitionSoft(int ngroups, int gsize) */
-/* { */
-/*   int i,j; */
-/*   struct group *g = NULL; */
-/*   struct group *part = NULL; */
-/*   struct node_gra *p = NULL; */
-
-/*   // Create the groups and assign the nodes */
-/*   part = CreateHeaderGroup(); */
-
-/*   for( i=0; i<ngroups; i++ ) { */
-/*     g = CreateGroup(part,i); */
-
-/*     for( j=0; j<gsize; j++ ) { */
-/*       AddNodeToGroupSoft(g,j+i*gsize); */
-/*     } */
-/*   } */
-
-/*   return part; */
-/* } */
-
-
-/* struct group *CreatePartitionFromInGroup(struct node_gra *net) */
-/* { */
-/*   int i; */
-/*   struct group *glist[max_size]; */
-/*   struct group *part = NULL; */
-/*   struct node_gra *p = NULL; */
-
-/*   for(i=0; i<max_size; i++) */
-/*     glist[i] = NULL; */
-
-/*   part = CreateHeaderGroup(); */
-
-/*   // Assign the nodes creating new groups when necessary */
-/*   p = net; */
-/*   while ((p = p->next) != NULL) { */
-/*     if (glist[p->inGroup] == NULL) */
-/*       glist[p->inGroup] = CreateGroup(part, p->inGroup); */
-    
-/*     AddNodeToGroup(glist[p->inGroup], p); */
-/*   } */
-
-/*   return part; */
-/* } */
-
-
-/* struct group *CreateCustomPartition(struct node_gra *net, int group[]) */
-/* { */
-/*   int i; */
-/*   struct group *glist[max_size]; */
-/*   struct group *part = NULL; */
-/*   struct node_gra *p = NULL; */
-
-/*   for(i=0; i<max_size; i++) */
-/*     glist[i] = NULL; */
-
-/*   part = CreateHeaderGroup(); */
-
-/*   // Assign the nodes creating new groups when necessary */
-/*   p = net; */
-/*   while(p->next != NULL){ */
-/*     p = p->next; */
-
-/*     if(glist[group[p->num]] == NULL) */
-/*       glist[group[p->num]] = CreateGroup(part,group[p->num]); */
-
-/*     AddNodeToGroup(glist[group[p->num]],p); */
-/*   } */
-
-/*   return part; */
-/* } */
-
-
-/* struct group *CreateCustomPartitionSoft(int S,int group[]) */
-/* { */
-/*   int i; */
-/*   struct group *glist[max_size]; */
-/*   struct group *part = NULL; */
-
-/*   for(i=0; i<max_size; i++) */
-/*     glist[i] = NULL; */
-
-/*   part = CreateHeaderGroup(); */
-
-/*   // Assign the nodes creating new groups when necessary */
-/*   for(i=0; i<S; i++){ */
-
-/*     if(glist[group[i]] == NULL) */
-/*       glist[group[i]] = CreateGroup(part,group[i]); */
-
-/*     AddNodeToGroupSoft(glist[group[i]],i); */
-/*   } */
-
-/*   return part; */
-/* } */
 
 
 /* // merge = 0 => No group merging */
