@@ -155,7 +155,7 @@ int AddAdjacency(struct node_gra *node1,
 
 // ---------------------------------------------------------------------
 // Same as AddAdjacency, but we only pass the ID of node2, and the ref
-// pointer of the new adjacency is set to NULL. RewireAdjacency needs
+// pointer of the new adjacency is set to NULL. RewireAdjacencyByNum needs
 // to be run when AddAdjacencySoft is used
 // ---------------------------------------------------------------------
 int AddAdjacencySoft(struct node_gra *node1,
@@ -174,7 +174,8 @@ int AddAdjacencySoft(struct node_gra *node1,
   // ...otherwise go ahead and try to create the adjacency
   else {
     adja = node1->neig;
-    while((adja = adja->next) != NULL) {
+    while (adja->next != NULL) {
+      adja = adja->next;
       if (adja->node == node2_num) {
 	// The link already exists
 	if (add_weight_sw != 0) {
@@ -190,7 +191,8 @@ int AddAdjacencySoft(struct node_gra *node1,
     // Create a new adjacency
     adja->next = (struct node_lis *) calloc(1, sizeof(struct node_lis));
     (adja->next)->node = node2_num;
-    (adja->next)->nodeLabel = (char *) calloc(MAX_LABEL_LENGTH, sizeof(char));
+    (adja->next)->nodeLabel = (char *) calloc(MAX_LABEL_LENGTH,
+					      sizeof(char));
     strcpy((adja->next)->nodeLabel, "\0");
     (adja->next)->status = status;
     (adja->next)->next = NULL;
@@ -207,7 +209,7 @@ int AddAdjacencySoft(struct node_gra *node1,
 // Sets the ref pointers of all the adjacencies to the corresponding
 // nodes. You MUST use this after using AddAdjacencySoft!
 // ---------------------------------------------------------------------
-void RewireAdjacency(struct node_gra *net)
+void RewireAdjacencyByNum(struct node_gra *net)
 {
   struct node_gra *p=NULL;
   struct node_lis *adja=NULL;
@@ -277,7 +279,7 @@ struct node_gra *CopyNetwork(struct node_gra *p1)
 
   // Rewire the network to make all soft links hard and to set the
   // labels
-  RewireAdjacency(root2);
+  RewireAdjacencyByNum(root2);
 
   // Done
   return root2;
@@ -2247,7 +2249,7 @@ struct node_gra *GetLargestStronglyConnectedSet(struct node_gra *root,
     }while(*size != size_ant);
 
     CleanAdjacencies(root_loc);
-    RewireAdjacency(root_loc);
+    RewireAdjacencyByNum(root_loc);
     RenumberNodes(root_loc);
 
     if (CountNodes(root_loc) > maxS) {
@@ -2386,7 +2388,7 @@ struct node_gra *GetLargestWeaklyConnectedSet(struct node_gra *root,int thres)
 
     // Rewire the cluster
     CleanAdjacencies(root_loc);
-    RewireAdjacency(root_loc);
+    RewireAdjacencyByNum(root_loc);
     RenumberNodes(root_loc);
 
     // Check if this is the largest component
