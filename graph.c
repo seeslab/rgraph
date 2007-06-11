@@ -660,16 +660,16 @@ struct node_gra *GetNode(int num, struct node_gra *p)
 struct node_gra *GetNodeDict(char *label, void *dict)
 {
   struct node_tree *tempTreeNode = CreateNodeTree();
-  struct node_tree *treeNode = NULL;
+  void *treeNode = NULL;
   
   tempTreeNode->label = strcpy(tempTreeNode->label, label);
-  treeNode = *(struct node_tree **)tfind((void *)tempTreeNode,
-					 &dict,
-					 NodeTreeLabelCompare);
+  treeNode = tfind((void *)tempTreeNode,
+		   &dict,
+		   NodeTreeLabelCompare);
   FreeNodeTree(tempTreeNode, preorder, 0);
   
   if (treeNode != NULL)
-    return treeNode->ref;
+    return (*(struct node_tree **)treeNode)->ref;
   else
     return NULL;
 }
@@ -783,6 +783,11 @@ void CleanAdjacencies(struct node_gra *net)
   while ((p = p->next) != NULL) {
     nei = p->neig;
     while (nei->next != NULL) {
+      fprintf(stderr, "\t\tlooking for %s from %s\n",
+	      nei->next->nodeLabel, p->label);
+      GetNodeDict(nei->next->nodeLabel, nodeDict);
+      fprintf(stderr, "\t\tlooking for %s from %s\n",
+	      nei->next->nodeLabel, p->label);
       if (GetNodeDict(nei->next->nodeLabel, nodeDict) == NULL) {
 	temp = nei->next;
 	if (temp->next == NULL)
