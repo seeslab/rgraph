@@ -193,7 +193,7 @@ int AddAdjacencySoft(struct node_gra *node1,
     adja->next = (struct node_lis *) calloc(1, sizeof(struct node_lis));
     (adja->next)->nodeLabel = (char *) calloc(MAX_LABEL_LENGTH,
 					      sizeof(char));
-    strcpy((adja->next)->nodeLabel, node2Label);
+    (adja->next)->nodeLabel = strcpy((adja->next)->nodeLabel, node2Label);
     (adja->next)->status = status;
     (adja->next)->next = NULL;
     (adja->next)->ref = NULL;
@@ -224,6 +224,7 @@ void RewireAdjacencyByLabel(struct node_gra *net)
     adja = p->neig;
     while ((adja = adja->next) != NULL) {
       adja->ref = GetNodeDict(adja->nodeLabel, nodeDict);
+      adja->node = adja->ref->num;
     }
   }
 
@@ -354,6 +355,16 @@ void FreeNodeTree(struct node_tree *ntree, VISIT value, int level)
 }
 
 // ---------------------------------------------------------------------
+// Frees the memory allocated to a node_lis
+// ---------------------------------------------------------------------
+void FreeNodeLis(struct node_lis *p)
+{
+  free(p->nodeLabel);
+  free(p);
+  return;
+}
+
+// ---------------------------------------------------------------------
 // Recursively removes all the adjacencies in the adjacency list that
 // hangs from p and frees the memory
 // ---------------------------------------------------------------------
@@ -362,8 +373,7 @@ void FreeAdjacencyList(struct node_lis *p)
   if (p->next != NULL) {
     FreeAdjacencyList(p->next);
   }
-  free(p->nodeLabel);
-  free(p);
+  FreeNodeLis(p);
 }
 
 // ---------------------------------------------------------------------
@@ -783,18 +793,13 @@ void CleanAdjacencies(struct node_gra *net)
   while ((p = p->next) != NULL) {
     nei = p->neig;
     while (nei->next != NULL) {
-      fprintf(stderr, "\t\tlooking for %s from %s\n",
-	      nei->next->nodeLabel, p->label);
-      GetNodeDict(nei->next->nodeLabel, nodeDict);
-      fprintf(stderr, "\t\tlooking for %s from %s\n",
-	      nei->next->nodeLabel, p->label);
       if (GetNodeDict(nei->next->nodeLabel, nodeDict) == NULL) {
 	temp = nei->next;
 	if (temp->next == NULL)
 	  nei->next = NULL;
 	else
 	  nei->next = temp->next;
-	free(temp);
+	FreeNodeLis(temp);
       }
       else {
 	nei = nei->next;

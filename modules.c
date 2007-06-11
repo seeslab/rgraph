@@ -737,17 +737,15 @@ struct node_gra *BuildNetFromPart(struct group *part)
   last = net = CreateHeaderGraph();
 
   while ((p = p->next) != NULL) {
-    new = CreateNodeGraph(last, p->ref->label);
-    new->num = p->ref->num;     // Temporarily use the old number
+    new = CreateNodeGraph(last, p->nodeLabel);
     new->state = p->ref->state;
     new->coorX = p->ref->coorX;
     new->coorY = p->ref->coorY;
     new->coorZ = p->ref->coorZ;
     new->ivar1 = p->ref->ivar1;
     new->dvar1 = p->ref->dvar1;
-    new->inGroup = p->ref->inGroup;
-    last = new;
     CopyAdjacencyList(p->ref, new);
+    last = new;
   }
 
   CleanAdjacencies(net);
@@ -1146,24 +1144,20 @@ struct group *SAGroupSplit(struct group *targ,
   int ngroups, g1, g2;
   double prob = 0.5;
 
-  fprintf(stderr, "\tHere 1...\n");
   nodeList = (struct node_gra**)calloc(targ->size,
 				       sizeof(struct node_gra *));
   glist[0] = NULL;
   glist[1] = NULL;
 
   // Build a network from the nodes in the target group
-  fprintf(stderr, "\tHere 2...\n");
-/*   net = BuildNetFromPart(targ); */
+  net = BuildNetFromPart(targ);
 
   split = CreateHeaderGroup();
   glist[0] = CreateGroup(split, 0);
   glist[1] = CreateGroup(split, 1);
 
 /*   // Check if the network is connected */
-/*   fprintf(stderr, "\tHere 3...\n"); */
 /*   split = ClustersPartition(net); */
-/*   fprintf(stderr, "\tHere 4...\n"); */
 /*   ngroups = NGroups(split); */
 
 /*   if ( */
@@ -1171,7 +1165,6 @@ struct group *SAGroupSplit(struct group *targ,
 /*       ngroups > 1 &&             // network is not connected */
 /*       prng_get_next(gen) < prob  // with some probability */
 /*       ) { */
-/*     fprintf(stderr, "\tCluster splitting...\n"); */
     
 /*     // Merge groups randomly until only two are left */
 /*     while (ngroups > 2) { */
@@ -1196,9 +1189,8 @@ struct group *SAGroupSplit(struct group *targ,
 /*   } */
 
 /*   else { // Network is connected or we want to ignore the clusters */
-/*     fprintf(stderr, "\tSA splitting...\n"); */
 /*     // Remove SCS partition */
-/* /\*     RemovePartition(split); *\/ */
+/*     RemovePartition(split); */
 /*     ResetNetGroup(net); */
 
 /*     // Create the groups */
@@ -1275,7 +1267,7 @@ struct group *SAGroupSplit(struct group *targ,
 /*   } */
 
   // Free memory
-/*   RemoveGraph(net); */
+  RemoveGraph(net);
   free(nodeList);
 
   // Done
@@ -1506,13 +1498,9 @@ struct group *SACommunityIdent(struct node_gra *net,
 
 	if (empty >= 0) { // if there are no empty groups, do nothing
 	  // Find a reasonable split
-	  fprintf(stderr, "Finding split\n");
-	  
 	  split = SAGroupSplit(glist[dice], Ti, T, 0.95, 1, gen);
-	  fprintf(stderr, "Split found\n");
 
 	  // Split the group
-	  fprintf(stderr, "Splitting the group\n");
 	  nod = (split->next)->nodeList;
 	  while ((nod = nod->next) != NULL) {
 	    MoveNode(GetNodeDict(nod->nodeLabel, nodeDict),
@@ -1521,7 +1509,6 @@ struct group *SACommunityIdent(struct node_gra *net,
 	  }
 	  RemovePartition(split);
 	  split = NULL;
-	  fprintf(stderr, "Group split\n");
 
 	  // Calculate the change of energy associated to remerging
 	  // the groups
