@@ -53,6 +53,12 @@ int main()
 /*     net2 = BuildNetFromPart(part->next); */
 /*     RemoveGraph(net2); */
 
+/*     struct group *part2 = NULL; */
+/*     part2 = ClustersPartition(net); */
+/*     MapPartToNet(part2, net); */
+/*     FPrintPartition(stdout, part2, 0); */
+/*     RemovePartition(part2); */
+
     struct group *part2 = NULL;
     part2 = SACommunityIdent(net, 2. / CountNodes(net), 0.0, 0.995,
 			     2.0, 2, 'o', 1, 'v', randGen);
