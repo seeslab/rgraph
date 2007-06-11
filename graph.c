@@ -668,7 +668,10 @@ struct node_gra *GetNodeDict(char *label, void *dict)
 					 NodeTreeLabelCompare);
   FreeNodeTree(tempTreeNode, preorder, 0);
   
-  return treeNode->ref;
+  if (treeNode != NULL)
+    return treeNode->ref;
+  else
+    return NULL;
 }
 
 // ---------------------------------------------------------------------
@@ -769,31 +772,18 @@ int RemoveIsolatedNodes(struct node_gra *root)
 void CleanAdjacencies(struct node_gra *net)
 {
   struct node_lis *nei, *temp;
-  int maxNNode = 0;
   struct node_gra *p = NULL;
-  int *nodeList = NULL;
-  int i;
+  void *nodeDict;
 
-  // Determine the largest label in the network
-  p = net;
-  while ((p = p->next) != NULL)
-    if (p->num > maxNNode)
-      maxNNode = p->num;
-
-  // Build a list with the nodes in the network
-  nodeList = allocate_i_vec(maxNNode + 1);
-  for (i=0; i<=maxNNode; i++)
-    nodeList[i] = 0;
-  p = net;
-  while ((p = p->next) != NULL)
-    nodeList[p->num] = 1;
+  // Build a dictionary for fast access to nodes
+  nodeDict = MakeLabelDict(net);
 
   // Clean the adjacencies
   p = net;
   while ((p = p->next) != NULL) {
     nei = p->neig;
     while (nei->next != NULL) {
-      if (nodeList[(nei->next)->node] == 0) {
+      if (GetNodeDict(nei->next->nodeLabel, nodeDict) == NULL) {
 	temp = nei->next;
 	if (temp->next == NULL)
 	  nei->next = NULL;
@@ -808,7 +798,7 @@ void CleanAdjacencies(struct node_gra *net)
   }
 
   // Free memory
-  free_i_vec(nodeList);
+  FreeLabelDict(nodeDict);
 
   // Done
   return;
