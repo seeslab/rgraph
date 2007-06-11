@@ -734,8 +734,7 @@ struct node_gra *BuildNetFromPart(struct group *part)
   struct node_gra *new = NULL;
   struct node_lis *p = (part->nodeList);
 
-  net = CreateHeaderGraph();
-  last = net;
+  last = net = CreateHeaderGraph();
 
   while ((p = p->next) != NULL) {
     new = CreateNodeGraph(last, p->ref->label);
@@ -752,7 +751,7 @@ struct node_gra *BuildNetFromPart(struct group *part)
   }
 
   CleanAdjacencies(net);
-  RewireAdjacencyByNum(net);
+  RewireAdjacencyByLabel(net);
   RenumberNodes(net);
 
   return net;
@@ -1155,124 +1154,128 @@ struct group *SAGroupSplit(struct group *targ,
 
   // Build a network from the nodes in the target group
   fprintf(stderr, "\tHere 2...\n");
-  net = BuildNetFromPart(targ);
+/*   net = BuildNetFromPart(targ); */
 
-  // Check if the network is connected
+  split = CreateHeaderGroup();
+  glist[0] = CreateGroup(split, 0);
+  glist[1] = CreateGroup(split, 1);
+
+/*   // Check if the network is connected */
 /*   fprintf(stderr, "\tHere 3...\n"); */
 /*   split = ClustersPartition(net); */
 /*   fprintf(stderr, "\tHere 4...\n"); */
 /*   ngroups = NGroups(split); */
 
-  if (
-      cluster_sw == 1 &&         // cluster switch is on
-      ngroups > 1 &&             // network is not connected
-      prng_get_next(gen) < prob  // with some probability
-      ) {
-    fprintf(stderr, "\tCluster splitting...\n");
+/*   if ( */
+/*       cluster_sw == 1 &&         // cluster switch is on */
+/*       ngroups > 1 &&             // network is not connected */
+/*       prng_get_next(gen) < prob  // with some probability */
+/*       ) { */
+/*     fprintf(stderr, "\tCluster splitting...\n"); */
     
-    // Merge groups randomly until only two are left
-    while (ngroups > 2) {
-      // Select two random groups
-      g1 = ceil(prng_get_next(gen)* (double)ngroups);
-      do {
-	g2 = ceil(prng_get_next(gen)* (double)ngroups);
-      } while (g2 == g1);
+/*     // Merge groups randomly until only two are left */
+/*     while (ngroups > 2) { */
+/*       // Select two random groups */
+/*       g1 = ceil(prng_get_next(gen)* (double)ngroups); */
+/*       do { */
+/* 	g2 = ceil(prng_get_next(gen)* (double)ngroups); */
+/*       } while (g2 == g1); */
       
-      glist[0] = split;
-      for(i=0; i<g1; i++)
-	glist[0] = glist[0]->next;
-      glist[1] = split;
-      for(i=0; i<g2; i++)
-	glist[1] = glist[1]->next;
+/*       glist[0] = split; */
+/*       for(i=0; i<g1; i++) */
+/* 	glist[0] = glist[0]->next; */
+/*       glist[1] = split; */
+/*       for(i=0; i<g2; i++) */
+/* 	glist[1] = glist[1]->next; */
 
-      // Merge
-      MergeGroups(glist[0], glist[1]);
-      split = CompressPart(split);
-      ngroups--;
-    }
-  }
+/*       // Merge */
+/*       MergeGroups(glist[0], glist[1]); */
+/*       split = CompressPart(split); */
+/*       ngroups--; */
+/*     } */
+/*   } */
 
-  else { // Network is connected or we want to ignore the clusters
-    fprintf(stderr, "\tSA splitting...\n");
-    // Remove SCS partition
-/*     RemovePartition(split); */
-    ResetNetGroup(net);
+/*   else { // Network is connected or we want to ignore the clusters */
+/*     fprintf(stderr, "\tSA splitting...\n"); */
+/*     // Remove SCS partition */
+/* /\*     RemovePartition(split); *\/ */
+/*     ResetNetGroup(net); */
 
-    // Create the groups
-    split = CreateHeaderGroup();
-    glist[0] = CreateGroup(split, 0);
-    glist[1] = CreateGroup(split, 1);
+/*     // Create the groups */
+/*     split = CreateHeaderGroup(); */
+/*     glist[0] = CreateGroup(split, 0); */
+/*     glist[1] = CreateGroup(split, 1); */
 
-    // Randomly assign the nodes to the groups
-    p = net;
-    while ((p = p->next) != NULL) {
-      nodeList[nnod] = p;
-      totallinks += CountLinks(p);
-      nnod++;
+/*     // Randomly assign the nodes to the groups */
+/*     p = net; */
+/*     while ((p = p->next) != NULL) { */
+/*       nodeList[nnod] = p; */
+/*       totallinks += CountLinks(p); */
+/*       nnod++; */
       
-      des = floor(prng_get_next(gen) * 2.0);
-      AddNodeToGroup(glist[des], p);
-    }
-    totallinks /= 2;
+/*       des = floor(prng_get_next(gen) * 2.0); */
+/*       AddNodeToGroup(glist[des], p); */
+/*     } */
+/*     totallinks /= 2; */
     
-    // Do the SA to "optimize" the splitting
-    if (totallinks > 0) {
-      T = Ti;
-      while (T > Tf) {
+/*     // Do the SA to "optimize" the splitting */
+/*     if (totallinks > 0) { */
+/*       T = Ti; */
+/*       while (T > Tf) { */
 	
-	for (i=0; i<nnod; i++) {
-	  target = floor(prng_get_next(gen) * (double)nnod);
-	  oldg = nodeList[target]->inGroup;
-	  if(oldg == 0)
-	    newg = 1;
-	  else
-	    newg = 0;
+/* 	for (i=0; i<nnod; i++) { */
+/* 	  target = floor(prng_get_next(gen) * (double)nnod); */
+/* 	  oldg = nodeList[target]->inGroup; */
+/* 	  if(oldg == 0) */
+/* 	    newg = 1; */
+/* 	  else */
+/* 	    newg = 0; */
 	
-	  // Calculate the change of energy
-	  inold = NLinksToGroup(nodeList[target],glist[oldg]);
-	  innew = NLinksToGroup(nodeList[target],glist[newg]);
-	  nlink = CountLinks(nodeList[target]);
+/* 	  // Calculate the change of energy */
+/* 	  inold = NLinksToGroup(nodeList[target],glist[oldg]); */
+/* 	  innew = NLinksToGroup(nodeList[target],glist[newg]); */
+/* 	  nlink = CountLinks(nodeList[target]); */
 	  
-	  dE = 0.0;
-	  dE -= (double)(2 * glist[oldg]->inlinks) /
-	    (double)totallinks -
-	    (double)(glist[oldg]->totlinks+glist[oldg]->inlinks) *
-	    (double)(glist[oldg]->totlinks+glist[oldg]->inlinks) /
-	    ((double)totallinks * (double)totallinks);
-	  dE -= (double)(2 * glist[newg]->inlinks) /
-	  (double)totallinks -
-	    (double)(glist[newg]->totlinks+glist[newg]->inlinks) *
-	    (double)(glist[newg]->totlinks+glist[newg]->inlinks) /
-	    ((double)totallinks * (double)totallinks);
-	  dE += (double)(2*glist[oldg]->inlinks - 2*inold) /
-	    (double)totallinks -
-	    (double)(glist[oldg]->totlinks + glist[oldg]->inlinks -
-		     nlink ) *
-	    (double)(glist[oldg]->totlinks + glist[oldg]->inlinks -
-		     nlink ) /
-	    ((double)totallinks * (double)totallinks);
-	  dE += (double)(2*glist[newg]->inlinks + 2*innew) /
-	    (double)totallinks -
-	    (double)(glist[newg]->totlinks + glist[newg]->inlinks +
-		     nlink ) *
-	    (double)(glist[newg]->totlinks + glist[newg]->inlinks +
-		     nlink ) /
-	    ((double)totallinks * (double)totallinks);
+/* 	  dE = 0.0; */
+/* 	  dE -= (double)(2 * glist[oldg]->inlinks) / */
+/* 	    (double)totallinks - */
+/* 	    (double)(glist[oldg]->totlinks+glist[oldg]->inlinks) * */
+/* 	    (double)(glist[oldg]->totlinks+glist[oldg]->inlinks) / */
+/* 	    ((double)totallinks * (double)totallinks); */
+/* 	  dE -= (double)(2 * glist[newg]->inlinks) / */
+/* 	  (double)totallinks - */
+/* 	    (double)(glist[newg]->totlinks+glist[newg]->inlinks) * */
+/* 	    (double)(glist[newg]->totlinks+glist[newg]->inlinks) / */
+/* 	    ((double)totallinks * (double)totallinks); */
+/* 	  dE += (double)(2*glist[oldg]->inlinks - 2*inold) / */
+/* 	    (double)totallinks - */
+/* 	    (double)(glist[oldg]->totlinks + glist[oldg]->inlinks - */
+/* 		     nlink ) * */
+/* 	    (double)(glist[oldg]->totlinks + glist[oldg]->inlinks - */
+/* 		     nlink ) / */
+/* 	    ((double)totallinks * (double)totallinks); */
+/* 	  dE += (double)(2*glist[newg]->inlinks + 2*innew) / */
+/* 	    (double)totallinks - */
+/* 	    (double)(glist[newg]->totlinks + glist[newg]->inlinks + */
+/* 		     nlink ) * */
+/* 	    (double)(glist[newg]->totlinks + glist[newg]->inlinks + */
+/* 		     nlink ) / */
+/* 	    ((double)totallinks * (double)totallinks); */
 
-	  // Accept the move according to Metropolis
-	  if( (dE >=0.0) || (prng_get_next(gen) < exp(dE/T)) ){
-	    MoveNode(nodeList[target],glist[oldg],glist[newg]);
-	    energy += dE;
-	  }
-	}
+/* 	  // Accept the move according to Metropolis */
+/* 	  if( (dE >=0.0) || (prng_get_next(gen) < exp(dE/T)) ){ */
+/* 	    MoveNode(nodeList[target],glist[oldg],glist[newg]); */
+/* 	    energy += dE; */
+/* 	  } */
+/* 	} */
 
-	T = T * Ts;
-      } // End of temperature loop
-    } // End if totallinks > 0
-  }
+/* 	T = T * Ts; */
+/*       } // End of temperature loop */
+/*     } // End if totallinks > 0 */
+/*   } */
 
   // Free memory
-  RemoveGraph(net);
+/*   RemoveGraph(net); */
   free(nodeList);
 
   // Done

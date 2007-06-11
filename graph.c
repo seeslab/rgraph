@@ -154,12 +154,13 @@ int AddAdjacency(struct node_gra *node1,
 }
 
 // ---------------------------------------------------------------------
-// Same as AddAdjacency, but we only pass the ID of node2, and the ref
-// pointer of the new adjacency is set to NULL. RewireAdjacencyByNum needs
-// to be run when AddAdjacencySoft is used
+// Same as AddAdjacency, but we only pass the label of node2, and the
+// ref pointer of the new adjacency is set to
+// NULL. RewireAdjacencyByLabel needs to be run when AddAdjacencySoft
+// is used
 // ---------------------------------------------------------------------
 int AddAdjacencySoft(struct node_gra *node1,
-		     int node2_num,
+		     char *node2Label,
 		     int auto_link_sw,
 		     int add_weight_sw,
 		     double weight,
@@ -168,7 +169,7 @@ int AddAdjacencySoft(struct node_gra *node1,
   struct node_lis *adja=NULL;
 
   // If node1==node2 and autolinks are not allowed, do nothing...
-  if (node1->num == node2_num && auto_link_sw == 0) { 
+  if (strcmp(node1->label, node2Label) == 0 && auto_link_sw == 0) { 
     return 0;
   }
   // ...otherwise go ahead and try to create the adjacency
@@ -176,7 +177,7 @@ int AddAdjacencySoft(struct node_gra *node1,
     adja = node1->neig;
     while (adja->next != NULL) {
       adja = adja->next;
-      if (adja->node == node2_num) {
+      if (strcmp(adja->nodeLabel, node2Label) == 0) {
 	// The link already exists
 	if (add_weight_sw != 0) {
 	  adja->weight += weight; // Update the weight of the link
@@ -190,10 +191,9 @@ int AddAdjacencySoft(struct node_gra *node1,
     
     // Create a new adjacency
     adja->next = (struct node_lis *) calloc(1, sizeof(struct node_lis));
-    (adja->next)->node = node2_num;
     (adja->next)->nodeLabel = (char *) calloc(MAX_LABEL_LENGTH,
 					      sizeof(char));
-    strcpy((adja->next)->nodeLabel, "\0");
+    strcpy((adja->next)->nodeLabel, node2Label);
     (adja->next)->status = status;
     (adja->next)->next = NULL;
     (adja->next)->ref = NULL;
@@ -203,6 +203,33 @@ int AddAdjacencySoft(struct node_gra *node1,
     // Done
     return 1;
   }
+}
+
+// ---------------------------------------------------------------------
+// Sets the ref pointers of all the adjacencies to the corresponding
+// nodes based on their labels.
+// ---------------------------------------------------------------------
+void RewireAdjacencyByLabel(struct node_gra *net)
+{
+  struct node_gra *p=NULL;
+  struct node_lis *adja=NULL;
+  void *nodeDict;
+
+  // Map the nodes into a dictionary
+  nodeDict = MakeLabelDict(net);
+
+  // Point the adjacency pointers to the nodes
+  p = net;
+  while ((p = p->next) != NULL) {
+    adja = p->neig;
+    while ((adja = adja->next) != NULL) {
+      adja->ref = GetNodeDict(adja->nodeLabel, nodeDict);
+    }
+  }
+
+  // Done
+  FreeLabelDict(nodeDict);
+  return;
 }
 
 // ---------------------------------------------------------------------
@@ -248,7 +275,7 @@ void CopyAdjacencyList(struct node_gra *nori, struct node_gra *ndes)
 
   pori = nori->neig;
   while ((pori = pori->next) != NULL) {
-    AddAdjacencySoft(ndes, pori->node, 1, 0,
+    AddAdjacencySoft(ndes, pori->nodeLabel, 1, 0,
 		     pori->weight, pori->status);
   }
 }
@@ -1027,7 +1054,8 @@ void RenumberNodes(struct node_gra *net)
     p->num = count++;
   }
 
-  // Renumber the links
+  // Renumber the links (the adjacencies need to be pointed to the
+  // reference nodes)
   p = net;
   while ((p = p->next) !=  NULL) {
     n = p->neig;

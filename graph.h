@@ -79,12 +79,13 @@ int AddAdjacency(struct node_gra *node1,
 		 double weight,
 		 int status);
 int AddAdjacencySoft(struct node_gra *node1,
-		     int node2_num,
+		     char *node2Label,
 		     int auto_link_sw,
 		     int add_weight_sw,
 		     double weight,
 		     int status);
 void RewireAdjacencyByNum(struct node_gra *root);
+void RewireAdjacencyByLabel(struct node_gra *root);
 void CopyAdjacencyList(struct node_gra *n1,
 		       struct node_gra *n2);
 struct node_gra *CopyNetwork(struct node_gra *p1);
