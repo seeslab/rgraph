@@ -3,14 +3,14 @@ TEST_WARNING_FLAG = -Wall
 WARNING_FLAG = -Wall
 PRNGDIR = ${HOME}/Software/prng-3.0.2
 
-test : main_test.c libgraph.a
+test : main_test.c librgraph.a
 	gcc -o test main_test.c -I${PRNGDIR}/include/ \
-	-L${PRNGDIR}/lib/ -L./ -lprng -lgraph -lm \
+	-L${PRNGDIR}/lib/ -L./ -lprng -lrgraph -lm \
 	${DEBUG_FLAG} ${TEST_WARNING_FLAG}
 
-libgraph.a :  graph.o tools.o modules.o
-	ar rc libgraph.a graph.o tools.o modules.o
-	ranlib libgraph.a
+librgraph.a :  graph.o tools.o modules.o
+	ar rc librgraph.a graph.o tools.o modules.o
+	ranlib librgraph.a
 
 tools.o : tools.c tools.h
 	gcc -c tools.c ${DEBUG_FLAG} ${WARNING_FLAG}

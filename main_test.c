@@ -9,11 +9,11 @@
 
 int main()
 {
-  FILE *inFile;
   struct node_gra *net = NULL;
   struct prng *randGen;
+  int repeat = 1;
 
-  while (1) {
+  while (repeat) {
 
     // ------------------------------------------------------------
     // Initialize the random number generator
@@ -24,9 +24,12 @@ int main()
     // ------------------------------------------------------------
     // Build the network
     // ------------------------------------------------------------
-    inFile = fopen("test.dat", "r");
-    net = FBuildNetwork(inFile, 0, 1, 0, 1);
-    fclose(inFile);
+/*     FILE *inFile; */
+/*     inFile = fopen("test.dat", "r"); */
+/*     net = FBuildNetwork(inFile, 0, 1, 0, 1); */
+/*     fclose(inFile); */
+
+    net = FBuildNetwork(stdin, 0, 1, 0, 1);
 
     // ------------------------------------------------------------
     // Network
@@ -40,37 +43,20 @@ int main()
     // ------------------------------------------------------------
     // Partition
     // ------------------------------------------------------------
-/*     struct group *part = NULL; */
-/*     inFile = fopen("testpart.dat", "r"); */
-/*     part = FCreatePartition(inFile); */
-/*     fclose(inFile); */
-/*     MapPartToNet(part, net); */
-/*     fprintf(stderr, "\n"); */
-/*     FPrintPartition(stdout, part, 0); */
-/*     RemovePartition(part); */
-
-/*     struct node_gra *net2; */
-/*     net2 = BuildNetFromPart(part->next); */
-/*     RemoveGraph(net2); */
-
-/*     struct group *part2 = NULL; */
-/*     part2 = ClustersPartition(net); */
-/*     MapPartToNet(part2, net); */
-/*     FPrintPartition(stdout, part2, 0); */
-/*     RemovePartition(part2); */
-
-    struct group *part2 = NULL;
-    part2 = SACommunityIdent(net, 2. / CountNodes(net), 0.0, 0.995,
-			     2.0, 2, 'o', 1, 'v', randGen);
-    MapPartToNet(part2, net);
-    FPrintPartition(stdout, part2, 0);
-    RemovePartition(part2);
+    struct group *part = NULL;
+    part = SACommunityIdent(net, 2. / CountNodes(net), 0.0, 0.995,
+			     2.0, 2, 'o', 1, 'n', randGen);
+    MapPartToNet(part, net);
+    FPrintPartition(stdout, part, 0);
+    RemovePartition(part);
 
     // ------------------------------------------------------------
     // Free memory
     // ------------------------------------------------------------
     RemoveGraph(net);
     prng_free(randGen);
+
+    repeat = 0;
   }
 
   return 0;
