@@ -8,7 +8,7 @@ test : main_test.c librgraph.a
 	-L${PRNGDIR}/lib/ -L./ -lprng -lrgraph -lm \
 	${DEBUG_FLAG} ${TEST_WARNING_FLAG}
 
-librgraph.a :  graph.o tools.o modules.o
+librgraph.a :  graph.o tools.o modules.o models.o
 	ar rc librgraph.a graph.o tools.o modules.o
 	ranlib librgraph.a
 
@@ -18,8 +18,11 @@ tools.o : tools.c tools.h
 graph.o : graph.c graph.h tools.h
 	gcc -c graph.c -I${PRNGDIR}/include ${DEBUG_FLAG} ${WARNING_FLAG}
 
-modules.o : modules.c modules.h tools.h
+modules.o : modules.c modules.h tools.h graph.h
 	gcc -c modules.c -I${PRNGDIR}/include ${DEBUG_FLAG} ${WARNING_FLAG}
+
+models.o : models.c models.h tools.h graph.h
+	gcc -c models.c -I${PRNGDIR}/include ${DEBUG_FLAG} ${WARNING_FLAG}
 
 clean:
 	rm -f *.o
