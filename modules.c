@@ -610,6 +610,22 @@ int NLinksToGroup(struct node_gra* node, struct group *g)
 }
 
 // ---------------------------------------------------------------------
+// Count the number of links from a node to a given group, based on
+// the label of the group only
+// ---------------------------------------------------------------------
+int NLinksToGroupByNum(struct node_gra* node, int gLabel)
+{
+  struct node_lis *nei = node->neig;
+  int inlink = 0;
+
+  while ((nei = nei->next) != NULL)
+    if ((nei->ref)->inGroup == gLabel)
+      inlink++;
+
+  return inlink;
+}
+
+// ---------------------------------------------------------------------
 // Weight of links from a node to a given group
 // ---------------------------------------------------------------------
 double StrengthToGroup(struct node_gra* node, struct group *g)
@@ -1298,7 +1314,7 @@ struct group *SACommunityIdent(struct node_gra *net,
   int nnod;
   int totallinks = 0;
   int innew,inold,nlink;
-  double energy = 0.0, dE = 0.0;
+  double energy = -1.0, dE = 0.0;
   double T;
   int g1, g2;
   double energyant = 0.0;
@@ -1543,7 +1559,8 @@ struct group *SACommunityIdent(struct node_gra *net,
     }  // End of if collective_sw==1
 
     // Update the no-change counter
-    if (fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD) {
+    if (fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD ||
+	fabs(energyant) < EPSILON_MOD) {
       count++;
       
       // If the SA is ready to stop (count==limit) but the current
@@ -1601,6 +1618,35 @@ struct group *SACommunityIdent(struct node_gra *net,
   return CompressPart(part);
 }
 
+
+// ---------------------------------------------------------------------
+// ---------------------------------------------------------------------
+// Roles
+// ---------------------------------------------------------------------
+// ---------------------------------------------------------------------
+
+// ---------------------------------------------------------------------
+// Calculate the participation coefficient
+// ---------------------------------------------------------------------
+double ParticipationCoefficient(struct node_gra *node)
+{
+  struct node_lis *nei = node->neig;
+  int toGroup;
+  double P = 0.0;
+  int nlink = CountLinks(node);
+
+  // Go through the neighbors
+  if (nlink != 0) {
+    while ((nei = nei->next) != NULL) {
+      toGroup = NLinksToGroupByNum(node, nei->ref->inGroup);
+      P += (double)toGroup / (double)(nlink * nlink);
+    }
+    P = 1.0 - P;
+  }
+
+  // Done
+  return P;
+}
 
 
 
@@ -1904,287 +1950,6 @@ struct group *SACommunityIdent(struct node_gra *net,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* // merge = 0 => No group merging */
-/* // Same as SACommunityIdent but the maximum number of modules */
-/* // is specified */
-/* struct group *SACommunityIdentNMod(struct node_gra *net,double Ti,double Tf,double Ts,double fac, int merge, int nmod, struct prng *gen) */
-/* { */
-/*   int i; */
-/*   struct group *part = NULL; */
-/*   struct group *split = NULL, *g = NULL; */
-/*   struct group *glist[max_size]; */
-/*   struct node_gra *nlist[max_size]; */
-/*   struct node_gra *p; */
-/*   struct node_lis *nod; */
-/*   int target,empty; */
-/*   int newg,oldg; */
-/*   int nnod; */
-/*   int totallinks = 0; */
-/*   int innew,inold,nlink; */
-/*   double energy = 0.0, dE; */
-/*   double T; */
-/*   int g1,g2; */
-/*   double energyant = 0.0; */
-/*   int count = 0, limit = 25; // to stop the search if the energy */
-/*                           // does not change */
-/*   int cicle1,cicle2; */
-/*   int trans[maxim_int]; */
-
-
-/*   // Create the groups the nodes randomly */
-/*   nnod = CountNodes(net); */
-/*   part = CreateHeaderGroup(); */
-/*   p = net->next; */
-/*   ResetNetGroup(net); // All nodes reset to group -1 */
-
-/*   // Create the groups */
-/*   for (i=0; i<nmod; i++){ */
-/*     glist[i] = CreateGroup(part,i); */
-/*   } */
-
-/*   // Assign the nodes randomly */
-/*   nlist[0] = p; */
-/*   trans[p->num] = 0; */
-/*   target = floor( prng_get_next(gen) * (double)nmod ); */
-/*   AddNodeToGroup(glist[target],p); */
-/*   totallinks += CountLinks(p); */
-
-/*   for( i=1; i<nnod; i++ ) { */
-/*     p = p->next; */
-
-/*     nlist[i] = p; */
-/*     trans[p->num] = i; */
-/*     target = floor( prng_get_next(gen) * (double)nmod ); */
-/*     AddNodeToGroup(glist[target],p); */
-/*     totallinks += CountLinks(p); */
-/*   } */
-
-/*   // Number of iterations at each temperature */
-/*   if (fac*(double)(nnod*nmod) < 10) */
-/*     cicle1 = 10; */
-/*   else */
-/*     cicle1 = floor(fac*(double)(nnod*nmod)); */
-
-/*   if (fac*(double)nmod < 2) */
-/*     cicle2 = 2; */
-/*   else */
-/*     cicle2 = floor(fac*(double)nmod); */
-
-/*   // Do the simulated annealing */
-/*   T = Ti; */
-/*   energy = Modularity(part); */
-
-/*   while( T > Tf && count < limit){ */
-
-/*     if (energy == energyant) */
-/*       count++; */
-/*     else{ */
-/*       energyant = energy; */
-/*       count = 0; */
-/*     } */
-
-/* /\*     PrintGroups(part); *\/ */
-/* /\*     printf("%g %lf %lf %g\n",1.0/T, energy, Modularity(part), T); *\/ */
-/* /\*     printf("%g %lf %g\n",1.0/T, energy, T); *\/ */
-
-/*     for ( i=0; i < cicle1; i++ ){ */
-      
-/*       /////////////////////////////// */
-/*       // Propose an individual change */
-/*       /////////////////////////////// */
-/*       target = floor(prng_get_next(gen) * (double)nnod); */
-/*       oldg = nlist[target]->inGroup; */
-/*       do{ */
-/* 	newg = floor(prng_get_next(gen) * (double)nmod); */
-/*       }while(newg == oldg); */
-
-/*       // Calculate the change of energy */
-/*       inold = NLinksToGroup(nlist[target],glist[oldg]); */
-/*       innew = NLinksToGroup(nlist[target],glist[newg]); */
-/*       nlink = CountLinks(nlist[target]); */
-
-/*       dE = 0.0; */
-
-/*       dE -= (double)(2 * glist[oldg]->inlinks) / */
-/* 	(double)totallinks -  */
-/* 	(double)(glist[oldg]->totlinks+glist[oldg]->inlinks) * */
-/* 	(double)(glist[oldg]->totlinks+glist[oldg]->inlinks) / */
-/* 	((double)totallinks * (double)totallinks); */
-
-/*       dE -= (double)(2 * glist[newg]->inlinks) / */
-/* 	(double)totallinks -  */
-/* 	(double)(glist[newg]->totlinks+glist[newg]->inlinks) * */
-/* 	(double)(glist[newg]->totlinks+glist[newg]->inlinks) / */
-/* 	((double)totallinks * (double)totallinks); */
-
-/*       dE += (double)(2*glist[oldg]->inlinks - 2*inold) / */
-/* 	(double)totallinks - */
-/* 	(double)(glist[oldg]->totlinks + glist[oldg]->inlinks - */
-/* 		 nlink ) * */
-/* 	(double)(glist[oldg]->totlinks + glist[oldg]->inlinks - */
-/* 		 nlink ) / */
-/* 	((double)totallinks * (double)totallinks); */
-
-/*       dE += (double)(2*glist[newg]->inlinks + 2*innew) / */
-/* 	(double)totallinks - */
-/* 	(double)(glist[newg]->totlinks + glist[newg]->inlinks + */
-/* 		 nlink ) * */
-/* 	(double)(glist[newg]->totlinks + glist[newg]->inlinks + */
-/* 		 nlink ) / */
-/* 	((double)totallinks * (double)totallinks); */
-
-/*       // Accept the change according to Metroppolis */
-/*       if( (dE >= 0.0) || ( prng_get_next(gen) < exp(dE/T) ) ){ */
-/* 	MoveNode(nlist[target],glist[oldg],glist[newg]); */
-/* 	energy += dE; */
-/*       } */
-/*     } */
-
-/*     if (merge == 1) { */
-
-/*       for ( i=0; i < cicle2; i++ ){ */
-
-/* 	////////////////////////////////////////////////////// */
-/* 	// Propose a pair of merge/split collective changes // */
-/* 	////////////////////////////////////////////////////// */
-
-/* 	// Merge ///////////////////////////////////////////// */
-/* 	target = floor(prng_get_next(gen) * (double)nmod); */
-/* 	g1 = nlist[target]->inGroup; */
-	
-/* 	if(glist[g1]->size < nnod){ */
-
-/* 	  do{ */
-/* 	    target = floor(prng_get_next(gen) * (double)nnod); */
-/* 	    g2 = nlist[target]->inGroup; */
-/* 	  }while( g1 == g2 ); */
-	
-/* 	  // Calculate the change of energy */
-/* 	  nlink = NG2GLinks(glist[g1],glist[g2]); */
-	  
-/* 	  dE = 0.0; */
-	  
-/* 	  dE -= (double)(2*glist[g1]->inlinks) / (double)totallinks - */
-/* 	    (double)((glist[g1]->totlinks + glist[g1]->inlinks) * */
-/* 		     (glist[g1]->totlinks + glist[g1]->inlinks) ) / */
-/* 	    (double)(totallinks * totallinks ); */
-	
-/* 	  dE -= (double)(2*glist[g2]->inlinks) / (double)totallinks - */
-/* 	    (double)((glist[g2]->totlinks + glist[g2]->inlinks) * */
-/* 		     (glist[g2]->totlinks + glist[g2]->inlinks) ) / */
-/* 	    (double)(totallinks * totallinks ); */
-
-/* 	  dE += 2.0*(double)(glist[g1]->inlinks +  */
-/* 			     glist[g2]->inlinks+nlink) */
-/* 	    / (double)totallinks - */
-/* 	    (double)(glist[g1]->totlinks + glist[g1]->inlinks + */
-/* 		     glist[g2]->totlinks + glist[g2]->inlinks ) * */
-/* 	    (double)(glist[g1]->totlinks + glist[g1]->inlinks + */
-/* 		     glist[g2]->totlinks + glist[g2]->inlinks ) / */
-/* 	    (double)(totallinks*totallinks); */
-	
-/* 	  // Accept the change according to Metroppolis */
-/* 	  if( (dE >= 0.0) || ( prng_get_next(gen) < exp(dE/T) ) ){ */
-/* 	    MergeGroups(glist[g1],glist[g2]); */
-/* 	    energy += dE; */
-/* 	  } */
-/* 	} */
-
-/* 	// Split ///////////////////////////////////////////// */
-/* 	target = floor(prng_get_next(gen) * (double)nnod); // target node */
-/* 	target = nlist[target]->inGroup;    // target group */
-
-/* 	// Look for an empty group */
-/* 	g = part; */
-/* 	empty = -1; */
-/* 	while((g->next != NULL) && (empty < 0)){ */
-/* 	  g = g->next; */
-/* 	  if (g->size == 0){ */
-/* 	    empty = g->label; */
-/* 	  } */
-/* 	} */
-
-/* 	if (empty >= 0 ){ // if there are no empty groups, do nothing */
-/* /\* 	  split = BestNetworkSplit(glist[target],gen); *\/ */
-/* 	  split = ThermalNetworkSplit(glist[target],Ti,T,gen); */
-
-/* 	  // Split the group */
-/* 	  nod = (split->next)->nodeList; */
-/* 	  while ( nod->next != NULL ){ */
-/* 	    nod = nod->next; */
-/* 	    MoveNode(nlist[trans[nod->node]], */
-/* 		     glist[target], */
-/* 		     glist[empty]); */
-/* 	  } */
-/* 	  RemovePartition(split); */
-/* 	  split = NULL; */
-
-/* 	  // Try to re-merge the two groups */
-/* 	  // Calculate the change of energy */
-/* 	  nlink = NG2GLinks(glist[target],glist[empty]); */
-	
-/* 	  dE = 0.0; */
-	
-/* 	  dE -= (double)(2*glist[target]->inlinks) / (double)totallinks - */
-/* 	    (double)((glist[target]->totlinks + glist[target]->inlinks) * */
-/* 		     (glist[target]->totlinks + glist[target]->inlinks) ) / */
-/* 	    (double)(totallinks * totallinks ); */
-	
-/* 	  dE -= (double)(2*glist[empty]->inlinks) / (double)totallinks - */
-/* 	    (double)((glist[empty]->totlinks + glist[empty]->inlinks) * */
-/* 		     (glist[empty]->totlinks + glist[empty]->inlinks) ) / */
-/* 	    (double)(totallinks * totallinks ); */
-
-/* 	  dE += 2.0*(double)(glist[target]->inlinks+glist[empty]->inlinks+nlink) */
-/* 	    / (double)totallinks - */
-/* 	    (double)(glist[target]->totlinks + glist[target]->inlinks + */
-/* 		     glist[empty]->totlinks + glist[empty]->inlinks ) * */
-/* 	    (double)(glist[target]->totlinks + glist[target]->inlinks + */
-/* 		     glist[empty]->totlinks + glist[empty]->inlinks ) / */
-/* 	    (double)(totallinks*totallinks); */
-	
-/* 	  // Accept the change according to "inverse" Metroppolis. */
-/* 	  // Inverse means that the algor is applied to the split */
-/* 	  // and NOT to the merge! */
-/* 	  if( (dE > 0.0) && ( prng_get_next(gen) > exp(-dE/T) ) ){ */
-/* 	    MergeGroups(glist[target],glist[empty]); */
-/* 	  } */
-/* 	  else{ */
-/* 	    energy -= dE; */
-/* 	  } */
-
-/* 	} */
-
-/*       } */
-/*     } */
-
-/*     T = T * Ts; */
-/*   } */
-
-/* /\*   printf("energy = %lf\n",energy); *\/ */
-  
-/*   return CompressPart(part); */
-/* } */
-
-
 /* // merge = 0 => No group merging */
 /* struct group *SACommunityIdentWeight(struct node_gra *net,double Ti,double Tf,double Ts,double fac, int merge, struct prng *gen) */
 /* { */
@@ -2453,70 +2218,6 @@ struct group *SACommunityIdent(struct node_gra *net,
 /* } */
 
 
-/* TranslationFromPart(struct group *part,int trans[]) */
-/* { */
-/*   struct group *g; */
-/*   struct node_lis *node; */
-/*   int count = 0; */
-/*   int i; */
-
-/*   for(i=0; i<maxim_int; i++){ */
-/*     trans[i] = 0; */
-/*   } */
-
-/*   g = part; */
-/*   while(g->next != NULL){ */
-/*     g = g->next; */
-/*     node = g->nodeList; */
-/*     while(node->next != NULL){ */
-/*       node = node->next; */
-
-/*       trans[(node->ref)->num] = count; */
-/*       count++; */
-/*     } */
-/*   } */
-/* } */
-
-
-/* double NodePR(struct node_gra *node, struct group *g) */
-/* { */
-/*   struct node_lis *nei = node->neig; */
-/*   int ngroup = 0; */
-/*   int ing[max_size]; */
-/*   int nlink = 0; */
-/*   double PR = 0.0; */
-/*   int i; */
-
-/*   for (i=0; i<max_size; i++){ */
-/*     ing[i] = 0; */
-/*   } */
-
-/*   while(g->next != NULL){ */
-/*     g = g->next; */
-/*     if (g->size > 0) */
-/*       ngroup++; */
-/*   } */
-
-/*   while(nei->next != NULL){ */
-/*     nei = nei->next; */
-    
-/*     ing[nei->ref->inGroup] += 1; */
-/*     nlink++; */
-/*   } */
-
-/*   if (nlink == 0) { */
-/*     PR = 1.; */
-/*   } */
-/*   else { */
-/*     for (i=0; i<max_size; i++){ */
-/*       PR += (double)(ing[i] * ing[i]) / (double)(nlink * nlink); */
-/*     } */
-/*   } */
-
-/* /\*   PR = (PR - 1.0/(double)ngroup) / (1.0 - 1.0/(double)ngroup); *\/ */
-
-/*   return PR; */
-/* } */
 
 
 /* struct group *AllLevelsCommunities(struct node_gra *net,double Ti,double Tf,double Ts,double fac, int merge, struct prng *gen) */
@@ -2961,7 +2662,7 @@ struct group *SACommunityIdent(struct node_gra *net,
 /*     PRmax = 0.0; */
 /*     while(p->next != NULL){ */
 /*       p = p->next; */
-/*       PR[p->num] = NodePR(p,comm); */
+/*       PR[p->num] = ParticipationCoefficient(p,comm); */
 /*       if (PR[p->num] < PRmin) PRmin = PR[p->num]; */
 /*       if (PR[p->num] > PRmax) PRmax = PR[p->num]; */
 /*     } */
@@ -3165,7 +2866,7 @@ struct group *SACommunityIdent(struct node_gra *net,
 /*     PRmax = 0.0; */
 /*     while(p->next != NULL){ */
 /*       p = p->next; */
-/*       PR[p->num] = NodePR(p,comm); */
+/*       PR[p->num] = ParticipationCoefficient(p,comm); */
 /*       if (PR[p->num] < PRmin) PRmin = PR[p->num]; */
 /*       if (PR[p->num] > PRmax) PRmax = PR[p->num]; */
 /*     } */
@@ -3358,7 +3059,7 @@ struct group *SACommunityIdent(struct node_gra *net,
 /*   InGroupDegZScore(comm, z); */
 /*   p = net; */
 /*   while((p = p->next) != NULL){ */
-/*     PR[p->num] = NodePR(p,comm); */
+/*     PR[p->num] = ParticipationCoefficient(p,comm); */
 /*     /\*     printf("%d %lf %lf\n", p->num+1, PR[p->num], z[p->num]); *\/ */
 /*   } */
 
@@ -3425,7 +3126,7 @@ struct group *SACommunityIdent(struct node_gra *net,
 /*   p = net; */
 /*   while(p->next != NULL){ */
 /*     p = p->next; */
-/*     PR[p->num] = NodePR(p,comm); */
+/*     PR[p->num] = ParticipationCoefficient(p,comm); */
 /*   } */
 
 /*   // Create the roles and assign them according to the roles catalog */

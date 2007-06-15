@@ -66,6 +66,7 @@ double **BlockModel(FILE *outf,
 		    char type_sw,
 		    int list_sw);
 int NLinksToGroup(struct node_gra* node, struct group *g);
+int NLinksToGroupByNum(struct node_gra* node, int gLabel);
 double StrengthToGroup(struct node_gra* node, struct group *g);
 int NG2GLinks(struct group *g1, struct group *g2);
 double NG2GLinksWeight(struct group *g1, struct group *g2);
@@ -104,3 +105,7 @@ struct group *SACommunityIdent(struct node_gra *net,
 			       int collective_sw,
 			       char output_sw,
 			       struct prng *gen);
+
+// ---------------------------------------------------------------------
+// Roles
+// ---------------------------------------------------------------------
