@@ -95,8 +95,8 @@ void *MakeLabelDict(struct node_gra *net);
 // Node, link, and graph removal
 // ---------------------------------------------------------------------
 void FreeNodeTree(struct node_tree *ntree,
-		    VISIT value,
-		    int level);
+		  VISIT value,
+		  int level);
 void FreeNodeLis(struct node_lis *p);
 void FreeAdjacencyList(struct node_lis *p);
 void FreeNode(struct node_gra *node);
