@@ -5,6 +5,7 @@
 #include "prng.h"
 
 #include "graph.h"
+#include "models.h"
 #include "modules.h"
 
 int main()
@@ -13,51 +14,55 @@ int main()
   struct prng *randGen;
   int repeat = 1;
 
-  while (repeat) {
-
-    // ------------------------------------------------------------
-    // Initialize the random number generator
-    // ------------------------------------------------------------
+  // --------------------------------------------------------------
+  // Initialize the random number generator
+  // --------------------------------------------------------------
     randGen = prng_new("mt19937(1111)");
-    prng_seed(randGen, 1111);
+    prng_seed(randGen, 3333);
+
+  while (repeat) {
 
     // ------------------------------------------------------------
     // Build the network
     // ------------------------------------------------------------
-/*     FILE *inFile; */
-/*     inFile = fopen("test.dat", "r"); */
-/*     net = FBuildNetwork(inFile, 0, 1, 0, 1); */
-/*     fclose(inFile); */
+/*     FILE *inf = fopen("karate.dat", "r"); */
+/*     net = FBuildNetwork(inf, 0, 1, 0, 1); */
+/*     fclose(inf); */
 
-    net = FBuildNetwork(stdin, 0, 1, 0, 1);
+/*     net = FBuildNetwork(stdin, 0, 1, 0, 1); */
+
+    net = ERGraph(50, 0.06, randGen);
 
     // ------------------------------------------------------------
-    // Network
+    // Network properties
     // ------------------------------------------------------------
-/*     int S; */
-/*     S = CountNodes(net); */
-/*     printf("The net has %d nodes\n", S); */
-/*     printf("C = %g\n", ClusteringCoefficient(net)); */
+    printf("S = %d\n", CountNodes(net));
+    printf("C = %g\n", ClusteringCoefficient(net));
+    printf("A = %g\n", Assortativity(net));
+    printf("P = %g\n", AverageInverseDistance(net));
+
 /*     FPrintPajekFile("test.net", net, 0, 0, 1); */
 
     // ------------------------------------------------------------
     // Partition
     // ------------------------------------------------------------
-    struct group *part = NULL;
-    part = SACommunityIdent(net, 2. / CountNodes(net), 0.0, 0.995,
-			     2.0, 2, 'o', 1, 'n', randGen);
-    MapPartToNet(part, net);
-    FPrintPartition(stdout, part, 0);
-    RemovePartition(part);
+/*     struct group *part = NULL; */
+/*     part = SACommunityIdent(net, 2. / CountNodes(net), 0.0, 0.995, */
+/* 			     2.0, 2, 'o', 1, 'n', randGen); */
+/*     MapPartToNet(part, net); */
+/* /\*     FPrintPartition(stdout, part, 0); *\/ */
+/*     printf("M = %g\n", Modularity(part)); */
+/*     RemovePartition(part); */
 
     // ------------------------------------------------------------
     // Free memory
     // ------------------------------------------------------------
     RemoveGraph(net);
-    prng_free(randGen);
 
-    repeat = 0;
+/*     repeat = 0; */
   }
+
+  prng_free(randGen);
 
   return 0;
 }
