@@ -20,32 +20,32 @@ int main()
     randGen = prng_new("mt19937(1111)");
     prng_seed(randGen, 3333);
 
-  while (repeat) {
+    while (repeat) {
 
-    // ------------------------------------------------------------
-    // Build the network
-    // ------------------------------------------------------------
+      // ------------------------------------------------------------
+      // Build the network
+      // ------------------------------------------------------------
 /*     FILE *inf = fopen("karate.dat", "r"); */
 /*     net = FBuildNetwork(inf, 0, 1, 0, 1); */
 /*     fclose(inf); */
 
 /*     net = FBuildNetwork(stdin, 0, 1, 0, 1); */
 
-    net = ERGraph(50, 0.06, randGen);
+      net = ERGraph(50, 0.06, randGen);
 
-    // ------------------------------------------------------------
-    // Network properties
-    // ------------------------------------------------------------
-    printf("S = %d\n", CountNodes(net));
-    printf("C = %g\n", ClusteringCoefficient(net));
-    printf("A = %g\n", Assortativity(net));
-    printf("P = %g\n", AverageInverseDistance(net));
-
-/*     FPrintPajekFile("test.net", net, 0, 0, 1); */
-
-    // ------------------------------------------------------------
-    // Partition
-    // ------------------------------------------------------------
+      // ------------------------------------------------------------
+      // Network properties
+      // ------------------------------------------------------------
+      printf("S = %d\n", CountNodes(net));
+      printf("C = %g\n", ClusteringCoefficient(net));
+      printf("A = %g\n", Assortativity(net));
+      printf("P = %g\n", AverageInverseDistance(net));
+      
+      /*     FPrintPajekFile("test.net", net, 0, 0, 1); */
+      
+      // ------------------------------------------------------------
+      // Partition
+      // ------------------------------------------------------------
 /*     struct group *part = NULL; */
 /*     part = SACommunityIdent(net, 2. / CountNodes(net), 0.0, 0.995, */
 /* 			     2.0, 2, 'o', 1, 'n', randGen); */
@@ -54,10 +54,10 @@ int main()
 /*     printf("M = %g\n", Modularity(part)); */
 /*     RemovePartition(part); */
 
-    // ------------------------------------------------------------
-    // Free memory
-    // ------------------------------------------------------------
-    RemoveGraph(net);
+      // ------------------------------------------------------------
+      // Free memory
+      // ------------------------------------------------------------
+      RemoveGraph(net);
 
 /*     repeat = 0; */
   }
