@@ -1,3 +1,6 @@
+#ifndef RGRAPH_GRAPH_H
+#define RGRAPH_GRAPH_H 1
+
 #include <search.h>
 
 #include "prng.h"
@@ -255,3 +258,6 @@ struct node_gra *GetLargestWeaklyConnectedSet(struct node_gra *root,
 // ---------------------------------------------------------------------
 double TopologicalOverlap(struct node_gra *n1,
 			  struct node_gra *n2);
+
+
+#endif /* !RGRAPH_GRAPH_H */
