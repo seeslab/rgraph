@@ -10,7 +10,8 @@
 // ---------------------------------------------------------------------
 // Create an Erdos-Renyi random graph
 // ---------------------------------------------------------------------
-struct node_gra *ERGraph(int S, double p, struct prng *gen)
+struct node_gra *
+ERGraph(int S, double p, struct prng *gen)
 {
   int node1, node2;
   struct node_gra **nodeList = NULL;

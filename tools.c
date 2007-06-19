@@ -3,7 +3,8 @@
 
 #include "tools.h"
 
-int **allocate_i_mat(int nrows, int ncolumns)
+int **
+allocate_i_mat(int nrows, int ncolumns)
 {
   int **array;
   int i;
@@ -27,7 +28,8 @@ int **allocate_i_mat(int nrows, int ncolumns)
 }
 
 
-int *allocate_i_vec(int nelem)
+int *
+allocate_i_vec(int nelem)
 {
   int *array;
 
@@ -41,7 +43,8 @@ int *allocate_i_vec(int nelem)
 }
 
 
-double *allocate_d_vec(int nelem)
+double *
+allocate_d_vec(int nelem)
 {
   double *array;
 
@@ -55,7 +58,8 @@ double *allocate_d_vec(int nelem)
 }
 
 
-double **allocate_d_mat(int nrows, int ncolumns)
+double **
+allocate_d_mat(int nrows, int ncolumns)
 {
   double **array;
   int i;
@@ -79,7 +83,8 @@ double **allocate_d_mat(int nrows, int ncolumns)
 }
 
 
-void free_i_mat(int **data, int nrows)
+void 
+free_i_mat(int **data, int nrows)
 {
   int i;
 
@@ -90,17 +95,20 @@ void free_i_mat(int **data, int nrows)
   free(data);
 }
 
-void free_i_vec(int *data)
+void 
+free_i_vec(int *data)
 {
   free(data);
 }
 
-void free_d_vec(double *data)
+void
+free_d_vec(double *data)
 {
   free(data);
 }
 
-void free_d_mat(double **data, int nrows)
+void
+free_d_mat(double **data, int nrows)
 {
   int i;
 

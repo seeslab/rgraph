@@ -9,12 +9,6 @@
 #include "graph.h"
 
 // ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
-// Node, link, and graph creation and memory allocation
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
-
-// ---------------------------------------------------------------------
 // A graph is a collection of nodes. This function creates an empty
 // node to be placed at the top of the list.
 // ---------------------------------------------------------------------
@@ -39,10 +33,16 @@ struct node_gra *CreateHeaderGraph()
 }
 
 // ---------------------------------------------------------------------
+// ---------------------------------------------------------------------
+// Node, link, and graph creation and memory allocation
+// ---------------------------------------------------------------------
+// ---------------------------------------------------------------------
+
+// ---------------------------------------------------------------------
 // Create a node and add it at the end of the list that starts at p
 // ---------------------------------------------------------------------
-struct node_gra *CreateNodeGraph(struct node_gra *p,
-				 char *label)
+struct node_gra *
+CreateNodeGraph(struct node_gra *p, char *label)
 {
 
   while (p->next != NULL)
@@ -73,7 +73,8 @@ struct node_gra *CreateNodeGraph(struct node_gra *p,
 // searches. This function creates an empty node_bfs to be placed at
 // the top of the list.
 // ---------------------------------------------------------------------
-struct node_bfs *CreateHeaderList()
+struct node_bfs *
+CreateHeaderList()
 {
   struct node_bfs *temp;
 
@@ -91,7 +92,8 @@ struct node_bfs *CreateHeaderList()
 // ---------------------------------------------------------------------
 // Create an empty node for the tree data structure
 // ---------------------------------------------------------------------
-struct node_tree *CreateNodeTree()
+struct node_tree *
+CreateNodeTree()
 {
   struct node_tree *temp=NULL;
   temp = (struct node_tree *) calloc(1, sizeof(struct node_tree));
@@ -107,12 +109,13 @@ struct node_tree *CreateNodeTree()
 // the weight of the adjacency to increase if the adjacency already
 // exists.
 // ---------------------------------------------------------------------
-int AddAdjacency(struct node_gra *node1,
-		 struct node_gra *node2,
-		 int auto_link_sw,
-		 int add_weight_sw,
-		 double weight,
-		 int status)
+int
+AddAdjacency(struct node_gra *node1,
+	     struct node_gra *node2,
+	     int auto_link_sw,
+	     int add_weight_sw,
+	     double weight,
+	     int status)
 {
   struct node_lis *adja=NULL;
 
@@ -159,12 +162,13 @@ int AddAdjacency(struct node_gra *node1,
 // NULL. RewireAdjacencyByLabel needs to be run when AddAdjacencySoft
 // is used
 // ---------------------------------------------------------------------
-int AddAdjacencySoft(struct node_gra *node1,
-		     char *node2Label,
-		     int auto_link_sw,
-		     int add_weight_sw,
-		     double weight,
-		     int status)
+int
+AddAdjacencySoft(struct node_gra *node1,
+		 char *node2Label,
+		 int auto_link_sw,
+		 int add_weight_sw,
+		 double weight,
+		 int status)
 {
   struct node_lis *adja=NULL;
 
@@ -209,7 +213,8 @@ int AddAdjacencySoft(struct node_gra *node1,
 // Sets the ref pointers of all the adjacencies to the corresponding
 // nodes based on their labels.
 // ---------------------------------------------------------------------
-void RewireAdjacencyByLabel(struct node_gra *net)
+void
+RewireAdjacencyByLabel(struct node_gra *net)
 {
   struct node_gra *p=NULL;
   struct node_lis *adja=NULL;
@@ -237,7 +242,8 @@ void RewireAdjacencyByLabel(struct node_gra *net)
 // Sets the ref pointers of all the adjacencies to the corresponding
 // nodes. You MUST use this after using AddAdjacencySoft!
 // ---------------------------------------------------------------------
-void RewireAdjacencyByNum(struct node_gra *net)
+void
+RewireAdjacencyByNum(struct node_gra *net)
 {
   struct node_gra *p=NULL;
   struct node_lis *adja=NULL;
@@ -270,7 +276,8 @@ void RewireAdjacencyByNum(struct node_gra *net)
 // Takes the adjacency list of the origin node nori and copies it to
 // the destination node ndes. ONLY soft links are created!!
 // ---------------------------------------------------------------------
-void CopyAdjacencyList(struct node_gra *nori, struct node_gra *ndes)
+void
+CopyAdjacencyList(struct node_gra *nori, struct node_gra *ndes)
 {
   struct node_lis *pori=NULL;
 
@@ -284,7 +291,8 @@ void CopyAdjacencyList(struct node_gra *nori, struct node_gra *ndes)
 // ---------------------------------------------------------------------
 // Generates a copy of a given network.
 // ---------------------------------------------------------------------
-struct node_gra *CopyNetwork(struct node_gra *p1)
+struct node_gra *
+CopyNetwork(struct node_gra *p1)
 {
   struct node_gra *root2=NULL, *p2=NULL;
   struct node_gra *last=NULL;
@@ -317,7 +325,8 @@ struct node_gra *CopyNetwork(struct node_gra *p1)
 // ---------------------------------------------------------------------
 // Creates a binary tree for fast access to nodes by label
 // ---------------------------------------------------------------------
-void *MakeLabelDict(struct node_gra *net)
+void *
+MakeLabelDict(struct node_gra *net)
 {
   void *nodeDict = NULL;
   struct node_gra *p = net;
@@ -347,7 +356,8 @@ void *MakeLabelDict(struct node_gra *net)
 // tdestroy). VISIT value and int level are not used but are required
 // by tdestroy.
 // ---------------------------------------------------------------------
-void FreeNodeTree(struct node_tree *ntree, VISIT value, int level)
+void
+FreeNodeTree(struct node_tree *ntree, VISIT value, int level)
 {
   free(ntree->label);
   free(ntree);
@@ -357,7 +367,8 @@ void FreeNodeTree(struct node_tree *ntree, VISIT value, int level)
 // ---------------------------------------------------------------------
 // Frees the memory allocated to a node_lis
 // ---------------------------------------------------------------------
-void FreeNodeLis(struct node_lis *p)
+void
+FreeNodeLis(struct node_lis *p)
 {
   free(p->nodeLabel);
   free(p);
@@ -368,7 +379,8 @@ void FreeNodeLis(struct node_lis *p)
 // Recursively removes all the adjacencies in the adjacency list that
 // hangs from p and frees the memory
 // ---------------------------------------------------------------------
-void FreeAdjacencyList(struct node_lis *p)
+void
+FreeAdjacencyList(struct node_lis *p)
 {
   if (p->next != NULL) {
     FreeAdjacencyList(p->next);
@@ -379,7 +391,8 @@ void FreeAdjacencyList(struct node_lis *p)
 // ---------------------------------------------------------------------
 // Frees the memory allocated to a node_gra
 // ---------------------------------------------------------------------
-void FreeNode(struct node_gra *node)
+void
+FreeNode(struct node_gra *node)
 {
   if (node->neig != NULL) {
     FreeAdjacencyList(node->neig);
@@ -392,7 +405,8 @@ void FreeNode(struct node_gra *node)
 // ---------------------------------------------------------------------
 // Recursively removes all the nodes in a network and frees the memory
 // ---------------------------------------------------------------------
-void RemoveGraph(struct node_gra *p)
+void
+RemoveGraph(struct node_gra *p)
 {
   if (p->next != NULL) {
     RemoveGraph(p->next);
@@ -406,8 +420,9 @@ void RemoveGraph(struct node_gra *p)
 // n1. CAUTION: RemoveLink will crash if there is no link between n1
 // and n2 (or between n2 and n1 when symmetric_sq != 0).
 // ---------------------------------------------------------------------
-void RemoveLink(struct node_gra *n1, struct node_gra *n2,
-		int symmetric_sw)
+void
+RemoveLink(struct node_gra *n1, struct node_gra *n2,
+	   int symmetric_sw)
 {
   struct node_lis *nn1;
   struct node_lis *nn2;
@@ -440,7 +455,8 @@ void RemoveLink(struct node_gra *n1, struct node_gra *n2,
 // ---------------------------------------------------------------------
 // Frees the memory allocated to a label dictionary
 // ---------------------------------------------------------------------
-void FreeLabelDict(void *dict)
+void
+FreeLabelDict(void *dict)
 {
   tdestroy(dict, FreeNodeTree);
   return;
@@ -455,7 +471,8 @@ void FreeLabelDict(void *dict)
 // ---------------------------------------------------------------------
 // Compares two node_tree (required by tsearch)
 // ---------------------------------------------------------------------
-int NodeTreeLabelCompare(const void *n1, const void *n2)
+int
+NodeTreeLabelCompare(const void *n1, const void *n2)
 {
   return strcmp(((const struct node_tree *) n1)->label,
 		((const struct node_tree *) n2)->label);
@@ -465,11 +482,12 @@ int NodeTreeLabelCompare(const void *n1, const void *n2)
 // Builds a network from an imput file, which contains the list of
 // links in the network (and, maybe, the weight of each link).
 // ---------------------------------------------------------------------
-struct node_gra *FBuildNetwork(FILE *inFile,
-			       int weight_sw,
-			       int auto_link_sw,
-			       int add_weight_sw,
-			       int symmetric_sw)
+struct node_gra *
+FBuildNetwork(FILE *inFile,
+	      int weight_sw,
+	      int auto_link_sw,
+	      int add_weight_sw,
+	      int symmetric_sw)
 {
   struct node_gra *root=NULL, *last_add=NULL;
   struct node_gra *n1=NULL, *n2=NULL;
@@ -542,7 +560,8 @@ struct node_gra *FBuildNetwork(FILE *inFile,
 // ---------------------------------------------------------------------
 // Prints the degrees of all the nodes hanging from p
 // ---------------------------------------------------------------------
-void FPrintDegrees(FILE *file, struct node_gra *p)
+void
+FPrintDegrees(FILE *file, struct node_gra *p)
 {
   while ((p = p->next) !=  NULL)
     fprintf(file, "%s %d\n", p->label, CountLinks(p));
@@ -554,10 +573,11 @@ void FPrintDegrees(FILE *file, struct node_gra *p)
 // the link is only printed once (a-b), otherwise it will be printed
 // twice if necessary (a-b, and b-a).
 // ---------------------------------------------------------------------
-void FPrintNetAdjacencyList(FILE *outf,
-			    struct node_gra *p,
-			    int weight_sw,
-			    int symmetric_sw)
+void
+FPrintNetAdjacencyList(FILE *outf,
+		       struct node_gra *p,
+		       int weight_sw,
+		       int symmetric_sw)
 {
   struct node_lis *n=NULL;
   int label_cmp;
@@ -587,11 +607,12 @@ void FPrintNetAdjacencyList(FILE *outf,
 // symmetric_sw == 1, the link is only printed once (a-b), otherwise
 // it will be printed twice if necessary (a-b, and b-a).
 // ---------------------------------------------------------------------
-void FPrintPajekFile(char *fname,
-		     struct node_gra *root,
-		     int coor_sw,
-		     int weight_sw,
-		     int symmetric_sw)
+void
+FPrintPajekFile(char *fname,
+		struct node_gra *root,
+		int coor_sw,
+		int weight_sw,
+		int symmetric_sw)
 
 {
   struct node_gra *p=root;
@@ -656,7 +677,8 @@ void FPrintPajekFile(char *fname,
 // size of the network because it starts at the first node of the
 // network and proceeds sequentially.
 // ---------------------------------------------------------------------
-struct node_gra *GetNode(int num, struct node_gra *p)
+struct node_gra *
+GetNode(int num, struct node_gra *p)
 {
   while((p->next)->num != num)
     p = p->next;
@@ -667,7 +689,8 @@ struct node_gra *GetNode(int num, struct node_gra *p)
 // Find and return a given node by label. The search is logarithmic
 // because a search tree is used.
 // ---------------------------------------------------------------------
-struct node_gra *GetNodeDict(char *label, void *dict)
+struct node_gra *
+GetNodeDict(char *label, void *dict)
 {
   struct node_tree *tempTreeNode = CreateNodeTree();
   void *treeNode = NULL;
@@ -687,7 +710,8 @@ struct node_gra *GetNodeDict(char *label, void *dict)
 // ---------------------------------------------------------------------
 // Find and return a given link
 // ---------------------------------------------------------------------
-struct node_lis *GetLink(struct node_gra *n1, int n2)
+struct node_lis *
+GetLink(struct node_gra *n1, int n2)
 {
   struct node_lis *pn = n1->neig;
 
@@ -700,7 +724,8 @@ struct node_lis *GetLink(struct node_gra *n1, int n2)
 // Returns 1 if the network hanging from p already contains a node
 // with label "label"
 // ---------------------------------------------------------------------
-int IsThereNode(char *label, struct node_gra *p)
+int
+IsThereNode(char *label, struct node_gra *p)
 {
   
   while ((p = p->next) != NULL)
@@ -713,7 +738,8 @@ int IsThereNode(char *label, struct node_gra *p)
 // ---------------------------------------------------------------------
 // Returns 1 if there is a link between two nodes a and b
 // ---------------------------------------------------------------------
-int IsThereLink(struct node_gra *n1, struct node_gra *n2)
+int
+IsThereLink(struct node_gra *n1, struct node_gra *n2)
 {
   struct node_lis *n1n = n1->neig;
 
@@ -730,7 +756,8 @@ int IsThereLink(struct node_gra *n1, struct node_gra *n2)
 // Returns 1 if there is a link between n1 and a node with number
 // n2_num, and 0 otherwise
 // ---------------------------------------------------------------------
-int IsThereLinkSoft(struct node_gra *n1, int n2_num)
+int
+IsThereLinkSoft(struct node_gra *n1, int n2_num)
 {
   struct node_lis *pn;
 
@@ -748,7 +775,8 @@ int IsThereLinkSoft(struct node_gra *n1, int n2_num)
 // removed nodes. When done removing, nodes are renumbered so that
 // they continue having consecutive integers. NEEDS TESTING.
 // ---------------------------------------------------------------------
-int RemoveIsolatedNodes(struct node_gra *root)
+int
+RemoveIsolatedNodes(struct node_gra *root)
 {
   struct node_gra *p=NULL, *temp=NULL;
   int nrem=0;
@@ -779,7 +807,8 @@ int RemoveIsolatedNodes(struct node_gra *root)
 // Given a soft-linked network, remove all links that involve nodes
 // that are not in the network.
 // ---------------------------------------------------------------------
-void CleanAdjacencies(struct node_gra *net)
+void
+CleanAdjacencies(struct node_gra *net)
 {
   struct node_lis *nei, *temp;
   struct node_gra *p = NULL;
@@ -823,7 +852,8 @@ void CleanAdjacencies(struct node_gra *net)
 // ---------------------------------------------------------------------
 // Returns the node_bfs in list that corresponds to the node_gra node
 // ---------------------------------------------------------------------
-struct node_bfs *GetBFS(struct node_gra *node, struct node_bfs *list)
+struct node_bfs *
+GetBFS(struct node_gra *node, struct node_bfs *list)
 {
   while (list != NULL) {
     if (list->ref == node) {
@@ -840,7 +870,8 @@ struct node_bfs *GetBFS(struct node_gra *node, struct node_bfs *list)
 // ---------------------------------------------------------------------
 // ??????
 // ---------------------------------------------------------------------
-void AddPredecessor(struct node_bfs *node, struct node_bfs *pred)
+void
+AddPredecessor(struct node_bfs *node, struct node_bfs *pred)
 {
   struct pred *p = node->pred;
   
@@ -855,7 +886,8 @@ void AddPredecessor(struct node_bfs *node, struct node_bfs *pred)
 // ---------------------------------------------------------------------
 // Recursively remove all the predecessors in a predecessor list
 // ---------------------------------------------------------------------
-void ClearPredecessors(struct pred *p)
+void
+ClearPredecessors(struct pred *p)
 {
   if (p->next != NULL)
     ClearPredecessors(p->next);
@@ -865,7 +897,8 @@ void ClearPredecessors(struct pred *p)
 // ---------------------------------------------------------------------
 // Count the number of predecessors of a given node in a BFS list
 // ---------------------------------------------------------------------
-int CountPredecessors(struct node_bfs *node)
+int
+CountPredecessors(struct node_bfs *node)
 {
   struct pred *p = node->pred;
   int counter = 0;
@@ -884,11 +917,12 @@ int CountPredecessors(struct node_bfs *node)
 // ---------------------------------------------------------------------
 // Add a node_bfs to a list
 // ---------------------------------------------------------------------
-void Enqueue(struct node_gra *node,
-	     struct node_bfs *predecessor,
-	     struct node_bfs *header,
-	     int *size,
-	     int dist)
+void
+Enqueue(struct node_gra *node,
+	struct node_bfs *predecessor,
+	struct node_bfs *header,
+	int *size,
+	int dist)
 {
   struct node_bfs *temp;
   
@@ -924,10 +958,11 @@ void Enqueue(struct node_gra *node,
 // ---------------------------------------------------------------------
 // Add all the neighbors of a given node to a BFS list
 // ---------------------------------------------------------------------
-void EnqueueAdjaList(struct node_bfs *lp,
-		     struct node_bfs *list,
-		     int *size,
-		     int d)
+void
+EnqueueAdjaList(struct node_bfs *lp,
+		struct node_bfs *list,
+		int *size,
+		int d)
 {
   struct node_lis *p=(lp->ref)->neig;
 
@@ -938,9 +973,10 @@ void EnqueueAdjaList(struct node_bfs *lp,
 // ---------------------------------------------------------------------
 // ????????
 // ---------------------------------------------------------------------
-struct node_gra *DequeueOne(struct node_bfs *list,
-			    struct node_bfs *one,
-			    int *size)
+struct node_gra *
+DequeueOne(struct node_bfs *list,
+	   struct node_bfs *one,
+	   int *size)
 {
   struct node_bfs *temp;
   struct node_bfs *p;
@@ -974,7 +1010,8 @@ struct node_gra *DequeueOne(struct node_bfs *list,
 // ---------------------------------------------------------------------
 // ???????
 // ---------------------------------------------------------------------
-struct node_gra *Dequeue(struct node_bfs *list, int *size)
+struct node_gra *
+Dequeue(struct node_bfs *list, int *size)
 {
   struct node_bfs *temp;
   struct node_gra *node;
@@ -999,10 +1036,11 @@ struct node_gra *Dequeue(struct node_bfs *list, int *size)
 // ---------------------------------------------------------------------
 // Update a BFS list with all the nodes at the following distance
 // ---------------------------------------------------------------------
-struct node_bfs *RenewQueue(struct node_bfs *list,
-			    struct node_bfs *lp,
-			    int *size,
-			    int d)
+struct node_bfs *
+RenewQueue(struct node_bfs *list,
+	   struct node_bfs *lp,
+	   int *size,
+	   int d)
 {
   while ((lp->next != NULL) && ((lp->next)->d == d)) {
     EnqueueAdjaList(lp->next, list, size, d+1);
@@ -1014,7 +1052,8 @@ struct node_bfs *RenewQueue(struct node_bfs *list,
 // ---------------------------------------------------------------------
 // Dequeue all the nodes from a BFS list
 // ---------------------------------------------------------------------
-void ClearList(struct node_bfs *list, int *size)
+void
+ClearList(struct node_bfs *list, int *size)
 {
   struct node_gra *temp=NULL;
 
@@ -1033,7 +1072,8 @@ void ClearList(struct node_bfs *list, int *size)
 // ---------------------------------------------------------------------
 // Set the state of all nodes to 0
 // ---------------------------------------------------------------------
-void ResetNodesState(struct node_gra *p)
+void
+ResetNodesState(struct node_gra *p)
 {
   while ((p = p->next) != NULL)
     p->state = 0;
@@ -1042,7 +1082,8 @@ void ResetNodesState(struct node_gra *p)
 // ---------------------------------------------------------------------
 // Make the numbers of the nodes consecutive
 // ---------------------------------------------------------------------
-void RenumberNodes(struct node_gra *net)
+void
+RenumberNodes(struct node_gra *net)
 {
   struct node_gra *p=NULL;
   struct node_lis *n=NULL;
@@ -1075,9 +1116,10 @@ void RenumberNodes(struct node_gra *net)
 // Randomize the links of a network using the Markov chain switching
 // algorithm
 // ---------------------------------------------------------------------
-struct node_gra *RandomizeSymmetricNetwork(struct node_gra *net,
-					   double times,
-					   struct prng *gen)
+struct node_gra *
+RandomizeSymmetricNetwork(struct node_gra *net,
+			  double times,
+			  struct prng *gen)
 {
   int i;
   int nlink=0;
@@ -1163,7 +1205,8 @@ struct node_gra *RandomizeSymmetricNetwork(struct node_gra *net,
 // ---------------------------------------------------------------------
 // Counts the number of nodes in a network
 // ---------------------------------------------------------------------
-int CountNodes(struct node_gra *p)
+int
+CountNodes(struct node_gra *p)
 {
   int nodes = 0;
   while ((p = p->next) != NULL)
@@ -1174,7 +1217,8 @@ int CountNodes(struct node_gra *p)
 // ---------------------------------------------------------------------
 // Counts the degree of a node
 // ---------------------------------------------------------------------
-int CountLinks(struct node_gra *node)
+int
+CountLinks(struct node_gra *node)
 {
   struct node_lis *p=node->neig;
   int count = 0;
@@ -1187,7 +1231,8 @@ int CountLinks(struct node_gra *node)
 // ---------------------------------------------------------------------
 // Computes the average degree of the network
 // ---------------------------------------------------------------------
-double AverageDegree(struct node_gra *root, int symmetric_sw)
+double
+AverageDegree(struct node_gra *root, int symmetric_sw)
 {
   return (double)TotalNLinks(root, symmetric_sw) /
     (double)CountNodes(root);
@@ -1198,8 +1243,9 @@ double AverageDegree(struct node_gra *root, int symmetric_sw)
 // that is, if the network is symmetric, the number of links is
 // divided by 2.
 // ---------------------------------------------------------------------
-int TotalNLinks(struct node_gra *p,
-		int symmetric_sw)
+int
+TotalNLinks(struct node_gra *p,
+	    int symmetric_sw)
 {
   int total = 0;
 
@@ -1217,7 +1263,8 @@ int TotalNLinks(struct node_gra *p,
 // Calculates the strength of a node, that is, the sum of the weights
 // of all its links
 // ---------------------------------------------------------------------
-double NodeStrength(struct node_gra *node)
+double
+NodeStrength(struct node_gra *node)
 {
   struct node_lis *p=node->neig;
   double count = 0.0;
@@ -1231,7 +1278,8 @@ double NodeStrength(struct node_gra *node)
 // Print to a file the distribution of path lengths between all pairs
 // of nodes. NEEDS TESTING.
 // ---------------------------------------------------------------------
-void FPrintDistanceHistogram(FILE *file, struct node_gra *root)
+void
+FPrintDistanceHistogram(FILE *file, struct node_gra *root)
 {
   double histogram[10000];
   int a, d, nodes, *size, i, counter, size_ant;
@@ -1297,9 +1345,10 @@ void FPrintDistanceHistogram(FILE *file, struct node_gra *root)
 // Print to a file the distribution of path lengths between a node and
 // all other nodes. NEEDS TESTING.
 // ---------------------------------------------------------------------
-void FPrintDistanceHistogramFromNode(FILE *file,
-				     struct node_gra *root,
-				     int orinode)
+void
+FPrintDistanceHistogramFromNode(FILE *file,
+				struct node_gra *root,
+				int orinode)
 {
   double histogram[10000];
   int a,d,nodes,*size,i,counter,size_ant;
@@ -1361,7 +1410,8 @@ void FPrintDistanceHistogramFromNode(FILE *file,
 // ---------------------------------------------------------------------
 // Calculates the average path length between nodes in a network
 // ---------------------------------------------------------------------
-double AveragePathLength(struct node_gra *root)
+double
+AveragePathLength(struct node_gra *root)
 {
   double histogram[10000];
   int a, d, nodes, *size, i, counter, size_ant;
@@ -1425,7 +1475,8 @@ double AveragePathLength(struct node_gra *root)
 // Calculates the average of the inverse of the path length between
 // nodes in a network
 // ---------------------------------------------------------------------
-double AverageInverseDistance(struct node_gra *root)
+double
+AverageInverseDistance(struct node_gra *root)
 {
   double histogram[10000];
   int a,d,nodes,*size,i,counter,size_ant;
@@ -1483,7 +1534,8 @@ double AverageInverseDistance(struct node_gra *root)
 // ---------------------------------------------------------------------
 // ??????????
 // ---------------------------------------------------------------------
-int SumCommonLinks(struct node_gra *node, struct node_gra *root)
+int
+SumCommonLinks(struct node_gra *node, struct node_gra *root)
 {
   int sum=0;
   struct node_lis *p;
@@ -1518,7 +1570,8 @@ int CalculateLinksBetweenNeig(struct node_bfs *p,
 // Calculates the clustering coefficent of a network as the average of
 // the nodes individual clustering coefficient
 // ---------------------------------------------------------------------
-double ClusteringCoefficient(struct node_gra *root)
+double
+ClusteringCoefficient(struct node_gra *root)
 {
   int nodes,*size,res_size;
   struct node_bfs *list;
@@ -1565,7 +1618,8 @@ double ClusteringCoefficient(struct node_gra *root)
 // number of triangles in the network over the maximum number of
 // possible triangles.
 // ---------------------------------------------------------------------
-double ClusteringCoefficient2(struct node_gra *root)
+double
+ClusteringCoefficient2(struct node_gra *root)
 {
   int nodes,*size,res_size;
   struct node_bfs *list;
@@ -1610,7 +1664,8 @@ double ClusteringCoefficient2(struct node_gra *root)
 // Same as the clustering coefficient, but counting squares rather
 // than triangles.
 // ---------------------------------------------------------------------
-double SquareClustering(struct node_gra *root)
+double
+SquareClustering(struct node_gra *root)
 {
   int nodes,*size,res_size;
   struct node_bfs *list;
@@ -1686,8 +1741,9 @@ double SquareClustering(struct node_gra *root)
 // ---------------------------------------------------------------------
 // Compute the clustering coefficient of a single node
 // ---------------------------------------------------------------------
-double OneNodeClusteringCoefficient(struct node_gra *node,
-				    struct node_gra *root)
+double
+OneNodeClusteringCoefficient(struct node_gra *node,
+			     struct node_gra *root)
 {
   int *size, res_size;
   struct node_bfs *list;
@@ -1723,8 +1779,9 @@ double OneNodeClusteringCoefficient(struct node_gra *node,
 // ---------------------------------------------------------------------
 // Compute the square clustering coefficient of a single node
 // ---------------------------------------------------------------------
-double OneNodeSquareClustering(struct node_gra *node,
-			       struct node_gra *root)
+double
+OneNodeSquareClustering(struct node_gra *node,
+			struct node_gra *root)
 {
   int *size, res_size;
   struct node_bfs *list;
@@ -1790,7 +1847,8 @@ double OneNodeSquareClustering(struct node_gra *node,
 // Calculates the betweenness of each link and stores in the btw field
 // of the node_lis
 // ---------------------------------------------------------------------
-void CalculateLinkBetweenness(struct node_gra *root)
+void
+CalculateLinkBetweenness(struct node_gra *root)
 {
   int a,d,nodes,*size,i,counter,size_ant;
   struct node_gra *p = root;
@@ -1882,7 +1940,8 @@ void CalculateLinkBetweenness(struct node_gra *root)
 // Calculates the betweenness of each link and writes in n1 and n2 the
 // nodes corresponding to the largest betweenness in the network.
 // ---------------------------------------------------------------------
-void CalculateBiggestLinkBetweenness(struct node_gra *root,int *n1,int *n2)
+void
+CalculateBiggestLinkBetweenness(struct node_gra *root,int *n1,int *n2)
 {
   int a,d,nodes,*size,i,counter,size_ant;
   struct node_gra *p = root;
@@ -1978,7 +2037,8 @@ void CalculateBiggestLinkBetweenness(struct node_gra *root,int *n1,int *n2)
 // ---------------------------------------------------------------------
 // Calculates the assortativity of a network
 // ---------------------------------------------------------------------
-double Assortativity(struct node_gra *net)
+double
+Assortativity(struct node_gra *net)
 {
   struct node_gra *p;
   struct node_lis *li;
@@ -2027,7 +2087,8 @@ double Assortativity(struct node_gra *net)
 // ---------------------------------------------------------------------
 // Calculate the average degree of the neighbors of a node
 // ---------------------------------------------------------------------
-double CalculateKnn(struct node_gra *node)
+double
+CalculateKnn(struct node_gra *node)
 {
   struct node_lis *p=node->neig;
   int nneig=0, totdeg=0;
@@ -2044,7 +2105,8 @@ double CalculateKnn(struct node_gra *node)
 // Returns 1 if the graph is connected and 0 if the graph has more
 // than one component.
 // ---------------------------------------------------------------------
-int IsGraphConnected(struct node_gra *p, int N)
+int
+IsGraphConnected(struct node_gra *p, int N)
 {
   struct node_bfs *list,*lp;
   int *size,r1;
@@ -2080,9 +2142,10 @@ int IsGraphConnected(struct node_gra *p, int N)
 // ---------------------------------------------------------------------
 // ???????????
 // ---------------------------------------------------------------------
-int AreConnectedList(struct node_gra *root,
-		     struct node_gra *n1,
-		     int cluslis[])
+int
+AreConnectedList(struct node_gra *root,
+		 struct node_gra *n1,
+		 int cluslis[])
 {
   struct node_bfs *list,*lp,*lp2;
   int *size,res1;
@@ -2122,7 +2185,8 @@ int AreConnectedList(struct node_gra *root,
 // ---------------------------------------------------------------------
 // Counts the number of strongly connected sets in the network
 // ---------------------------------------------------------------------
-int CountStronglyConnectedSets(struct node_gra *root)
+int
+CountStronglyConnectedSets(struct node_gra *root)
 {
   struct node_gra *root_cop = NULL;
   struct node_gra *p;
@@ -2201,8 +2265,9 @@ int CountStronglyConnectedSets(struct node_gra *root)
 // ---------------------------------------------------------------------
 // Creates a network that contains only the giant component of root
 // ---------------------------------------------------------------------
-struct node_gra *GetLargestStronglyConnectedSet(struct node_gra *root,
-						int thres)
+struct node_gra *
+GetLargestStronglyConnectedSet(struct node_gra *root,
+			       int thres)
 {
   struct node_gra *root_cop=NULL;
   struct node_gra *root_loc=NULL;
@@ -2308,7 +2373,8 @@ struct node_gra *GetLargestStronglyConnectedSet(struct node_gra *root,
   return giant;
 }
 
-struct node_gra *GetLargestWeaklyConnectedSet(struct node_gra *root,int thres)
+struct node_gra *
+GetLargestWeaklyConnectedSet(struct node_gra *root,int thres)
 {
   struct node_gra *root_cop = NULL;
   struct node_gra *root_loc = NULL;
@@ -2458,7 +2524,8 @@ struct node_gra *GetLargestWeaklyConnectedSet(struct node_gra *root,int thres)
 // Calculates the topological overlap, as defined by Ravasz et al.,
 // between two nodes.
 // ---------------------------------------------------------------------
-double TopologicalOverlap(struct node_gra *n1, struct node_gra *n2)
+double
+TopologicalOverlap(struct node_gra *n1, struct node_gra *n2)
 {
   double overlap;
   int ncom=0;
