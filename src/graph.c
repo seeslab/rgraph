@@ -12,7 +12,8 @@
 // A graph is a collection of nodes. This function creates an empty
 // node to be placed at the top of the list.
 // ---------------------------------------------------------------------
-struct node_gra *CreateHeaderGraph()
+struct node_gra *
+CreateHeaderGraph()
 {
   struct node_gra *temp;
 

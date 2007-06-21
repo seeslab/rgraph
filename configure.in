@@ -1,0 +1,36 @@
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
+AC_INIT(rgraph, VERSION, rguimera@northwestern.edu)
+AM_INIT_AUTOMAKE
+
+# Checks for programs.
+AM_PROG_LIBTOOL
+AC_PROG_INSTALL
+
+AC_LANG_C
+AC_PROG_CC
+gl_EARLY
+AC_PROG_MAKE_SET
+
+# Checks for libraries.
+AC_CHECK_LIB([m], [exp])
+AC_CHECK_LIB([prng], [prng_new], , AC_MSG_ERROR([prng library not found]))
+
+# For gnulib
+gl_INIT
+
+# Checks for header files.
+AC_HEADER_STDC
+AC_CHECK_HEADER(stdlib.h)
+AC_CHECK_HEADER(string.h)
+AC_CHECK_HEADER(prng.h, , AC_MSG_ERROR([prng.h header not found]))
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+
+# Checks for library functions.
+AC_FUNC_MALLOC
+AC_CHECK_FUNCS([floor])
+
+AC_CONFIG_FILES(lib/Makefile src/Makefile Makefile)
+AC_OUTPUT()
