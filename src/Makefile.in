@@ -53,7 +53,7 @@ am__vpath_adj = case $$p in \
   esac;
 am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
 am__installdirs = "$(DESTDIR)$(pkglibdir)" \
-	"$(DESTDIR)$(pkgincludedir)"
+	"$(DESTDIR)$(pkgincludedir)" "$(DESTDIR)$(pkgincludedir)"
 pkglibLIBRARIES_INSTALL = $(INSTALL_DATA)
 LIBRARIES = $(pkglib_LIBRARIES)
 ARFLAGS = cru
@@ -76,8 +76,9 @@ LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(librgraph_a_SOURCES)
 DIST_SOURCES = $(librgraph_a_SOURCES)
+nodist_pkgincludeHEADERS_INSTALL = $(INSTALL_HEADER)
 pkgincludeHEADERS_INSTALL = $(INSTALL_HEADER)
-HEADERS = $(pkginclude_HEADERS)
+HEADERS = $(nodist_pkginclude_HEADERS) $(pkginclude_HEADERS)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -198,9 +199,8 @@ INCLUDES = -I$(top_builddir) -I$(top_srcdir) \
 pkglib_LIBRARIES = librgraph.a
 librgraph_a_LIBADD = $(top_srcdir)/lib/libgnu.la
 librgraph_a_SOURCES = tools.c graph.c models.c modules.c
-pkginclude_HEADERS = tools.h graph.h models.h modules.h \
-			$(top_srcdir)/lib/search.h
-
+pkginclude_HEADERS = tools.h graph.h models.h modules.h
+nodist_pkginclude_HEADERS = $(top_srcdir)/lib/search.h
 all: all-am
 
 .SUFFIXES:
@@ -305,6 +305,23 @@ mostlyclean-libtool:
 
 clean-libtool:
 	-rm -rf .libs _libs
+install-nodist_pkgincludeHEADERS: $(nodist_pkginclude_HEADERS)
+	@$(NORMAL_INSTALL)
+	test -z "$(pkgincludedir)" || $(MKDIR_P) "$(DESTDIR)$(pkgincludedir)"
+	@list='$(nodist_pkginclude_HEADERS)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  f=$(am__strip_dir) \
+	  echo " $(nodist_pkgincludeHEADERS_INSTALL) '$$d$$p' '$(DESTDIR)$(pkgincludedir)/$$f'"; \
+	  $(nodist_pkgincludeHEADERS_INSTALL) "$$d$$p" "$(DESTDIR)$(pkgincludedir)/$$f"; \
+	done
+
+uninstall-nodist_pkgincludeHEADERS:
+	@$(NORMAL_UNINSTALL)
+	@list='$(nodist_pkginclude_HEADERS)'; for p in $$list; do \
+	  f=$(am__strip_dir) \
+	  echo " rm -f '$(DESTDIR)$(pkgincludedir)/$$f'"; \
+	  rm -f "$(DESTDIR)$(pkgincludedir)/$$f"; \
+	done
 install-pkgincludeHEADERS: $(pkginclude_HEADERS)
 	@$(NORMAL_INSTALL)
 	test -z "$(pkgincludedir)" || $(MKDIR_P) "$(DESTDIR)$(pkgincludedir)"
@@ -401,7 +418,7 @@ check-am: all-am
 check: check-am
 all-am: Makefile $(LIBRARIES) $(HEADERS)
 installdirs:
-	for dir in "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(pkgincludedir)"; do \
+	for dir in "$(DESTDIR)$(pkglibdir)" "$(DESTDIR)$(pkgincludedir)" "$(DESTDIR)$(pkgincludedir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -449,7 +466,8 @@ info: info-am
 
 info-am:
 
-install-data-am: install-pkgincludeHEADERS
+install-data-am: install-nodist_pkgincludeHEADERS \
+	install-pkgincludeHEADERS
 
 install-dvi: install-dvi-am
 
@@ -485,7 +503,8 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-pkgincludeHEADERS uninstall-pkglibLIBRARIES
+uninstall-am: uninstall-nodist_pkgincludeHEADERS \
+	uninstall-pkgincludeHEADERS uninstall-pkglibLIBRARIES
 
 .MAKE: install-am install-strip
 
@@ -496,13 +515,14 @@ uninstall-am: uninstall-pkgincludeHEADERS uninstall-pkglibLIBRARIES
 	install install-am install-data install-data-am install-dvi \
 	install-dvi-am install-exec install-exec-am install-html \
 	install-html-am install-info install-info-am install-man \
-	install-pdf install-pdf-am install-pkgincludeHEADERS \
-	install-pkglibLIBRARIES install-ps install-ps-am install-strip \
-	installcheck installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am uninstall-pkgincludeHEADERS \
-	uninstall-pkglibLIBRARIES
+	install-nodist_pkgincludeHEADERS install-pdf install-pdf-am \
+	install-pkgincludeHEADERS install-pkglibLIBRARIES install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags uninstall \
+	uninstall-am uninstall-nodist_pkgincludeHEADERS \
+	uninstall-pkgincludeHEADERS uninstall-pkglibLIBRARIES
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
