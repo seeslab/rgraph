@@ -86,6 +86,11 @@ extern void * tdelete (const void *key, void **vrootp,
 extern void twalk (const void *vroot,
 		   void (*action) (const void *, VISIT, int));
 
+/* The standardized functions miss an important functionality: the
+   tree cannot be removed easily.  We provide a function to do
+   this.  */
+extern void tdestroy (void *vroot, void (*freefct) (void *));
+
 # endif
 #elif defined GNULIB_POSIXCHECK
 # undef tsearch

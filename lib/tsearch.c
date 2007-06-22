@@ -98,12 +98,14 @@
 
 typedef int (*__compar_fn_t) (const void *, const void *);
 typedef void (*__action_fn_t) (const void *, VISIT, int);
+typedef void (*__free_fn_t) (void *);
 
 #ifndef weak_alias
 # define __tsearch tsearch
 # define __tfind tfind
 # define __tdelete tdelete
 # define __twalk twalk
+# define __tdestroy tdestroy
 #endif
 
 #ifndef internal_function
@@ -651,7 +653,7 @@ weak_alias (__twalk, twalk)
 #endif
 
 
-#ifdef _LIBC
+/* #ifdef _LIBC */
 
 /* The standardized functions miss an important functionality: the
    tree cannot be removed easily.  We provide a function to do this.  */
@@ -678,6 +680,8 @@ __tdestroy (void *vroot, __free_fn_t freefct)
   if (root != NULL)
     tdestroy_recurse (root, freefct);
 }
+#ifdef weak_alias
 weak_alias (__tdestroy, tdestroy)
+#endif
 
-#endif /* _LIBC */
+/* #endif /\* _LIBC *\/ */
