@@ -3,6 +3,9 @@
 AC_INIT(rgraph, VERSION, rguimera@northwestern.edu)
 AM_INIT_AUTOMAKE
 
+# Create the config.h.in
+AC_CONFIG_HEADER(config.h)
+
 # Checks for programs.
 AM_PROG_LIBTOOL
 AC_PROG_INSTALL

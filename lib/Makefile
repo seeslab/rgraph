@@ -56,6 +56,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/absolute-header.m4 \
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
+CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 LIBRARIES = $(noinst_LIBRARIES)
 LTLIBRARIES = $(noinst_LTLIBRARIES)
@@ -65,7 +66,7 @@ libgnu_la_OBJECTS = $(am_libgnu_la_OBJECTS)
 libgnu_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(libgnu_la_LDFLAGS) $(LDFLAGS) -o $@
-DEFAULT_INCLUDES = -I.
+DEFAULT_INCLUDES = -I. -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
@@ -101,7 +102,7 @@ CXXCPP = g++ -E
 CXXDEPMODE = depmode=gcc3
 CXXFLAGS = -g -O2
 CYGPATH_W = echo
-DEFS = -DPACKAGE_NAME=\"rgraph\" -DPACKAGE_TARNAME=\"rgraph\" -DPACKAGE_VERSION=\"VERSION\" -DPACKAGE_STRING=\"rgraph\ VERSION\" -DPACKAGE_BUGREPORT=\"rguimera@northwestern.edu\" -DPACKAGE=\"rgraph\" -DVERSION=\"VERSION\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_DLFCN_H=1 -DHAVE_LIBM=1 -DHAVE_LIBPRNG=1 -DHAVE_SEARCH_H=1 -DABSOLUTE_SEARCH_H=\"///usr/include/search.h\" -DHAVE_TSEARCH=1 -DSTDC_HEADERS=1 -DHAVE_STDLIB_H=1 -DHAVE_MALLOC=1 -DHAVE_FLOOR=1
+DEFS = -DHAVE_CONFIG_H
 DEPDIR = .deps
 ECHO = echo
 ECHO_C = 

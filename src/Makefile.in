@@ -44,6 +44,7 @@ am__aclocal_m4_deps = $(top_srcdir)/m4/absolute-header.m4 \
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
+CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
@@ -61,7 +62,7 @@ librgraph_a_DEPENDENCIES = $(top_srcdir)/lib/libgnu.la
 am_librgraph_a_OBJECTS = tools.$(OBJEXT) graph.$(OBJEXT) \
 	models.$(OBJEXT) modules.$(OBJEXT)
 librgraph_a_OBJECTS = $(am_librgraph_a_OBJECTS)
-DEFAULT_INCLUDES = -I.@am__isrc@
+DEFAULT_INCLUDES = -I. -I$(top_builddir)@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
