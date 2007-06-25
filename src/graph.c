@@ -602,12 +602,14 @@ FPrintNetAdjacencyList(FILE *outf,
   }
 }
 
-// ---------------------------------------------------------------------
-// Prints a network in Pajek format. Node coordinates are printed if
-// coor_sw is not 0. Weight is printed if weight_sw is not 0. If
-// symmetric_sw == 1, the link is only printed once (a-b), otherwise
-// it will be printed twice if necessary (a-b, and b-a).
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Prints a network in Pajek format. Node coordinates are printed if
+  coor_sw is not 0. Weight is printed if weight_sw is not 0. If
+  symmetric_sw == 1, the link is only printed once (a-b), otherwise
+  it will be printed twice if necessary (a-b, and b-a).
+  ---------------------------------------------------------------------
+*/
 void
 FPrintPajekFile(char *fname,
 		struct node_gra *root,
@@ -623,7 +625,7 @@ FPrintPajekFile(char *fname,
   outF = fopen(fname, "w");
   fprintf(outF, "*Vertices %d\n", CountNodes(root));
 
-  // Print the nodes
+  /* Print the nodes */
   p = root;
   while((p = p->next) != NULL) {
     if (coor_sw == 1) {
@@ -635,7 +637,7 @@ FPrintPajekFile(char *fname,
     }
   }
   
-  // Print the links title
+  /* Print the links title */
   if (symmetric_sw == 0) {
     fprintf(outF, "*Arcs\n");
   }
@@ -643,7 +645,7 @@ FPrintPajekFile(char *fname,
     fprintf(outF,"*Edges\n");
   }
   
-  // Print links
+  /* Print links */
   p = root;
   while((p = p->next) != NULL) {
     n = p->neig;
@@ -662,7 +664,7 @@ FPrintPajekFile(char *fname,
     }
   }
 
-  // Close the file and return
+  /* Close the file and return */
   fclose(outF);
   return;
 }
