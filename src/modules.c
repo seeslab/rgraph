@@ -11,15 +11,19 @@
 
 #define EPSILON_MOD 1.e-6
 
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
-// Group creation and memory allocation
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+  Group creation and memory allocation
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+*/
 
-// ---------------------------------------------------------------------
-// Create an empty group to be used as the partition header
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Create an empty group to be used as the partition header
+  ---------------------------------------------------------------------
+*/
 struct group *
 CreateHeaderGroup()
 {
@@ -48,9 +52,11 @@ CreateHeaderGroup()
   return temp;
 }
 
-// ---------------------------------------------------------------------
-// Create a group at the end of the list starting at part
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Create a group at the end of the list starting at part
+  ---------------------------------------------------------------------
+*/
 struct group *
 CreateGroup(struct group *part, int label)
 {
@@ -87,15 +93,19 @@ CreateGroup(struct group *part, int label)
 }
 
 
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
-// Partition creation
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+  Partition creation
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+*/
 
-// ---------------------------------------------------------------------
-// Build a partition from a file. The file should contain
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Build a partition from a file. The file should contain
+  ---------------------------------------------------------------------
+*/
 struct group *
 FCreatePartition(FILE *inF)
 {
@@ -105,10 +115,10 @@ FCreatePartition(FILE *inF)
   struct group *part = NULL;
   int npart = 0;
 
-  // Create the header of the partition
+  /* Create the header of the partition */
   part = CreateHeaderGroup();
 
-  // Read the file
+  /* Read the file */
   while (!feof(inF)) {
     g = CreateGroup(part, npart);
     npart++;
@@ -122,10 +132,12 @@ FCreatePartition(FILE *inF)
   return part;
 }
 
-// ---------------------------------------------------------------------
-// For an arbitrary network, create a partition with groups of nodes
-// of a given size. The nodes are placed in groups in order.
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  For an arbitrary network, create a partition with groups of nodes
+  of a given size. The nodes are placed in groups in order.
+  ---------------------------------------------------------------------
+*/
 struct group *
 CreateEquiNPartition(struct node_gra *net, int gsize)
 {
@@ -135,12 +147,12 @@ CreateEquiNPartition(struct node_gra *net, int gsize)
   struct group *part = NULL;
   struct node_gra *p = NULL;
 
-  // Initialize stuff
+  /* Initialize stuff */
   p = net;
   part = CreateHeaderGroup();
   ngroups = CountNodes(net) / gsize;
 
-  // Create the groups and assign the nodes
+  /* Create the groups and assign the nodes */
   for (i=0; i<=ngroups; i++) {
     g = CreateGroup(part,i);
     for (j=0; j<gsize; j++) {
@@ -150,15 +162,17 @@ CreateEquiNPartition(struct node_gra *net, int gsize)
     }
   }
 
-  // Done
+  /* Done */
   return CompressPart(part);
 }
 
-// ---------------------------------------------------------------------
-// Create a partition with a given number of groups of a given
-// size. The partition is not mapped to any network, and labels are
-// set to integer numbers from 1 to N.
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Create a partition with a given number of groups of a given
+  size. The partition is not mapped to any network, and labels are
+  set to integer numbers from 1 to N.
+  ---------------------------------------------------------------------
+*/
 struct group *
 CreateEquiNPartitionSoft(int ngroups, int gsize)
 {
@@ -167,10 +181,10 @@ CreateEquiNPartitionSoft(int ngroups, int gsize)
   struct group *part = NULL;
   char label[MAX_LABEL_LENGTH];
 
-  // Initialize
+  /* Initialize */
   part = CreateHeaderGroup();
 
-  // Create the groups and assign the nodes
+  /* Create the groups and assign the nodes */
   for (i=0; i<ngroups; i++) {
     g = CreateGroup(part, i);
     for (j=0; j<gsize; j++) {
@@ -179,14 +193,16 @@ CreateEquiNPartitionSoft(int ngroups, int gsize)
     }
   }
   
-  // Done
+  /* Done */
   return part;
 }
 
-// ---------------------------------------------------------------------
-// Given a network, create a partition from the inGroup attribute of
-// its nodes
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Given a network, create a partition from the inGroup attribute of
+  its nodes
+  ---------------------------------------------------------------------
+*/
 struct group *
 CreatePartitionFromInGroup(struct node_gra *net)
 {
@@ -196,22 +212,22 @@ CreatePartitionFromInGroup(struct node_gra *net)
   struct group *part = NULL;
   struct node_gra *p = NULL;
 
-  // Determine the largest group number
+  /* Determine the largest group number */
   p = net;
   while ((p = p->next) != NULL)
     if (p->inGroup > maxNGroup)
       maxNGroup = p->inGroup;
 
-  // Allocate enough memory for a list of pointers to groups (for
-  // faster access to groups), and initialize the list
+  /* Allocate enough memory for a list of pointers to groups (for
+     faster access to groups), and initialize the list */
   glist = (struct group **) calloc(maxNGroup + 1, sizeof(struct group *));
   for(i=0; i<=maxNGroup; i++)
     glist[i] = NULL;
 
-  // Create the partition
+  /* Create the partition */
   part = CreateHeaderGroup();
 
-  // Assign the nodes creating new groups when necessary
+  /* Assign the nodes creating new groups when necessary */
   p = net;
   while ((p = p->next) != NULL) {
     if (glist[p->inGroup] == NULL) {
@@ -220,21 +236,25 @@ CreatePartitionFromInGroup(struct node_gra *net)
     AddNodeToGroup(glist[p->inGroup], p);
   }
 
-  // Free memory and return
+  /* Free memory and return */
   free(glist);
   return part;
 }
 
 
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
-// Partition removal
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+  Partition removal
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+*/
 
-// ---------------------------------------------------------------------
-// Free the memory allocated to a partition
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Free the memory allocated to a partition
+  ---------------------------------------------------------------------
+*/
 void
 RemovePartition(struct group *part)
 {
@@ -251,16 +271,20 @@ RemovePartition(struct group *part)
 }
 
 
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
-// Node-group functions
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+  Node-group functions
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+*/
 
-// ---------------------------------------------------------------------
-// Add a node to a group, pointing all pointers and updating group and
-// node properties.
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Add a node to a group, pointing all pointers and updating group and
+  node properties.
+  ---------------------------------------------------------------------
+*/
 struct node_lis *
 AddNodeToGroup(struct group *g, struct node_gra *node)
 {
@@ -268,11 +292,11 @@ AddNodeToGroup(struct group *g, struct node_gra *node)
   int totlink, inlink;
   double totweight, inweight;
 
-  // Go to the end of the list of nodes in the group
+  /* Go to the end of the list of nodes in the group */
   while (p->next != NULL)
     p = p->next;
 
-  // Create the node_lis and point it to the node
+  /* Create the node_lis and point it to the node */
   p->next = (struct node_lis *)calloc(1, sizeof(struct node_lis));
   (p->next)->node = node->num;
   (p->next)->nodeLabel = (char *) calloc(MAX_LABEL_LENGTH, sizeof(char));
@@ -281,10 +305,10 @@ AddNodeToGroup(struct group *g, struct node_gra *node)
   (p->next)->next = NULL;
   (p->next)->ref = node;
   
-  (p->next)->btw=0.0;  //initalising rush variable to 0.0;
-  (p->next)->weight=0.0;  //initalising rush variable to 0.0;
+  (p->next)->btw=0.0;  /* initalising rush variable to 0.0; */
+  (p->next)->weight=0.0;  /* initalising rush variable to 0.0; */
 
-  // Update the properties of the group
+  /* Update the properties of the group */
   g->size++;
   totlink = CountLinks(node);
   inlink = NLinksToGroup(node, g);
@@ -297,27 +321,29 @@ AddNodeToGroup(struct group *g, struct node_gra *node)
   g->inlinksW += inweight;
   g->outlinksW = g->totlinksW - g->inlinksW;
 
-  // Update the properties of the node
+  /* Update the properties of the node */
   node->inGroup = g->label;
 
-  // Done
+  /* Done */
   return p->next;
 }
 
-// ---------------------------------------------------------------------
-// Softly add a node to a group. Pointers do NOT point anywhere and
-// there is NO updating group or node properties.
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Softly add a node to a group. Pointers do NOT point anywhere and
+  there is NO updating group or node properties.
+  ---------------------------------------------------------------------
+*/
 struct node_lis *
 AddNodeToGroupSoft(struct group *g, char *label)
 {
   struct node_lis *p = g->nodeList;
 
-  // Go to the end of the list of nodes in the group
+  /* Go to the end of the list of nodes in the group */
   while (p->next != NULL)
     p = p->next;
 
-  // Create the node_lis
+  /* Create the node_lis */
   p->next = (struct node_lis *)calloc(1, sizeof(struct node_lis));
   (p->next)->node = -1;
   (p->next)->nodeLabel = (char *) calloc(MAX_LABEL_LENGTH, sizeof(char));
@@ -326,20 +352,22 @@ AddNodeToGroupSoft(struct group *g, char *label)
   (p->next)->next = NULL;
   (p->next)->ref = NULL;
 
-  (p->next)->btw=0.0;  //initalising rush variable to 0.0;
-  (p->next)->weight=0.0;  //initalising rush variable to 0.0;
+  (p->next)->btw=0.0;  /* initalising rush variable to 0.0; */
+  (p->next)->weight=0.0;  /* initalising rush variable to 0.0; */
 
-  // Actualize the properties of the group
+  /* Update the properties of the group */
   g->size++;
 
-  // Done
+  /* Done */
   return p->next;
 }
 
-// ---------------------------------------------------------------------
-// Remove a node from a group. Returns 1 if the node has been
-// successfully removed and 0 if the node is not found in the group.
-// ---------------------------------------------------------------------
+/*
+   ---------------------------------------------------------------------
+   Remove a node from a group. Returns 1 if the node has been
+   successfully removed and 0 if the node is not found in the group.
+   ---------------------------------------------------------------------
+*/
 int 
 RemoveNodeFromGroup(struct group *g, struct node_gra *node)
 {
@@ -348,7 +376,7 @@ RemoveNodeFromGroup(struct group *g, struct node_gra *node)
   int totlink,inlink;
   double totweight,inweight;
 
-  // Find the node
+  /* Find the node */
   while ((p->next != NULL) && ((p->next)->ref != node))
     p = p->next;
   
@@ -360,7 +388,7 @@ RemoveNodeFromGroup(struct group *g, struct node_gra *node)
     free(temp->nodeLabel);
     free(temp);
 
-    // Update the properties of the group
+    /* Update the properties of the group */
     g->size--;
     totlink = CountLinks(node);
     inlink = NLinksToGroup(node, g);
@@ -373,15 +401,17 @@ RemoveNodeFromGroup(struct group *g, struct node_gra *node)
     g->inlinksW -= inweight;
     g->outlinksW = g->totlinksW - g->inlinksW;
 
-    // Done
+    /* Done */
     return 1;
   }
 }
 
-// ---------------------------------------------------------------------
-// Move a node from old group to new group. Returns 1 if successful,
-// and 0 if node is not in the old group.
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Move a node from old group to new group. Returns 1 if successful,
+  and 0 if node is not in the old group.
+  ---------------------------------------------------------------------
+*/
 int
 MoveNode(struct node_gra *node, struct group *old, struct group *new)
 {
@@ -393,15 +423,19 @@ MoveNode(struct node_gra *node, struct group *old, struct group *new)
 }
 
 
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
-// Group and partition operations
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+  Group and partition operations
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+*/
 
-// ---------------------------------------------------------------------
-// Removes all empty groups from a partition
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Removes all empty groups from a partition
+  ---------------------------------------------------------------------
+*/
 struct group *
 CompressPart(struct group *part)
 {
@@ -426,9 +460,11 @@ CompressPart(struct group *part)
   return part;
 }
 
-// ---------------------------------------------------------------------
-// Given a partition and a group label, return the group with the label
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Given a partition and a group label, return the group with the label
+  ---------------------------------------------------------------------
+*/
 struct group *
 GetGroup(struct group *part, int label)
 {
@@ -441,10 +477,12 @@ GetGroup(struct group *part, int label)
   return NULL;
 }
 
-// ---------------------------------------------------------------------
-// Count the number of groups (after a given group, usually the header
-// of the partition)
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Count the number of groups (after a given group, usually the header
+  of the partition)
+  ---------------------------------------------------------------------
+*/
 int
 NGroups(struct group *part)
 {
@@ -456,10 +494,12 @@ NGroups(struct group *part)
   return ngroup;
 }
 
-// ---------------------------------------------------------------------
-// Count the number of non-empty groups (after a given group, usually
-// the header of the partition)
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Count the number of non-empty groups (after a given group, usually
+  the header of the partition)
+  ---------------------------------------------------------------------
+*/
 int
 NNonEmptyGroups(struct group *part)
 {
@@ -472,10 +512,12 @@ NNonEmptyGroups(struct group *part)
   return ngroup;
 }
 
-// ---------------------------------------------------------------------
-// Count the number of nodes in all groups (after a given group,
-// usually the header of the partition)
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Count the number of nodes in all groups (after a given group,
+  usually the header of the partition)
+  ---------------------------------------------------------------------
+*/
 int
 PartitionSize(struct group *part)
 {
@@ -487,9 +529,11 @@ PartitionSize(struct group *part)
   return nnod;
 }
 
-// ---------------------------------------------------------------------
-// Removes all links to and from the nodes in a group
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Removes all links to and from the nodes in a group
+  ---------------------------------------------------------------------
+*/
 void
 RemoveWithinGroupLinks(struct group *g, int symmetric_sw)
 {
@@ -506,9 +550,11 @@ RemoveWithinGroupLinks(struct group *g, int symmetric_sw)
   return;
 }
 
-// ---------------------------------------------------------------------
-// Removes all links between groups
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Removes all links between groups
+  ---------------------------------------------------------------------
+*/
 void
 RemoveBetweenGroupLinks(struct group *part, int symmetric_sw)
 {
@@ -612,9 +658,11 @@ RemoveBetweenGroupLinks(struct group *part, int symmetric_sw)
 /*   return; */
 /* } */
 
-// ---------------------------------------------------------------------
-// Count the number of links from a node to a given group
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Count the number of links from a node to a given group
+  ---------------------------------------------------------------------
+*/
 int
 NLinksToGroup(struct node_gra* node, struct group *g)
 {
@@ -628,10 +676,12 @@ NLinksToGroup(struct node_gra* node, struct group *g)
   return inlink;
 }
 
-// ---------------------------------------------------------------------
-// Count the number of links from a node to a given group, based on
-// the label of the group only
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Count the number of links from a node to a given group, based on the
+  label of the group only
+  ---------------------------------------------------------------------
+*/
 int
 NLinksToGroupByNum(struct node_gra* node, int gLabel)
 {
@@ -645,9 +695,11 @@ NLinksToGroupByNum(struct node_gra* node, int gLabel)
   return inlink;
 }
 
-// ---------------------------------------------------------------------
-// Weight of links from a node to a given group
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Weight of links from a node to a given group
+  ---------------------------------------------------------------------
+*/
 double
 StrengthToGroup(struct node_gra* node, struct group *g)
 {
@@ -661,9 +713,11 @@ StrengthToGroup(struct node_gra* node, struct group *g)
   return inlink;
 }
 
-// ---------------------------------------------------------------------
-// Count the number of links between a pair of groups
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Count the number of links between a pair of groups
+  ---------------------------------------------------------------------
+*/
 int
 NG2GLinks(struct group *g1, struct group *g2)
 {
@@ -679,9 +733,11 @@ NG2GLinks(struct group *g1, struct group *g2)
     return nlink;
 }
 
-// ---------------------------------------------------------------------
-// Total weight of links between a pair of groups
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Total weight of links between a pair of groups
+  ---------------------------------------------------------------------
+*/
 double
 NG2GLinksWeight(struct group *g1, struct group *g2)
 {
@@ -697,9 +753,11 @@ NG2GLinksWeight(struct group *g1, struct group *g2)
     return nlink;
 }
 
-// ---------------------------------------------------------------------
-// Move all nodes in group g1 to group g2
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Move all nodes in group g1 to group g2
+  ---------------------------------------------------------------------
+*/
 void
 MergeGroups(struct group *g1, struct group *g2)
 {
@@ -710,10 +768,12 @@ MergeGroups(struct group *g1, struct group *g2)
   return;
 }
 
-// ---------------------------------------------------------------------
-// Creates a copy of a group and puts it at the end of the list of
-// groups hanging from copy_root
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Creates a copy of a group and puts it at the end of the list of
+  groups hanging from copy_root
+  ---------------------------------------------------------------------
+*/
 struct group *
 CopyGroup(struct group *copy_root, struct group *g)
 {
@@ -722,31 +782,33 @@ CopyGroup(struct group *copy_root, struct group *g)
 
   copy = CreateGroup(copy_root, g->label);
 
-  // Copy the trivial fields
+  /* Copy the trivial fields */
   copy->coorX = g->coorX;
   copy->coorY = g->coorY;
   copy->coorZ = g->coorZ;
 
-  // Copy the node list
+  /* Copy the node list */
   node = g->nodeList;
   while (node->next != NULL) {
     node = node->next;
     AddNodeToGroup(copy, node->ref);
   }
 
-  // Some recursivity is in order here :(
-  // AND NEEDS TO BE TESTED BEFORE USING!!!!!!!!!!
+  /* Some recursivity is in order here :( */
+  /* AND NEEDS TO BE TESTED BEFORE USING!!!!!!!!!! */
   if ( g->offspr != NULL )
     copy->offspr = CopyPartition(g->offspr);
 
   return copy;
 }
 
-// ---------------------------------------------------------------------
-// Creates a copy of a whole partition. CAUTION!!!! The network MUST
-// be mapped to the copy or the original partition if they are to be
-// used after the copy has been created!!!!
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Creates a copy of a whole partition. CAUTION!!!! The network MUST be
+  mapped to the copy or the original partition if they are to be used
+  after the copy has been created!!!!
+  ---------------------------------------------------------------------
+*/
 struct group *
 CopyPartition(struct group *original)
 {
@@ -764,10 +826,12 @@ CopyPartition(struct group *original)
   return copy_root;
 }
 
-// ---------------------------------------------------------------------
-// Creates a network that contains only the nodes in one of the groups
-// of a partition
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Creates a network that contains only the nodes in one of the groups
+  of a partition
+  ---------------------------------------------------------------------
+*/
 struct node_gra *
 BuildNetFromGroup(struct group *group)
 {
@@ -798,10 +862,12 @@ BuildNetFromGroup(struct group *group)
 }
 
 
-// ---------------------------------------------------------------------
-// Creates a network that contains only the nodes in one of the groups
-// of a partition AND its neighbors
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Creates a network that contains only the nodes in one of the groups
+  of a partition AND its neighbors
+  ---------------------------------------------------------------------
+*/
 struct node_gra *
 BuildNetFromGroupNeig(struct group *group)
 {
@@ -814,9 +880,9 @@ BuildNetFromGroupNeig(struct group *group)
   net = CreateHeaderGraph();
   last = net;
 
-  // Loop over nodes in the group
+  /* Loop over nodes in the group */
   while ((p = p->next) != NULL){
-    // Add the node
+    /* Add the node */
     new = CreateNodeGraph(last, p->ref->label);
     new->state = p->ref->state;
     new->coorX = p->ref->coorX;
@@ -826,11 +892,11 @@ BuildNetFromGroupNeig(struct group *group)
     last = new;
     CopyAdjacencyList(p->ref, new);
 
-    // Add the neighbors of the node
+    /* Add the neighbors of the node */
     nei = p->ref->neig;
     while ((nei = nei->next) != NULL) {
-      // If the node does not exist and is in another module, add it
-      // to the network
+      /* If the node does not exist and is in another module, add it
+	 to the network */
       if ((IsThereNode(nei->ref->label, net) == 0) &&
 	  (nei->ref->inGroup != p->ref->inGroup)) {
 	new = CreateNodeGraph(last, nei->ref->label);
@@ -852,15 +918,19 @@ BuildNetFromGroupNeig(struct group *group)
 }
 
 
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
-// Network-partition operations
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+  Network-partition operations
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+*/
 
-// ---------------------------------------------------------------------
-// Reset the inGroup attribute of all the nodes in a network 
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Reset the inGroup attribute of all the nodes in a network 
+  ---------------------------------------------------------------------
+*/
 void 
 ResetNetGroup(struct node_gra *net)
 {
@@ -870,10 +940,12 @@ ResetNetGroup(struct node_gra *net)
   return;
 }
 
-// ---------------------------------------------------------------------
-// Given a partition and a network, set all the pointers and all the
-// group and node attributes to the right values.
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Given a partition and a network, set all the pointers and all the
+  group and node attributes to the right values.
+  ---------------------------------------------------------------------
+*/
 void
 MapPartToNet(struct group *part, struct node_gra *net)
 {
@@ -884,13 +956,13 @@ MapPartToNet(struct group *part, struct node_gra *net)
   void *nodeDict = NULL;
   struct node_gra *node = NULL;
 
-  // Reset the group of all nodes
+  /* Reset the group of all nodes */
   ResetNetGroup(net);
 
-  // Create the nodeDict for fast access to nodes by label
+  /* Create the nodeDict for fast access to nodes by label */
   nodeDict = MakeLabelDict(net);
 
-  // Go through the groups, reset attributes, and point pointers
+  /* Go through the groups, reset attributes, and point pointers */
   g = part;
   while ((g = g->next) != NULL) {
     g->totlinks = 0;
@@ -902,18 +974,18 @@ MapPartToNet(struct group *part, struct node_gra *net)
 
     nod = g->nodeList;
     while ((nod = nod->next) != NULL) {
-      // Get the node_gra by label
+      /* Get the node_gra by label */
       node = GetNodeDict(nod->nodeLabel, nodeDict);
 
-      // Update the properties of the group
+      /* Update the properties of the group */
       nod->ref = node;
       nod->node = node->num;
-      // Update the properties of the node
+      /* Update the properties of the node */
       node->inGroup = g->label;
     }
   }
 
-  // Count links in groups
+  /* Count links in groups */
   g = part;
   while ((g = g->next) != NULL) {
     nod = g->nodeList;
@@ -935,18 +1007,20 @@ MapPartToNet(struct group *part, struct node_gra *net)
     g->outlinksW = g->totlinksW - g->inlinksW;
   }
 
-  // Free memory allocated locally
+  /* Free memory allocated locally */
   FreeLabelDict(nodeDict);
 
   // Done
   return;
 }
 
-// ---------------------------------------------------------------------
-// Same as MapPartToNet but ONLY the network (not the partition) is
-// updated. This enables one to map a partition to networks that are a
-// subset of the original network on which the partition is based.
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Same as MapPartToNet but ONLY the network (not the partition) is
+  updated. This enables one to map a partition to networks that are a
+  subset of the original network on which the partition is based.
+  ---------------------------------------------------------------------
+*/
 void
 MapPartToNetSoft(struct group *part, struct node_gra *net)
 {
@@ -956,13 +1030,13 @@ MapPartToNetSoft(struct group *part, struct node_gra *net)
   struct node_tree *treeNode = NULL;
   struct node_gra *node = NULL;
 
-  // Reset the group of all nodes
+  /* Reset the group of all nodes */
   ResetNetGroup(net);
 
-  // Create the nodeDict for fast access to nodes by label
+  /* Create the nodeDict for fast access to nodes by label */
   nodeDict = MakeLabelDict(net);
 
-  // Go through the groups, reset attributes, and point pointers
+  /* Go through the groups, reset attributes, and point pointers */
   g = part;
   while ((g = g->next) != NULL) {
     g->totlinks = 0;
@@ -974,14 +1048,14 @@ MapPartToNetSoft(struct group *part, struct node_gra *net)
 
     nod = g->nodeList;
     while ((nod = nod->next) != NULL) {
-      // Get the node_gra by label
+      /* Get the node_gra by label */
       treeNode = CreateNodeTree();
       strcpy(treeNode->label, nod->nodeLabel);
       node = (*(struct node_tree **)tfind((void *)treeNode,
 					  &nodeDict,
 					  NodeTreeLabelCompare))->ref;
       FreeNodeTree(treeNode, preorder, 0);
-      // Update the properties of the node
+      /* Update the properties of the node */
       node->inGroup = g->label;
     }
   }
@@ -1227,12 +1301,12 @@ MutualInformation(struct group *part1, struct group *part2)
 	    break;
 	  }
 	}
-      } // Overlap size S12 has been calculated
+      } /* Overlap size S12 has been calculated */
       if (S12 > 0)
 	H12 += (double)S12 * log((double)(S12 * S) /
 				 (double)(S1 * S2));
     }
-  } // End of loop over groups
+  } /* End of loop over groups */
 
   /*
     Compute mutual information
@@ -1944,7 +2018,7 @@ ParticipationCoefficient(struct node_gra *node)
     P = 1.0 - P;
   }
 
-  // Done
+  /* Done */
   return P;
 }
 
