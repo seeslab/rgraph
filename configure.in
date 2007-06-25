@@ -1,4 +1,3 @@
-#                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 AC_INIT(rgraph, VERSION, rguimera@northwestern.edu)
 AM_INIT_AUTOMAKE
@@ -26,7 +25,7 @@ gl_INIT
 AC_HEADER_STDC
 AC_CHECK_HEADER(stdlib.h)
 AC_CHECK_HEADER(string.h)
-AC_CHECK_HEADER(prng.h, , AC_MSG_ERROR([prng.h header not found]))
+AC_CHECK_HEADER(prng.h, , AC_MSG_ERROR([Necessary prng.h header not found]))
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_CONST

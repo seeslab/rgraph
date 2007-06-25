@@ -44,7 +44,7 @@ available_tags=" CXX F77"
 
 # ### BEGIN LIBTOOL CONFIG
 
-# Libtool was configured on host gorg:
+# Libtool was configured on host barcelona.chem-eng.northwestern.edu:
 
 # Shell to use when invoking shell scripts.
 SHELL="/bin/sh"
@@ -85,7 +85,7 @@ AR_FLAGS="cru"
 LTCC="gcc"
 
 # LTCC compiler flags.
-LTCFLAGS="-g -O2"
+LTCFLAGS="-I/home/staff/rguimera/Software/prng-3.0.2/include"
 
 # A language-specific compiler.
 CC="gcc"
@@ -97,7 +97,7 @@ with_gcc=yes
 EGREP="/bin/grep -E"
 
 # The linker used to build libraries.
-LD="/usr/i686-pc-linux-gnu/bin/ld"
+LD="/usr/bin/ld"
 
 # Whether we need hard or soft links.
 LN_S="ln -s"
@@ -174,7 +174,7 @@ dlopen_self_static=unknown
 link_static_flag="-static"
 
 # Compiler flag to turn off builtin functions.
-no_builtin_flag=" -fno-builtin"
+no_builtin_flag=" -fno-builtin -fno-rtti -fno-exceptions"
 
 # Compiler flag to allow reflexive dlopens.
 export_dynamic_flag_spec="\${wl}--export-dynamic"
@@ -325,10 +325,10 @@ variables_saved_for_relink="PATH LD_LIBRARY_PATH LD_RUN_PATH GCC_EXEC_PREFIX COM
 link_all_deplibs=unknown
 
 # Compile-time system search path for libraries
-sys_lib_search_path_spec=" /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/ /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/ /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/../../../../i686-pc-linux-gnu/lib/i686-pc-linux-gnu/4.1.1/ /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/../../../../i686-pc-linux-gnu/lib/ /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/../../../i686-pc-linux-gnu/4.1.1/ /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/../../../ /lib/i686-pc-linux-gnu/4.1.1/ /lib/ /usr/lib/i686-pc-linux-gnu/4.1.1/ /usr/lib/"
+sys_lib_search_path_spec=" /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/ /usr/lib/gcc/i386-redhat-linux/3.2.3/ /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/../../../../i386-redhat-linux/lib/i386-redhat-linux/3.2.3/ /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/../../../../i386-redhat-linux/lib/ /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/../../../i386-redhat-linux/3.2.3/ /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/../../../ /lib/i386-redhat-linux/3.2.3/ /lib/ /usr/lib/i386-redhat-linux/3.2.3/ /usr/lib/"
 
 # Run-time system search path for libraries
-sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/local/lib //usr//lib/opengl/xorg-x11/lib /usr/i686-pc-linux-gnu/lib /usr/lib/gcc/i686-pc-linux-gnu/4.1.1 /usr/lib/nspr /usr/lib/nss /usr/lib/openmotif-2.2 /opt/blackdown-jdk-1.4.2.03/jre/lib/i386/ /opt/blackdown-jdk-1.4.2.03/jre/lib/i386/native_threads/ /opt/blackdown-jdk-1.4.2.03/jre/lib/i386/classic/ /opt/blackdown-jdk-1.4.2.03/jre/lib/i386/server/ /usr/lib/qt4 /usr/kde/3.5/lib /usr/qt/3/lib /usr/games/lib /usr/lib/libstdc++-v3/ "
+sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/kerberos/lib /usr/X11R6/lib /usr/lib/mysql /usr/lib/qt-3.1/lib "
 
 # Fix the shell variable $srcfile for the compiler.
 fix_srcfile_path=""
@@ -7323,7 +7323,7 @@ disable_libs=static
 # End:
 # ### BEGIN LIBTOOL TAG CONFIG: CXX
 
-# Libtool was configured on host gorg:
+# Libtool was configured on host barcelona.chem-eng.northwestern.edu:
 
 # Shell to use when invoking shell scripts.
 SHELL="/bin/sh"
@@ -7364,7 +7364,7 @@ AR_FLAGS="cru"
 LTCC="gcc"
 
 # LTCC compiler flags.
-LTCFLAGS="-g -O2"
+LTCFLAGS="-I/home/staff/rguimera/Software/prng-3.0.2/include"
 
 # A language-specific compiler.
 CC="g++"
@@ -7376,7 +7376,7 @@ with_gcc=yes
 EGREP="/bin/grep -E"
 
 # The linker used to build libraries.
-LD="/usr/i686-pc-linux-gnu/bin/ld"
+LD="/usr/bin/ld"
 
 # Whether we need hard or soft links.
 LN_S="ln -s"
@@ -7505,11 +7505,11 @@ striplib="strip --strip-unneeded"
 
 # Dependencies to place before the objects being linked to create a
 # shared library.
-predep_objects="/usr/lib/gcc/i686-pc-linux-gnu/4.1.1/../../../crti.o /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/crtbeginS.o"
+predep_objects="/usr/lib/gcc-lib/i386-redhat-linux/3.2.3/../../../crti.o /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/crtbeginS.o"
 
 # Dependencies to place after the objects being linked to create a
 # shared library.
-postdep_objects="/usr/lib/gcc/i686-pc-linux-gnu/4.1.1/crtendS.o /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/../../../crtn.o"
+postdep_objects="/usr/lib/gcc-lib/i386-redhat-linux/3.2.3/crtendS.o /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/../../../crtn.o"
 
 # Dependencies to place before the objects being linked to create a
 # shared library.
@@ -7521,7 +7521,7 @@ postdeps="-lstdc++ -lm -lgcc_s -lc -lgcc_s"
 
 # The library search path used internally by the compiler when linking
 # a shared library.
-compiler_lib_search_path="-L/usr/lib/gcc/i686-pc-linux-gnu/4.1.1 -L/usr/lib/gcc/i686-pc-linux-gnu/4.1.1 -L/usr/lib/gcc/i686-pc-linux-gnu/4.1.1/../../../../i686-pc-linux-gnu/lib -L/usr/lib/gcc/i686-pc-linux-gnu/4.1.1/../../.."
+compiler_lib_search_path="-L/usr/lib/gcc-lib/i386-redhat-linux/3.2.3 -L/usr/lib/gcc-lib/i386-redhat-linux/3.2.3/../../.."
 
 # Method to check whether dependent libraries are shared objects.
 deplibs_check_method="pass_all"
@@ -7601,10 +7601,10 @@ variables_saved_for_relink="PATH LD_LIBRARY_PATH LD_RUN_PATH GCC_EXEC_PREFIX COM
 link_all_deplibs=unknown
 
 # Compile-time system search path for libraries
-sys_lib_search_path_spec=" /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/ /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/ /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/../../../../i686-pc-linux-gnu/lib/i686-pc-linux-gnu/4.1.1/ /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/../../../../i686-pc-linux-gnu/lib/ /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/../../../i686-pc-linux-gnu/4.1.1/ /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/../../../ /lib/i686-pc-linux-gnu/4.1.1/ /lib/ /usr/lib/i686-pc-linux-gnu/4.1.1/ /usr/lib/"
+sys_lib_search_path_spec=" /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/ /usr/lib/gcc/i386-redhat-linux/3.2.3/ /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/../../../../i386-redhat-linux/lib/i386-redhat-linux/3.2.3/ /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/../../../../i386-redhat-linux/lib/ /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/../../../i386-redhat-linux/3.2.3/ /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/../../../ /lib/i386-redhat-linux/3.2.3/ /lib/ /usr/lib/i386-redhat-linux/3.2.3/ /usr/lib/"
 
 # Run-time system search path for libraries
-sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/local/lib //usr//lib/opengl/xorg-x11/lib /usr/i686-pc-linux-gnu/lib /usr/lib/gcc/i686-pc-linux-gnu/4.1.1 /usr/lib/nspr /usr/lib/nss /usr/lib/openmotif-2.2 /opt/blackdown-jdk-1.4.2.03/jre/lib/i386/ /opt/blackdown-jdk-1.4.2.03/jre/lib/i386/native_threads/ /opt/blackdown-jdk-1.4.2.03/jre/lib/i386/classic/ /opt/blackdown-jdk-1.4.2.03/jre/lib/i386/server/ /usr/lib/qt4 /usr/kde/3.5/lib /usr/qt/3/lib /usr/games/lib /usr/lib/libstdc++-v3/ "
+sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/kerberos/lib /usr/X11R6/lib /usr/lib/mysql /usr/lib/qt-3.1/lib "
 
 # Fix the shell variable $srcfile for the compiler.
 fix_srcfile_path=""
@@ -7628,7 +7628,7 @@ include_expsyms=""
 
 # ### BEGIN LIBTOOL TAG CONFIG: F77
 
-# Libtool was configured on host gorg:
+# Libtool was configured on host barcelona.chem-eng.northwestern.edu:
 
 # Shell to use when invoking shell scripts.
 SHELL="/bin/sh"
@@ -7669,10 +7669,10 @@ AR_FLAGS="cru"
 LTCC="gcc"
 
 # LTCC compiler flags.
-LTCFLAGS="-g -O2"
+LTCFLAGS="-I/home/staff/rguimera/Software/prng-3.0.2/include"
 
 # A language-specific compiler.
-CC="gfortran"
+CC="g77"
 
 # Is the compiler the GNU C compiler?
 with_gcc=yes
@@ -7681,7 +7681,7 @@ with_gcc=yes
 EGREP="/bin/grep -E"
 
 # The linker used to build libraries.
-LD="/usr/i686-pc-linux-gnu/bin/ld"
+LD="/usr/bin/ld"
 
 # Whether we need hard or soft links.
 LN_S="ln -s"
@@ -7909,10 +7909,10 @@ variables_saved_for_relink="PATH LD_LIBRARY_PATH LD_RUN_PATH GCC_EXEC_PREFIX COM
 link_all_deplibs=unknown
 
 # Compile-time system search path for libraries
-sys_lib_search_path_spec=" /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/ /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/ /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/../../../../i686-pc-linux-gnu/lib/i686-pc-linux-gnu/4.1.1/ /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/../../../../i686-pc-linux-gnu/lib/ /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/../../../i686-pc-linux-gnu/4.1.1/ /usr/lib/gcc/i686-pc-linux-gnu/4.1.1/../../../ /lib/i686-pc-linux-gnu/4.1.1/ /lib/ /usr/lib/i686-pc-linux-gnu/4.1.1/ /usr/lib/"
+sys_lib_search_path_spec=" /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/ /usr/lib/gcc/i386-redhat-linux/3.2.3/ /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/../../../../i386-redhat-linux/lib/i386-redhat-linux/3.2.3/ /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/../../../../i386-redhat-linux/lib/ /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/../../../i386-redhat-linux/3.2.3/ /usr/lib/gcc-lib/i386-redhat-linux/3.2.3/../../../ /lib/i386-redhat-linux/3.2.3/ /lib/ /usr/lib/i386-redhat-linux/3.2.3/ /usr/lib/"
 
 # Run-time system search path for libraries
-sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/local/lib //usr//lib/opengl/xorg-x11/lib /usr/i686-pc-linux-gnu/lib /usr/lib/gcc/i686-pc-linux-gnu/4.1.1 /usr/lib/nspr /usr/lib/nss /usr/lib/openmotif-2.2 /opt/blackdown-jdk-1.4.2.03/jre/lib/i386/ /opt/blackdown-jdk-1.4.2.03/jre/lib/i386/native_threads/ /opt/blackdown-jdk-1.4.2.03/jre/lib/i386/classic/ /opt/blackdown-jdk-1.4.2.03/jre/lib/i386/server/ /usr/lib/qt4 /usr/kde/3.5/lib /usr/qt/3/lib /usr/games/lib /usr/lib/libstdc++-v3/ "
+sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/kerberos/lib /usr/X11R6/lib /usr/lib/mysql /usr/lib/qt-3.1/lib "
 
 # Fix the shell variable $srcfile for the compiler.
 fix_srcfile_path=""
