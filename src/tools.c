@@ -1,3 +1,9 @@
+/*
+  tools.c
+  $LastChangedDate$
+  $Revision$
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 

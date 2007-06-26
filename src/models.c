@@ -1,3 +1,9 @@
+/*
+  models.c
+  $LastChangedDate$
+  $Revision$
+*/
+
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
