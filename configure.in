@@ -1,6 +1,8 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT(rgraph, VERSION, rguimera@northwestern.edu)
+AC_INIT(rgraph, [0.1])
+AC_REVISION($Revision: $)
 AM_INIT_AUTOMAKE
+
 
 # Create the config.h.in
 AC_CONFIG_HEADER(config.h)
