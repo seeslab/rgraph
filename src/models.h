@@ -1,3 +1,5 @@
+/* $Revision$ */
+
 #ifndef RGRAPH_MODELS_H
 #define RGRAPH_MODELS_H 1
 

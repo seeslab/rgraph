@@ -1,3 +1,5 @@
+/* $Revision$ */
+
 #ifndef RGRAPH_GRAPH_H
 #define RGRAPH_GRAPH_H 1
 
