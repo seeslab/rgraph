@@ -36,5 +36,5 @@ AC_C_CONST
 AC_FUNC_MALLOC
 AC_CHECK_FUNCS([floor])
 
-AC_CONFIG_FILES(lib/Makefile src/Makefile Makefile)
+AC_CONFIG_FILES(lib/Makefile src/Makefile test/Makefile Makefile)
 AC_OUTPUT()

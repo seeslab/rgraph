@@ -178,7 +178,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = gnu
 ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = lib src
+SUBDIRS = lib src test
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 

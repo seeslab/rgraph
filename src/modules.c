@@ -611,7 +611,7 @@ BlockModel(struct group *part, char type_sw, int list_sw)
       g2 = g1;
       while ((g2 = g2->next) != NULL) {
 	if (g2->size > 0) {
-	  links += CountG2GLinks(g1, g2);
+	  links += NG2GLinks(g1, g2);
 	}
       }
     }
@@ -632,20 +632,20 @@ BlockModel(struct group *part, char type_sw, int list_sw)
 	    if (g1 == g2)
 	      bij + (double)g1->inlinks;
 	    else
-	      bij = (double)CountG2GLinks(g1, g2);
+	      bij = (double)NG2GLinks(g1, g2);
 	    break;
 	  case 'f':
 	    if (g1 == g2)
 	      bij + (double)g1->inlinks / (double)links;
 	    else
-	      bij = (double)CountG2GLinks(g1, g2) / (double)links;
+	      bij = (double)NG2GLinks(g1, g2) / (double)links;
 	    break;
 	  case 'p':
 	    if (g1 == g2)
-	      bij = (double)CountG2GLinks(g1, g2) /
+	      bij = (double)NG2GLinks(g1, g2) /
 		(double)(g1->size * (g1->size - 1));
 	    else
-	      bij = (double)CountG2GLinks(g1, g2) /
+	      bij = (double)NG2GLinks(g1, g2) /
 		(double)(g1->size * g2->size);
 	    break;
 	  case 'e':
@@ -655,7 +655,7 @@ BlockModel(struct group *part, char type_sw, int list_sw)
 			 (g2->inlinks + g2->totlinks)) /
 		((double)(4 * links * links));
 	    else
-	      bij = (double)CountG2GLinks(g1, g2) / (double)links -
+	      bij = (double)NG2GLinks(g1, g2) / (double)links -
 		(double)((g1->inlinks + g1->totlinks) *
 			 (g2->inlinks + g2->totlinks)) /
 		((double)(4 * links * links));
@@ -670,7 +670,7 @@ BlockModel(struct group *part, char type_sw, int list_sw)
 	    else {
 	      av = prob * (double)(g1->size * g2->size);
 	      sig = sqrt((double)(g1->size * g2->size) * prob * (1.0 - prob));
-	      bij = ((double)CountG2GLinks(g1, g2) - av) / sig;
+	      bij = ((double)NG2GLinks(g1, g2) - av) / sig;
 	    }
 	  }
 	}
@@ -1340,10 +1340,12 @@ MutualInformation(struct group *part1, struct group *part2)
 }
 
 /*
+  ---------------------------------------------------------------------
   Given a reference partition, calculate the fraction of nodes that
   are correctly classified in an actual partition. CAUTION: The
   function will not work if the largest group label is larger than the
   number of nodes in the network. But... why would that happen?!
+  ---------------------------------------------------------------------
 */
 double
 CorrectlyClassified(struct group *refpart, struct group *actpart)
@@ -1461,7 +1463,7 @@ Modularity(struct group *part)
   int links2 = 0;
   double modul = 0.0;
 
-  /* Calculate the number of links (times 2) */
+  /* Calculate the number of links times 2 */
   while ((g = g->next) != NULL)
     links2 += g->totlinks + g->inlinks;
 
@@ -2109,7 +2111,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
   while ((g = g->next) != NULL) {
     p = g->nodeList;
     while ((p = p->next) != NULL) {
-      P = RolesicipationCoefficient(p->ref);
+      P = ParticipationCoefficient(p->ref);
       z = WithinModuleRelativeDegree(p->ref, g);
       if (z < 2.5) {  /* Node is not a hub */
 	if (P < 0.050)
