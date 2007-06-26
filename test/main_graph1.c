@@ -1,7 +1,7 @@
 /*
   main_graph1.c
-  $LastChangedDate: 2007-06-25 20:21:32 -0500 (Mon, 25 Jun 2007) $
-  $Revision: 48 $
+  $LastChangedDate$
+  $Revision$
 */
 
 #include <stdio.h>
