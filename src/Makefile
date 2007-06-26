@@ -40,7 +40,8 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/absolute-header.m4 \
 	$(top_srcdir)/m4/gnulib-comp.m4 \
 	$(top_srcdir)/m4/onceonly_2_57.m4 $(top_srcdir)/m4/search_h.m4 \
-	$(top_srcdir)/m4/tsearch.m4 $(top_srcdir)/configure.in
+	$(top_srcdir)/m4/tsearch.m4 $(top_srcdir)/acinclude.m4 \
+	$(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -56,6 +57,7 @@ am__installdirs = "$(DESTDIR)$(pkglibdir)" \
 	"$(DESTDIR)$(pkgincludedir)" "$(DESTDIR)$(pkgincludedir)"
 pkglibLIBRARIES_INSTALL = $(INSTALL_DATA)
 LIBRARIES = $(pkglib_LIBRARIES)
+AR = ar
 ARFLAGS = cru
 librgraph_a_AR = $(AR) $(ARFLAGS)
 librgraph_a_DEPENDENCIES = $(top_srcdir)/lib/libgnu.la
@@ -67,13 +69,12 @@ depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-LTCOMPILE = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
+LTCOMPILE = $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
-LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
+LINK = $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link \
+	$(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 SOURCES = $(librgraph_a_SOURCES)
 DIST_SOURCES = $(librgraph_a_SOURCES)
 nodist_pkgincludeHEADERS_INSTALL = $(INSTALL_HEADER)
@@ -83,22 +84,17 @@ ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ABSOLUTE_SEARCH_H = "///usr/include/search.h"
-ACLOCAL = ${SHELL} /home/rguimera/Software/Network-Code/missing --run aclocal-1.10
-AMTAR = ${SHELL} /home/rguimera/Software/Network-Code/missing --run tar
-AR = ar
-AUTOCONF = ${SHELL} /home/rguimera/Software/Network-Code/missing --run autoconf
-AUTOHEADER = ${SHELL} /home/rguimera/Software/Network-Code/missing --run autoheader
-AUTOMAKE = ${SHELL} /home/rguimera/Software/Network-Code/missing --run automake-1.10
+ACLOCAL = ${SHELL} /home/staff/rguimera/Software/Network-Libraries/missing --run aclocal-1.10
+AMTAR = ${SHELL} /home/staff/rguimera/Software/Network-Libraries/missing --run tar
+AUTOCONF = ${SHELL} /home/staff/rguimera/Software/Network-Libraries/missing --run autoconf
+AUTOHEADER = ${SHELL} /home/staff/rguimera/Software/Network-Libraries/missing --run autoheader
+AUTOMAKE = ${SHELL} /home/staff/rguimera/Software/Network-Libraries/missing --run automake-1.10
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -g -O2
+CFLAGS = -I/home/staff/rguimera/Software/prng-3.0.2/include
 CPP = gcc -E
-CPPFLAGS = -I.
-CXX = g++
-CXXCPP = g++ -E
-CXXDEPMODE = depmode=gcc3
-CXXFLAGS = -g -O2
+CPPFLAGS = 
 CYGPATH_W = echo
 DEFS = -DHAVE_CONFIG_H
 DEPDIR = .deps
@@ -108,8 +104,6 @@ ECHO_N = -n
 ECHO_T = 
 EGREP = /bin/grep -E
 EXEEXT = 
-F77 = gfortran
-FFLAGS = -g -O2
 GNULIB_TSEARCH = 1
 GREP = /bin/grep
 HAVE_SEARCH_H = 1
@@ -119,13 +113,13 @@ INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
-LDFLAGS = -L./
+LDFLAGS = -L/home/staff/rguimera/Software/prng-3.0.2/lib
 LIBOBJS = 
 LIBS = -lprng -lm 
 LIBTOOL = $(SHELL) $(top_builddir)/libtool
 LN_S = ln -s
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /home/rguimera/Software/Network-Code/missing --run makeinfo
+MAKEINFO = ${SHELL} /home/staff/rguimera/Software/Network-Libraries/missing --run makeinfo
 MKDIR_P = /bin/mkdir -p
 OBJEXT = o
 PACKAGE = rgraph
@@ -140,13 +134,11 @@ SET_MAKE =
 SHELL = /bin/sh
 STRIP = strip
 VERSION = 0.1
-abs_builddir = /home/rguimera/Software/Network-Code/src
-abs_srcdir = /home/rguimera/Software/Network-Code/src
-abs_top_builddir = /home/rguimera/Software/Network-Code
-abs_top_srcdir = /home/rguimera/Software/Network-Code
+abs_builddir = /home/staff/rguimera/Software/Network-Libraries/src
+abs_srcdir = /home/staff/rguimera/Software/Network-Libraries/src
+abs_top_builddir = /home/staff/rguimera/Software/Network-Libraries
+abs_top_srcdir = /home/staff/rguimera/Software/Network-Libraries
 ac_ct_CC = gcc
-ac_ct_CXX = g++
-ac_ct_F77 = gfortran
 am__include = include
 am__leading_dot = .
 am__quote = 
@@ -174,7 +166,7 @@ host_vendor = pc
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = $(SHELL) /home/rguimera/Software/Network-Code/install-sh
+install_sh = $(SHELL) /home/staff/rguimera/Software/Network-Libraries/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -183,7 +175,7 @@ mandir = ${datarootdir}/man
 mkdir_p = /bin/mkdir -p
 oldincludedir = /usr/include
 pdfdir = ${docdir}
-prefix = /home/rguimera/Software/
+prefix = /home/staff/rguimera/Software/
 program_transform_name = s,x,x,
 psdir = ${docdir}
 sbindir = ${exec_prefix}/sbin
