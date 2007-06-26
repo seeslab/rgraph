@@ -84,8 +84,7 @@ int NNonEmptyGroups(struct group *part);
 int PartitionSize(struct group *part);
 void RemoveWithinGroupLinks(struct group *g, int symmetric_sw);
 void RemoveBetweenGroupLinks(struct group *part, int symmetric_sw);
-double **BlockModel(FILE *outf,
-		    struct group *part,
+double **BlockModel(struct group *part,
 		    char type_sw,
 		    int list_sw);
 int NLinksToGroup(struct node_gra* node, struct group *g);
