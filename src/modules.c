@@ -582,87 +582,91 @@ RemoveBetweenGroupLinks(struct group *part, int symmetric_sw)
   return;
 }
 
-// ---------------------------------------------------------------------
-// 
-// ---------------------------------------------------------------------
-/* double **BlockModel(FILE *outf, */
-/* 		    struct group *part, */
-/* 		    char type_sw, */
-/* 		    int list_sw) */
-/* { */
-/*   struct group *g1, *g2; */
-/*   int links = 0; */
-/*   int nodes = 0; */
-/*   double prob; */
-/*   double bij, av, sig; */
+/*
+  ---------------------------------------------------------------------
+  Given a partition, calculate the 'pattern of connections' between
+  groups. 'Pattern of connections' type_sw can be: 'n' raw number of
+  connections; 'f': fraction of all connections; 'p' probability of
+  connection; 'e' fraction of connections minus expected fraction of
+  connections (as in the modularity); 'z' z-score.
+  ---------------------------------------------------------------------
+*/
+double **
+BlockModel(struct group *part, char type_sw, int list_sw)
+{
+  struct group *g1, *g2;
+  int links2 = 0;
+  int nodes = 0;
+  double prob;
+  double bij, av, sig;
 
-/*   // Count the total number of nodes and links, and the average */
-/*   // linking probability */
-/*   g1 = part; */
-/*   while ((g1 = g1->next) != NULL) { */
-/*     if (g1->size > 0) { */
-/*       nodes += g1->size; */
-/*       links += g1->inlinks; */
-/*       g2 = g1; */
-/*       while ((g2 = g2->next) != NULL) { */
-/* 	if (g2->size > 0) { */
-/* 	  links += CountG2GLinks(g1, g2); */
-/* 	} */
-/*       } */
-/*     } */
-/*   } */
-/*   prob = (double)links / (double)(nodes * (nodes - 1)); */
+  /* Count the total number of nodes and links, and the average
+     linking probability */
+  g1 = part;
+  while ((g1 = g1->next) != NULL) {
+    if (g1->size > 0) {
+      nodes += g1->size;
+      links2 += g1->inlinks;
+      g2 = g1;
+      while ((g2 = g2->next) != NULL) {
+	if (g2->size > 0) {
+	  links2 += CountG2GLinks(g1, g2);
+	}
+      }
+    }
+  }
+  prob = (double)links2 / (double)(nodes * (nodes - 1));
 
-/*   // Calculate and print the blockmodel */
-/*   g1 = part; */
-/*   while ((g1 = g1->next) != NULL) { */
-/*     if (g1->size > 0) { */
-/*       g2 = part; */
-/*       while ((g2 = g2->next) != NULL) { */
-/* 	if (g2->size > 0) { */
+  /* Calculate and print the blockmodel */
+  g1 = part;
+  while ((g1 = g1->next) != NULL) {
+    if (g1->size > 0) {
+      g2 = part;
+      while ((g2 = g2->next) != NULL) {
+	if (g2->size > 0) {
 
-/* 	  // Calculate the matrix element */
-/* 	  switch (type_sw) { */
-/* 	  case 'n': */
-/* 	    bij = (double)CountG2GLinks(g1, g2); */
-/* 	    break; */
-/* 	  case 'f': */
-/* 	    bij = (double)CountG2GLinks(g1, g2)/ (double)links; */
-/* 	    break; */
-/* 	  case 'p': */
-/* 	    if (g1 == g2)  */
-/* 	      bij = (double)CountG2GLinks(g1, g2) /  */
-/* 		(double)(g1->size * (g1->size - 1)); */
-/* 	    else */
-/* 	      bij = (double)CountG2GLinks(g1, g2) /  */
-/* 		(double)(g1->size * g2->size); */
-/* 	    break; */
-/* 	  case 'e': */
-/* 	    bij = (double)CountG2GLinks(g1, g2) / (double)links - */
-/* 	      (double)((g1->inlinks + g1->totlinks) * */
-/* 		       (g2->inlinks + g2->totlinks)) /  */
-/* 	      ((double)(4 * links * links)); */
-/* 	    break; */
-/* 	  case 'z': */
-/* 	    if (g1 == g2) { */
-/* 	      av = prob * (double)(g1->size * (g1->size - 1)); */
-/* 	      sig = sqrt((double)(g1->size * (g1->size - 1)) *  */
-/* 			 prob * (1.0 - prob)); */
-/* 	      bij = ((double)CountG2GLinks(g1, g2) - av) / sig; */
-/* 	    } */
-/* 	    else { */
-/* 	      av = prob * (double)(g1->size * g2->size); */
-/* 	      sig = sqrt((double)(g1->size * g2->size) * prob * (1.0 - prob)); */
-/* 	      bij = ((double)CountG2GLinks(g1, g2) - av) / sig; */
-/* 	    } */
-/* 	  } */
-/* 	} */
-/*       } */
-/*     } */
-/*   } */
+	  /* Calculate the matrix element */
+	  switch (type_sw) {
+	  case 'n':
+	    bij = (double)CountG2GLinks(g1, g2);
+	    break;
+	  case 'f':
+	    bij = (double)CountG2GLinks(g1, g2)/ (double)links2;
+	    break;
+	  case 'p':
+	    if (g1 == g2)
+	      bij = (double)CountG2GLinks(g1, g2) /
+		(double)(g1->size * (g1->size - 1));
+	    else
+	      bij = (double)CountG2GLinks(g1, g2) /
+		(double)(g1->size * g2->size);
+	    break;
+	  case 'e':
+	    bij = (double)CountG2GLinks(g1, g2) / (double)links2 -
+	      (double)((g1->inlinks + g1->totlinks) *
+		       (g2->inlinks + g2->totlinks)) /
+	      ((double)(4 * links2 * links2));
+	    break;
+	  case 'z':
+	    if (g1 == g2) {
+	      av = prob * (double)(g1->size * (g1->size - 1));
+	      sig = sqrt((double)(g1->size * (g1->size - 1)) *
+			 prob * (1.0 - prob));
+	      bij = ((double)CountG2GLinks(g1, g2) - av) / sig;
+	    }
+	    else {
+	      av = prob * (double)(g1->size * g2->size);
+	      sig = sqrt((double)(g1->size * g2->size) * prob * (1.0 - prob));
+	      bij = ((double)CountG2GLinks(g1, g2) - av) / sig;
+	    }
+	  }
+	}
+      }
+    }
+  }
 
-/*   return; */
-/* } */
+  return;
+}
 
 /*
   ---------------------------------------------------------------------
