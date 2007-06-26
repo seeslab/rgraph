@@ -1,4 +1,8 @@
-/* $Revision$ */
+/*
+  modules.h
+  $LastChangedDate$
+  $Revision$
+*/
 
 #ifndef RGRAPH_MODULES_H
 #define RGRAPH_MODULES_H 1

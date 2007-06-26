@@ -1,4 +1,8 @@
-/* $Revision$ */
+/*
+  tools.h
+  $LastChangedDate$
+  $Revision$
+*/
 
 #ifndef RGRAPH_TOOLS_H
 #define RGRAPH_TOOLS_H 1
