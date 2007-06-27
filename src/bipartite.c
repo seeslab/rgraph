@@ -169,22 +169,6 @@ NCommonLinksBipart(struct node_gra *n1, struct node_gra *n2)
   ---------------------------------------------------------------------
   ---------------------------------------------------------------------
 */
-/*
-  ---------------------------------------------------------------------
-  Invert the networks in binet
-  ---------------------------------------------------------------------
-*/
-struct binet *
-InvertBinet(struct binet *net)
-{
-  struct node_gra *temp;
-
-  temp = net->net1;
-  net->net1 = net->net2;
-  net->net2 = temp;
-
-  return net;
-}
 
 /*
   ---------------------------------------------------------------------
@@ -268,6 +252,40 @@ CopyBinet(struct binet *binet)
 
 /*
   ---------------------------------------------------------------------
+  Invert the networks in binet
+  ---------------------------------------------------------------------
+*/
+struct binet *
+InvertBinet(struct binet *net)
+{
+  struct node_gra *temp;
+
+  temp = net->net1;
+  net->net1 = net->net2;
+  net->net2 = temp;
+
+  return net;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Counts the links in a bipartite network
+  ---------------------------------------------------------------------
+*/
+int
+NLinksBinet(struct binet *binet)
+{
+  struct node_gra *p = binet->net1;
+  int nlink = 0;
+
+  while ((p = p->next) !=  NULL)
+    nlink +=  CountLinks(p);
+
+  return nlink;
+}
+
+/*
+  ---------------------------------------------------------------------
   Project a binet into a weighted one mode network. The network is
   projected into the space of net1, and the weights in the projection
   are the number of common links in the binet.
@@ -317,6 +335,61 @@ ProjectBinet(struct binet *binet)
   /* Free memory and return */
   tdestroy(dict, FreeNodeTree);
   return projnet;
+}
+
+
+/*
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+  Network modularity
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+*/
+
+/*
+  ---------------------------------------------------------------------
+  Calculate the modularity of a bipartite network
+  ---------------------------------------------------------------------
+*/
+double
+ModularityBinet(struct binet *binet, struct group *part)
+{
+  struct node_gra *p = binet->net2;
+  struct node_lis *n1, *n2;
+  double bimod = 0.0;
+  int c12;
+  int t1, t2;
+  double sms, sms2;
+
+  sms = sms2 = 0.0;
+
+  /* Calculate sms=sum(m_s) and sms2=sum(m_s^2) */
+  while (p->next != NULL) {
+    p = p->next;
+    sms += (double)CountLinks(p);
+    sms2 += (double)(CountLinks(p) * CountLinks(p));
+  }
+
+  /* Calculate the modularity */
+  while (part->next != NULL){
+    part = part->next;
+
+    n1 = part->nodeList;
+    while ((n2 = n1 = n1->next) != NULL) {
+      while ((n2 = n2->next) != NULL) {
+  	c12 = NCommonLinksBipart(n1->ref, n2->ref);
+	t1 = CountLinks(n1->ref);
+	t2 = CountLinks(n2->ref);
+
+	bimod += (double)c12 / (sms2 - sms) -
+	  (double)(t1 * t2) / (sms * sms);
+      }
+    }
+  }
+  bimod *= 2.;
+
+  /* Done */
+  return bimod;
 }
 
 
@@ -487,21 +560,6 @@ ProjectBinet(struct binet *binet)
 /* } */
 
 
-/* /\* */
-/*   --------------------------------------------------------------------- */
-/*   Counts the links in a bipartite network */
-/*   --------------------------------------------------------------------- */
-/* *\/ */
-/* int TotalNLinksBinet(struct binet *binet) */
-/* { */
-/*   struct node_gra *p = binet->net1; */
-/*   int nlink = 0; */
-
-/*   while ((p = p->next) !=  NULL) */
-/*     nlink +=  CountLinks(p); */
-
-/*   return nlink; */
-/* } */
 
 
 /* /\* */
@@ -521,7 +579,7 @@ ProjectBinet(struct binet *binet)
 /*   struct node_gra **ori, **des; */
 
 /*   // Build the link lists (one for link origins and one for ends) */
-/*   nlink = TotalNLinksBinet(binet); */
+/*   nlink = NLinksBinet(binet); */
 /*   niter = ceil(times * (double)nlink); */
 
 /*   ori = (struct node_gra **)calloc(nlink,sizeof(struct node_gra *)); */
@@ -707,50 +765,6 @@ ProjectBinet(struct binet *binet)
 
 
 
-/* /\* */
-/*   --------------------------------------------------------------------- */
-/*   Calculate the modularity of a bipartite network */
-/*   --------------------------------------------------------------------- */
-/* *\/ */
-/* double BinetModularity(struct binet *binet, struct group *part) */
-/* { */
-/*   struct node_gra *p = binet->net2; */
-/*   struct node_lis *n1, *n2; */
-/*   double bimod = 0.0; */
-/*   int c12; */
-/*   int t1, t2; */
-/*   double sms, sms2; */
-
-/*   sms = sms2 = 0.0; */
-
-/*   // Calculate sms=sum(m_s) and sms2=sum(m_s^2) */
-/*   while (p->next != NULL) { */
-/*     p = p->next; */
-/*     sms += (double)CountLinks(p); */
-/*     sms2 += (double)(CountLinks(p) * CountLinks(p)); */
-/*   } */
-
-/*   // Calculate the modularity */
-/*   while (part->next != NULL){ */
-/*     part = part->next; */
-
-/*     n1 = part->nodeList; */
-/*     while ((n2 = n1 = n1->next) != NULL) { */
-/*       while ((n2 = n2->next) != NULL) { */
-/*   	c12 = NCommonLinksBipart(n1->ref, n2->ref); */
-/* 	t1 = CountLinks(n1->ref); */
-/* 	t2 = CountLinks(n2->ref); */
-
-/* 	bimod += (double)c12 / (sms2 - sms) - */
-/* 	  (double)(t1 * t2) / (sms * sms); */
-/*       } */
-/*     } */
-/*   } */
-
-/*   bimod *= 2.; */
-
-/*   return bimod; */
-/* } */
 
 
 /* /\* */
@@ -769,7 +783,7 @@ ProjectBinet(struct binet *binet)
 
 /* /\*   S1 = CountNodes(binet->net1); *\/ */
 /* /\*   S2 = CountNodes(binet->net2); *\/ */
-/*   L = TotalNLinksBinet(binet); */
+/*   L = NLinksBinet(binet); */
 
 /*   // Calculate the modularity */
 /*   while ((part = part->next) != NULL){ */
@@ -1111,7 +1125,7 @@ ProjectBinet(struct binet *binet)
 
 /*   // Create a bipartite network with the nodes in the target_g only */
 /*   module_binet = BuildNetworkFromCopart(target_g); */
-/*   L = TotalNLinksBinet(module_binet); */
+/*   L = NLinksBinet(module_binet); */
 /*   S1 = CountNodes(module_binet->net1); */
 /*   S2 = CountNodes(module_binet->net2); */
 /*   nlinks = allocate_i_vec(S1 + S2); */
@@ -1334,7 +1348,7 @@ ProjectBinet(struct binet *binet)
 
 /*   // Create a bipartite network with the nodes in the target_g only */
 /*   module_binet = BuildNetworkFromCopart(target_g); */
-/*   L = TotalNLinksBinet(module_binet); */
+/*   L = NLinksBinet(module_binet); */
 /*   S1 = CountNodes(module_binet->net1); */
 /*   S2 = CountNodes(module_binet->net2); */
 
@@ -1604,13 +1618,13 @@ ProjectBinet(struct binet *binet)
 
 /*   // START THE SIMULATED ANNEALING */
 /*   T = Ti; */
-/*   energy = BinetModularity(binet, part); */
+/*   energy = ModularityBinet(binet, part); */
 
 /*   while ((T > Tf) && (count < limit)) { */
 
 /*     printf("%g %lf %g\n", 1.0/T, energy, T); */
 /* /\*     printf("%g %lf %lf %g\n", 1.0/T, energy, *\/ */
-/* /\* 	   BinetModularity(binet, part), T); *\/ */
+/* /\* 	   ModularityBinet(binet, part), T); *\/ */
     
 /*     /\* */
 /*       Do cicle2 collective change iterations */
@@ -1835,7 +1849,7 @@ ProjectBinet(struct binet *binet)
 /*   // Count nodes and links */
 /*   S1 = CountNodes(binet->net1); */
 /*   S2 = CountNodes(binet->net2); */
-/*   L = TotalNLinksBinet(binet); */
+/*   L = NLinksBinet(binet); */
 /*   nnod = S1 + S2; */
 
 /*   // Create the groups and assign each node to one group */

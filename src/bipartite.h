@@ -45,10 +45,16 @@ int NCommonLinksBipart(struct node_gra *n1, struct node_gra *n2);
   Network operations
   ---------------------------------------------------------------------
 */
-struct binet *InvertBinet(struct binet *net);
 struct binet *CopyBinet(struct binet *binet);
+struct binet *InvertBinet(struct binet *net);
+int NLinksBinet(struct binet *binet);
 struct node_gra *ProjectBinet(struct binet *binet);
 
-
+/*
+  ---------------------------------------------------------------------
+  Network modularity
+  ---------------------------------------------------------------------
+*/
+double ModularityBinet(struct binet *binet, struct group *part);
 
 #endif /* !RGRAPH_BIPARTITE_H */
