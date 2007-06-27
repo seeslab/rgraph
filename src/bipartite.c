@@ -37,7 +37,6 @@ CreateBinet()
   temp = (struct binet *)calloc(1, sizeof(struct binet));
   temp->net1 = NULL;
   temp->net2 = NULL;
-  
   return temp;
 }
 
