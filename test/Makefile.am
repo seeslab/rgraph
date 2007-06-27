@@ -5,4 +5,4 @@ INCLUDES = -I$(top_builddir) -I$(top_srcdir) \
 
 check_PROGRAMS = graph1
 graph1_SOURCES = main_graph1.c
-graph1_LDADD = $(top_srcdir)/lib/libgnu.la $(top_srcdir)/src/librgraph.a
+graph1_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
