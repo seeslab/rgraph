@@ -1,7 +1,7 @@
 /*
   bipartite.h
-  $LastChangedDate: 2007-06-26 16:30:04 -0500 (Tue, 26 Jun 2007) $
-  $Revision: 52 $
+  $LastChangedDate$
+  $Revision$
 */
 
 #ifndef RGRAPH_BIPARTITE_H
