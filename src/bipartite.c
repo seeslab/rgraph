@@ -117,6 +117,171 @@ FBuildNetworkBipart(FILE *inFile,
 
 /*
   ---------------------------------------------------------------------
+  Build a modular bipartine network.
+
+  mod_size: vector with the sizes of the modules (if NULL, then the
+  modules are all of the same size nodpermod).
+
+  nodpermod: number of nodes per module (NOTE: only used if
+  mod_size==NULL)
+
+  nmod: number of modules
+
+  S2: number of 'teams'
+
+  mmin (mmax): minimum (maximum) number of 'agents' per 'team'. Team
+  size is determined by drawing a randomly generated integer uniformly
+  distributed between mmin and mmax.
+
+  p: probability of selecting agents of a given color for a team
+  ---------------------------------------------------------------------
+*/
+struct binet *
+BuildModularBipartiteNetwork(int *mod_size,
+			     int nodpermod,
+			     int nmod,
+			     double *col_prob,
+			     int S2,
+			     int mmin, int mmax,
+			     double geom_p,
+			     double p,
+			     struct prng *gen)
+{
+  int i, j;
+  struct binet *net = NULL;
+  struct node_gra *root1, *root2;
+  struct node_gra **list1, **list2;
+  struct node_gra *last_add1 = NULL, *last_add2 = NULL;
+  int orig, dest;
+  int teamcol, target;
+  int S1 = 0;
+  int *module, *mod_starting, n_team_col;
+  int m;
+  int free_mod_size = 0;
+  double dice, cum;
+  
+  /* Define mod_size if not defined yet */
+  if (mod_size == NULL) {
+    free_mod_size = 1; /* Remember to free memory at the end */
+    mod_size = allocate_i_vec(nmod);
+    for (i=0; i<nmod; i++) {
+      mod_size[i] = nodpermod;
+    }
+  }
+
+  /* Calculate the number of nodes S1 and allocate memory for the
+     lists */
+  S1 = 0;
+  for (i=0; i<nmod; i++) {
+    S1 += mod_size[i];
+  }
+  module = allocate_i_vec(S1);
+  list1 = (struct node_gra **)malloc(S1, sizeof(struct node_gra *))
+  list2 = (struct node_gra **)malloc(S2, sizeof(struct node_gra *))
+
+  /* Assign each node to a module */
+  S1 = 0;
+  mod_starting = allocate_i_vec(nmod);
+  for (i=0; i<nmod; i++) {
+    mod_starting[i] = S1;  /* Number of the first node in the module */
+    for (j=0; j<mod_size[i]; j++) {
+      module[S1++] = i;
+    }
+  }
+
+  /* Create the two networks */
+  last_add1 = root1 = CreateHeaderGraph();
+  last_add2 = root2 = CreateHeaderGraph();
+
+  for (i = 0; i<S1; i++) {
+    list1[i] = CreateNodeGraph(last_add1, i, i, i);
+    list1[i]->inGroup = module[i];
+    list1[i]->ivar1 = 0;
+    last_add1 = list1[i];
+  }
+  for (i = 0; i<S2; i++) {
+    list2[i] = CreateNodeGraph(last_add2, i, i, i);
+    list2[i]->ivar1 = 1;
+    last_add2 = list2[i];
+  }
+
+  /* Create the links */
+  for (i = 0; i<S2; i++) {  /* loop over teams */
+
+    /* Determine randomly which is the "color" of the team (according
+       to the probabilities in col_prob if available, or with equal
+       probability for all colors otherwise), that is, the module that
+       will contribute, in principle, more nodes. */
+    if (col_prob != NULL) {
+      dice = prng_get_next(gen);
+      cum = 0.0;
+      teamcol = -1;
+      while (cum < dice) {
+	teamcol++;
+	cum += col_prob[teamcol];
+      }
+    }
+    else {
+      teamcol = floor(prng_get_next(gen) * nmod);
+    }
+    list2[i]->inGroup = teamcol;
+    n_team_col = 0; /* No nodes of the team color added so far */
+
+    /* Determine the number of actors in the team */
+    if (mmin < 0) { /* use a geometric distribution */
+      m = geometric_dist_val(geom_p, gen);
+    }
+    else if (mmax != mmin)
+      m = floor(prng_get_next(gen) * (double)(mmax+1-mmin) + mmin);
+    else
+      m = mmin;
+
+    for (j=0; j<m; j++) {  /* loop over spots in a team */
+
+      if (prng_get_next(gen) < p &&
+	  n_team_col < mod_size[teamcol]) { /* select node with the
+					       module's color */
+	n_team_col++;
+	do {
+	  target = mod_starting[teamcol] + floor(prng_get_next(gen) *
+						 mod_size[teamcol]);
+	} while (ExistLink(list1[target], list2[i]) == 1);
+      }
+      else {  /* choose node at random */
+	do {
+	  target = floor(prng_get_next(gen) * S1);
+	} while (ExistLink(list1[target], list2[i]) == 1);
+	if (module[target] == teamcol) {
+	  n_team_col++;
+	}
+      }
+      // Make the link
+      AddAdjacencyFull(list1[target],list2[i],10);
+      AddAdjacencyFull(list2[i],list1[target],10);
+    } /* end of loop over spots */
+  } /* end of loop over teams */
+  
+  /* Create the bipartite network */
+  net = CreateBinet();
+  net->net1 = root1;
+  net->net2 = root2;
+
+  /* Free memory */
+  free(list1);
+  free(list2);
+  free_i_vec(module);
+  free_i_vec(mod_starting);
+  if (free_mod_size == 1) {
+    free_i_vec(mod_size);
+    mod_size = NULL;
+  }
+
+  /* Done */
+  return net;
+}
+
+/*
+  ---------------------------------------------------------------------
   Free the memory allocated to a bipartite network
   ---------------------------------------------------------------------
 */
@@ -395,169 +560,6 @@ ModularityBinet(struct binet *binet, struct group *part)
 
 
 
-/* /\* */
-/*   --------------------------------------------------------------------- */
-/*   Build a modular bipartine network. */
-
-/*   mod_size: vector with the sizes of the modules (if NULL, then the */
-/*   modules are all of the same size nodpermod). */
-
-/*   nodpermod: number of nodes per module (NOTE: only used if */
-/*   mod_size==NULL) */
-
-/*   nmod: number of modules */
-
-/*   S2: number of 'teams' */
-
-/*   mmin (mmax): minimum (maximum) number of 'agents' per 'team'. Team */
-/*   size is determined by drawing a randomly generated integer uniformly */
-/*   distributed between mmin and mmax. */
-
-/*   p: probability of selecting agents of a given color for a team */
-/*   --------------------------------------------------------------------- */
-/* *\/ */
-/* struct binet *BuildModularBipartiteNetwork(int *mod_size, */
-/* 					   int nodpermod, */
-/* 					   int nmod, */
-/* 					   double *col_prob, */
-/* 					   int S2, */
-/* 					   int mmin, int mmax, */
-/* 					   double geom_p, */
-/* 					   double p, */
-/* 					   struct prng *gen) */
-/* { */
-/*   int i, j; */
-/*   struct binet *net = NULL; */
-/*   struct node_gra *root1 = NULL; */
-/*   struct node_gra *root2 = NULL; */
-/*   struct node_gra *list1[maxim_int]; */
-/*   struct node_gra *list2[maxim_int]; */
-/*   struct node_gra *last_add1 = NULL; */
-/*   struct node_gra *last_add2 = NULL; */
-/*   int orig, dest; */
-/*   int teamcol, target; */
-/*   int S1 = 0; */
-/*   int *module, *mod_starting, n_team_col; */
-/*   int m; */
-/*   int free_mod_size = 0; */
-/*   double dice, cum; */
-
-/*   // Define mod_size if not defined yet */
-/*   if (mod_size == NULL) { */
-/*     free_mod_size = 1; // Remember to free memory at the end */
-/*     mod_size = allocate_i_vec(nmod); */
-/*     for (i=0; i<nmod; i++) { */
-/*       mod_size[i] = nodpermod; */
-/*     } */
-/*   } */
-
-/*   // Calculate the number of nodes S1 and allocate memory */
-/*   S1 = 0; */
-/*   for (i=0; i<nmod; i++) { */
-/*     S1 += mod_size[i]; */
-/*   } */
-/*   module = allocate_i_vec(S1); */
-
-/*   // Assign each node to a module */
-/*   S1 = 0; */
-/*   mod_starting = allocate_i_vec(nmod); */
-/*   for (i=0; i<nmod; i++) { */
-/*     mod_starting[i] = S1;  // Number of the first node in the module */
-/*     for (j=0; j<mod_size[i]; j++) { */
-/*       module[S1++] = i; */
-/*     } */
-/*   } */
-
-/*   // Create the two networks */
-/*   last_add1 = root1 = CreateHeaderGraph(); */
-/*   last_add2 = root2 = CreateHeaderGraph(); */
-
-/*   for (i = 0; i<S1; i++) { */
-/*     list1[i] = CreateNodeGraph(last_add1, i, i, i); */
-/*     list1[i]->inGroup = module[i]; */
-/*     list1[i]->ivar1 = 0; */
-/*     last_add1 = list1[i]; */
-/*   } */
-/*   for (i = 0; i<S2; i++) { */
-/*     list2[i] = CreateNodeGraph(last_add2, i, i, i); */
-/*     list2[i]->ivar1 = 1; */
-/*     last_add2 = list2[i]; */
-/*   } */
-
-/*   // Create the links */
-/*   for (i = 0; i<S2; i++) {  // loop over teams */
-
-/*     // Determine randomly which is the "color" of the team (according */
-/*     // to the probabilities in col_prob if available, or with equal */
-/*     // probability for all colors otherwise), that is, the module that */
-/*     // will contribute, in principle, more nodes. */
-/*     if (col_prob != NULL) { */
-/*       dice = prng_get_next(gen); */
-/*       cum = 0.0; */
-/*       teamcol = -1; */
-/*       while (cum < dice) { */
-/* 	teamcol++; */
-/* 	cum += col_prob[teamcol]; */
-/*       } */
-/*     } */
-/*     else { */
-/*       teamcol = floor(prng_get_next(gen) * nmod); */
-/*     } */
-/*     list2[i]->inGroup = teamcol; */
-/*     n_team_col = 0; // No nodes of the team color added so far */
-
-/*     // Determine the number of actors in the team */
-/*     if (mmin < 0) { // use a geometric distribution */
-/*       m = geometric_dist_val(geom_p, gen); */
-/*     } */
-/*     else if (mmax != mmin) */
-/*       m = floor(prng_get_next(gen) * (double)(mmax+1-mmin) + mmin); */
-/*     else */
-/*       m = mmin; */
-
-/*     for (j=0; j<m; j++) {  // loop over spots in a team */
-
-/*       if (prng_get_next(gen) < p &&  */
-/* 	  n_team_col < mod_size[teamcol]) { // select node with the */
-/* 					    // module's color */
-/* 	n_team_col++; */
-/* 	do { */
-/* 	  target = mod_starting[teamcol] + floor(prng_get_next(gen) * */
-/* 						 mod_size[teamcol]); */
-/* 	} while (ExistLink(list1[target], list2[i]) == 1); */
-/*       } */
-/*       else {                 // choose node at random */
-/* 	do { */
-/* 	  target = floor(prng_get_next(gen) * S1); */
-/* 	} while (ExistLink(list1[target], list2[i]) == 1); */
-/* 	if (module[target] == teamcol) { */
-/* 	  n_team_col++; */
-/* 	} */
-/*       } */
-/*       // Make the link */
-/*       AddAdjacencyFull(list1[target],list2[i],10); */
-/*       AddAdjacencyFull(list2[i],list1[target],10); */
-
-/*     } // end of loop over spots */
-      
-/*   } // end of loop over teams */
-  
-/*   // Create the bipartite network */
-/*   net = CreateBinet(); */
-/*   net->net1 = root1; */
-/*   net->net2 = root2; */
-
-/*   // Free memory */
-/*   free_i_vec(module); */
-/*   free_i_vec(mod_starting); */
-/*   if (free_mod_size == 1) { */
-/*     free_i_vec(mod_size); */
-/*     mod_size = NULL; */
-/*   } */
-
-/*   // Done */
-/*   return net; */
-/* } */
 
 
 
