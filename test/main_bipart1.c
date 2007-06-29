@@ -31,44 +31,38 @@ int main()
     Build the network
     ------------------------------------------------------------
   */
-  binet = BuildModularBipartiteNetwork(int *mod_size,
-				       int nodpermod,
-				       int nmod,
-				       double *col_prob,
-				       int S2,
-				       int mmin, int mmax,
-				       double geom_p,
-				       double p,
-				       struct prng *gen);
+  fprintf(stderr, "Creating the network...\n");
+  binet = BuildModularBipartiteNetwork(NULL, 32, 4, NULL, 64,
+				       7, 7, -1.,
+				       0.85, randGen);
+
+  fprintf(stderr, "Inverting the network twice...\n");
+  InvertBinet(binet);
+  InvertBinet(binet);
+
+  fprintf(stderr, "Randomizing the network...\n");
+  RandomizeBinet(binet, 100, randGen);
+
+  fprintf(stderr, "Projecting the network...\n");
+  struct node_gra *projection;
+  projection = ProjectBinet(binet);
+  RemoveGraph(projection);
+
+  FPrintPajekFileBipart ("binet.net", binet, 0, 0);
 
   /*
     ------------------------------------------------------------
     Network properties
     ------------------------------------------------------------
   */
-  printf("S = %d\n", CountNodes(net));
-  printf("C = %g\n", ClusteringCoefficient(net));
-  printf("A = %g\n", Assortativity(net));
-  printf("P = %g\n", AverageInverseDistance(net));
+  printf("L = %d\n", NLinksBinet(binet));
       
-  /*
-    ------------------------------------------------------------
-    Partition
-    ------------------------------------------------------------
-  */
-  struct group *part = NULL;
-  part = SACommunityIdent(net, 2. / CountNodes(net), 0.0, 0.995,
-			  2.0, 2, 'o', 1, 'n', randGen);
-  MapPartToNet(part, net);
-  printf("M = %g\n", Modularity(part));
-  RemovePartition(part);
-
   /*
     ------------------------------------------------------------
     Free memory
     ------------------------------------------------------------
   */
-  RemoveGraph(net);
+  RemoveBinet(binet);
   prng_free(randGen);
 
   return 0;

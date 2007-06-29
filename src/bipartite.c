@@ -24,6 +24,7 @@
   ---------------------------------------------------------------------
   ---------------------------------------------------------------------
 */
+
 /*
   ---------------------------------------------------------------------
   Create an empty binet, whose networks point to NULL
@@ -119,11 +120,11 @@ FBuildNetworkBipart(FILE *inFile,
   ---------------------------------------------------------------------
   Build a modular bipartine network.
 
-  mod_size: vector with the sizes of the modules (if NULL, then the
+  modSizes: vector with the sizes of the modules (if NULL, then the
   modules are all of the same size nodpermod).
 
   nodpermod: number of nodes per module (NOTE: only used if
-  mod_size==NULL)
+  modSizes==NULL)
 
   nmod: number of modules
 
@@ -137,7 +138,7 @@ FBuildNetworkBipart(FILE *inFile,
   ---------------------------------------------------------------------
 */
 struct binet *
-BuildModularBipartiteNetwork(int *mod_size,
+BuildModularBipartiteNetwork(int *modSizes,
 			     int nodpermod,
 			     int nmod,
 			     double *col_prob,
@@ -157,15 +158,16 @@ BuildModularBipartiteNetwork(int *mod_size,
   int S1 = 0;
   int *module, *mod_starting, n_team_col;
   int m;
-  int free_mod_size = 0;
+  int free_modSizes = 0;
   double dice, cum;
+  char label[MAX_LABEL_LENGTH];
   
-  /* Define mod_size if not defined yet */
-  if (mod_size == NULL) {
-    free_mod_size = 1; /* Remember to free memory at the end */
-    mod_size = allocate_i_vec(nmod);
+  /* Define modSizes if not defined yet */
+  if (modSizes == NULL) {
+    free_modSizes = 1; /* Remember to free memory at the end */
+    modSizes = allocate_i_vec(nmod);
     for (i=0; i<nmod; i++) {
-      mod_size[i] = nodpermod;
+      modSizes[i] = nodpermod;
     }
   }
 
@@ -173,18 +175,18 @@ BuildModularBipartiteNetwork(int *mod_size,
      lists */
   S1 = 0;
   for (i=0; i<nmod; i++) {
-    S1 += mod_size[i];
+    S1 += modSizes[i];
   }
   module = allocate_i_vec(S1);
-  list1 = (struct node_gra **)malloc(S1, sizeof(struct node_gra *))
-  list2 = (struct node_gra **)malloc(S2, sizeof(struct node_gra *))
+  list1 = (struct node_gra **)calloc(S1, sizeof(struct node_gra *));
+  list2 = (struct node_gra **)calloc(S2, sizeof(struct node_gra *));
 
   /* Assign each node to a module */
   S1 = 0;
   mod_starting = allocate_i_vec(nmod);
   for (i=0; i<nmod; i++) {
     mod_starting[i] = S1;  /* Number of the first node in the module */
-    for (j=0; j<mod_size[i]; j++) {
+    for (j=0; j<modSizes[i]; j++) {
       module[S1++] = i;
     }
   }
@@ -194,15 +196,15 @@ BuildModularBipartiteNetwork(int *mod_size,
   last_add2 = root2 = CreateHeaderGraph();
 
   for (i = 0; i<S1; i++) {
-    list1[i] = CreateNodeGraph(last_add1, i, i, i);
+    sprintf(label, "A%d", i + 1);
+    last_add1 = list1[i] = CreateNodeGraph(last_add1, label);
     list1[i]->inGroup = module[i];
     list1[i]->ivar1 = 0;
-    last_add1 = list1[i];
   }
   for (i = 0; i<S2; i++) {
-    list2[i] = CreateNodeGraph(last_add2, i, i, i);
+    sprintf(label, "B%d", i + 1);
+    last_add2 = list2[i] = CreateNodeGraph(last_add2, label);
     list2[i]->ivar1 = 1;
-    last_add2 = list2[i];
   }
 
   /* Create the links */
@@ -231,33 +233,33 @@ BuildModularBipartiteNetwork(int *mod_size,
     if (mmin < 0) { /* use a geometric distribution */
       m = geometric_dist_val(geom_p, gen);
     }
-    else if (mmax != mmin)
+    else if (mmax != mmin) /* use uniform distribution */
       m = floor(prng_get_next(gen) * (double)(mmax+1-mmin) + mmin);
-    else
+    else  /* all teams have the same size */
       m = mmin;
 
     for (j=0; j<m; j++) {  /* loop over spots in a team */
 
       if (prng_get_next(gen) < p &&
-	  n_team_col < mod_size[teamcol]) { /* select node with the
+	  n_team_col < modSizes[teamcol]) { /* select node with the
 					       module's color */
 	n_team_col++;
 	do {
 	  target = mod_starting[teamcol] + floor(prng_get_next(gen) *
-						 mod_size[teamcol]);
-	} while (ExistLink(list1[target], list2[i]) == 1);
+						 modSizes[teamcol]);
+	} while (IsThereLink(list1[target], list2[i]) == 1);
       }
       else {  /* choose node at random */
 	do {
 	  target = floor(prng_get_next(gen) * S1);
-	} while (ExistLink(list1[target], list2[i]) == 1);
+	} while (IsThereLink(list1[target], list2[i]) == 1);
 	if (module[target] == teamcol) {
 	  n_team_col++;
 	}
       }
       // Make the link
-      AddAdjacencyFull(list1[target],list2[i],10);
-      AddAdjacencyFull(list2[i],list1[target],10);
+      AddAdjacency(list1[target], list2[i], 0, 0, 0, 0);
+      AddAdjacency(list2[i], list1[target], 0, 0, 0, 0);
     } /* end of loop over spots */
   } /* end of loop over teams */
   
@@ -271,9 +273,9 @@ BuildModularBipartiteNetwork(int *mod_size,
   free(list2);
   free_i_vec(module);
   free_i_vec(mod_starting);
-  if (free_mod_size == 1) {
-    free_i_vec(mod_size);
-    mod_size = NULL;
+  if (free_modSizes == 1) {
+    free_i_vec(modSizes);
+    modSizes = NULL;
   }
 
   /* Done */
@@ -502,6 +504,160 @@ ProjectBinet(struct binet *binet)
   return projnet;
 }
 
+/*
+  ---------------------------------------------------------------------
+  Randomize links in a bipartite network
+  ---------------------------------------------------------------------
+*/
+struct binet *
+RandomizeBinet(struct binet *binet, double times, struct prng *gen)
+{
+  int i;
+  int nlink, niter, coun = 0;
+  int target1, target2;
+  struct node_gra *p = NULL;
+  struct node_lis *l = NULL;
+  struct node_gra *n1, *n2, *n3, *n4;
+  struct node_gra **ori, **des;
+
+  /* Build the link lists (one for link origins and one for ends) */
+  nlink = NLinksBinet(binet);
+  niter = ceil(times * (double)nlink);
+  ori = (struct node_gra **) calloc(nlink, sizeof(struct node_gra *));
+  des = (struct node_gra **) calloc(nlink, sizeof(struct node_gra *));
+
+  p = binet->net1;
+  while ((p = p->next) !=  NULL) {
+    l = p->neig;
+    while ((l = l->next) !=  NULL) {
+      ori[coun] = p;
+      des[coun] = l->ref;
+      coun++;
+    }
+  }
+
+  if (coun !=  nlink)
+    fprintf(stderr, "Error in RandomizeBinet: coun !=  nlink!!\n");
+
+  /* Randomize the network */
+  for (i=0; i<niter; i++) {
+    
+    /* select the two links (four nodes) to swap */
+    do {
+      target1 = floor(prng_get_next(gen) * (double)nlink);
+      n1 = ori[target1];
+      n2 = des[target1];
+
+      do {
+	target2 = floor(prng_get_next(gen) * (double)nlink);
+	n3 = ori[target2];
+	n4 = des[target2];
+      } while (n1 == n3 || n2 == n4);
+
+    } while (IsThereLink(n1, n4) == 1 ||
+	     IsThereLink(n2, n3) == 1);
+
+    /* switch the link */
+    RemoveLink(n1, n2, 1);
+    RemoveLink(n3, n4, 1);
+    AddAdjacency(n1, n4, 0, 0, 0, 1);
+    AddAdjacency(n4, n1, 0, 0, 0, 1);
+    AddAdjacency(n3, n2, 0, 0, 0, 1);
+    AddAdjacency(n2, n3, 0, 0, 0, 1);
+
+    ori[target1] = n1;
+    des[target1] = n4;
+    ori[target2] = n3;
+    des[target2] = n2;
+  }
+
+  free(ori);
+  free(des);
+
+  return binet;
+}
+
+
+/*
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+  Network output
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+*/
+
+/*
+  ---------------------------------------------------------------------
+  Print a bipartite network in Pajek format. Node coordinates are
+  printed if coor_sw is not 0. Weight is printed if weight_sw is not
+  0. If symmetric_sw == 1, the link is only printed once (a-b),
+  otherwise it will be printed twice if necessary (a-b, and b-a).
+  ---------------------------------------------------------------------
+*/
+void
+FPrintPajekFileBipart (char *fname,
+		       struct binet *binet,
+		       int coor_sw,
+		       int weight_sw)
+{
+  struct node_gra *p=NULL;
+  struct node_lis *n=NULL;
+  FILE *outF;
+  int Stot, S1, S2;
+
+  /* Preliminaries */
+  S1 = CountNodes(binet->net1);
+  S2 = CountNodes(binet->net2);
+  Stot  = S1 + S2;
+
+  outF = fopen(fname, "w");
+
+  fprintf(outF, "*Vertices %d %d\n", Stot, S1);
+
+  /* Print the nodes */
+  p = binet->net1;
+  while((p = p->next) != NULL) {
+    if (coor_sw == 1) {
+      fprintf(outF, "%d \"%s\"           %lf %lf %lf\n",
+	      p->num + 1, p->label, p->coorX, p->coorY, p->coorZ);
+    }
+    else {
+      fprintf(outF, "%d \"%s\"\n", p->num + 1, p->label);
+    }
+  }
+
+  p = binet->net2;
+  while((p = p->next) != NULL) {
+    if (coor_sw == 1) {
+      fprintf(outF, "%d \"%s\"           %lf %lf %lf\n",
+	      p->num + S1 + 1, p->label, p->coorX, p->coorY, p->coorZ);
+    }
+    else {
+      fprintf(outF, "%d \"%s\"\n", p->num + S1 + 1, p->label);
+    }
+  }
+
+  /* Print the links title */
+  fprintf(outF,"*Edges\n");
+
+  /* Print the links */
+  p = binet->net1;
+  while ((p = p->next) != NULL) {
+    n = p->neig;
+    while ((n = n->next) != NULL) {
+      if (weight_sw == 0)
+	fprintf(outF, "%d   %d\n",
+		p->num + 1, n->ref->num + S1 + 1);
+      else
+	fprintf(outF, "%d   %d   %g\n", 
+		p->num + 1, n->ref->num + S1 + 1, n->weight);
+    }
+  }
+
+  /* Done */
+  fclose(outF);
+}
+
 
 /*
   ---------------------------------------------------------------------
@@ -513,7 +669,7 @@ ProjectBinet(struct binet *binet)
 
 /*
   ---------------------------------------------------------------------
-  Calculate the modularity of a bipartite network
+  Calculate the modularity of a partition of a bipartite network
   ---------------------------------------------------------------------
 */
 double
@@ -557,212 +713,169 @@ ModularityBinet(struct binet *binet, struct group *part)
   return bimod;
 }
 
+/*
+  ---------------------------------------------------------------------
+  Splits one group into two new groups (thermalized with the outer
+  SA), checking first if the network contains disconnected clusters.
+  ---------------------------------------------------------------------
+*/
+void
+SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
+		   double Ti, double Tf, double Ts,
+		   double cluster_prob, 
+		   double **cmat, double msfac,
+		   struct prng *gen)
+{
+  struct group *glist[2], *g = NULL, *split = NULL;
+  struct node_gra **nlist;
+  struct node_lis *p = NULL, *lastp = NULL;
+  int nnod = 0;
+  int i;
+  int n1, n2, t1, t2;
+  int target, oldg, newg;
+  double dE = 0.0;
+  double T;
+  double dice;
+  struct node_gra *net;
+  struct binet *binet;
+  int S1 = target_g->size;
+  int cluster_sw;
+  void *dict=NULL;
 
+  /* Initialize */
+  glist[0] = target_g;
+  glist[1] = empty_g;
 
+  /* Are we going to use clusters? */
+  if (prng_get_next(gen) < cluster_prob)
+    cluster_sw = 1;
 
+  /*
+    If cluster_sw, check if the network is disconnected
+  */
+  if (cluster_sw == 1) {
+    /* Build a network from the nodes in the target group and find
+       disconected clusters  */
+    binet = CreateBinet();
+    binet->net1 = BuildNetFromGroup(target_g);
+    binet->net2 = CreateHeaderGraph();
+    net = ProjectBinet(binet); /* This trick to generate the projection
+				  works, although it is not elegant */
+    split = ClustersPartition(net);
+  }
 
+  /*
+    If cluster_sw==1 and the network is disconnected, then use the
+    clusters
+  */
+  if (cluster_sw == 1 && NGroups(split) > 1) {
+    /* Build a dictionary for fast access to nodes */
+    dict = MakeLabelDict(binet->net1);
 
+    /* Move the nodes in some (half) of the clusters to empty module */
+    g = split;
+    while ((g = g->next) != NULL) {
+      if (prng_get_next(gen) < 0.5) { // With prob=0.5 move to empty
+	p = g->nodeList;
+	while ((p = p->next) != NULL) {
+	  MoveNode(GetNodeDict(p->nodeLabel, dict), target_g, empty_g);
+	}
+      }
+    }
+  }
 
+  /*
+    Else if the network is connected or cluster_sw... go SA!
+  */
+  else {
+    /* Allocate memory for a list of nodes for faster access */
+    nlist = (struct node_gra **) calloc(S1, sizeof(struct node_gra *));
+    nnod = 0;
 
-/* /\* */
-/*   --------------------------------------------------------------------- */
-/*   Randomize links in a bipartite network */
-/*   --------------------------------------------------------------------- */
-/* *\/ */
-/* struct binet *RandomizeBinet(struct binet *binet, */
-/* 			     double times, struct prng *gen) */
-/* { */
-/*   int i; */
-/*   int nlink, niter, coun = 0; */
-/*   int target1, target2; */
-/*   struct node_gra *p = NULL; */
-/*   struct node_lis *l = NULL; */
-/*   struct node_gra *n1, *n2, *n3, *n4; */
-/*   struct node_gra **ori, **des; */
-
-/*   // Build the link lists (one for link origins and one for ends) */
-/*   nlink = NLinksBinet(binet); */
-/*   niter = ceil(times * (double)nlink); */
-
-/*   ori = (struct node_gra **)calloc(nlink,sizeof(struct node_gra *)); */
-/*   des = (struct node_gra **)calloc(nlink,sizeof(struct node_gra *)); */
-
-/*   p = binet->net1; */
-/*   while ((p = p->next) !=  NULL) { */
-/*     l = p->neig; */
-/*     while ((l = l->next) !=  NULL) { */
-/*       ori[coun] = p; */
-/*       des[coun] = l->ref; */
-/*       coun++; */
-/*     } */
-/*   } */
-
-/*   if(coun !=  nlink) */
-/*     printf("Error in RandomizeBinet: coun !=  nlink!!\n"); */
-
-/*   // Randomize the network */
-/*   for (i=0; i<niter; i++) { */
+    /* Randomly assign the nodes to the groups */
+    lastp = p = target_g->nodeList;
+    while ((p = p->next) != NULL) {
+      nlist[nnod++] = p->ref;
+      dice = prng_get_next(gen);
+      if (dice < 0.5) {
+	MoveNode(p->ref, target_g, empty_g);
+	p = lastp;
+      }
+      else {
+	lastp = p;
+      }
+    }
     
-/*     // select the two links (four nodes) to swap */
-/*     do { */
-/*       target1 = floor(prng_get_next(gen) * (double)nlink); */
-/*       n1 = ori[target1]; */
-/*       n2 = des[target1]; */
+    /* Do SA to "optimize" the splitting */
+    T = Ti;
+    while (T >= Tf) {
 
-/*       do { */
-/* 	target2 = floor(prng_get_next(gen) * (double)nlink); */
-/* 	n3 = ori[target2]; */
-/* 	n4 = des[target2]; */
-/*       } while (n1 == n3 || n2 == n4); */
+      for (i=0; i<nnod; i++) {
+	target = floor(prng_get_next(gen) * (double)nnod);
+	if (nlist[target]->inGroup == target_g->label)
+	  oldg = 0;
+	else
+	  oldg = 1;
+	newg = 1 - oldg;
+	
+	/* Calculate the change of energy */
+	dE = 0.0;
+	n1 = nlist[target]->num;
+	t1 = CountLinks(nlist[target]);
+	/* 1-Old group */
+	p = glist[oldg]->nodeList;
+	while ((p = p->next) != NULL) {
+	  n2 = p->node;
+	  if (n2 != n1) {
+	    t2 = CountLinks(p->ref);
+	    dE -= 2. * (cmat[n1][n2] - t1 * t2 * msfac);
+	  }
+	}
+	/* 2-New group */
+	p = glist[newg]->nodeList;
+	while ((p = p->next) != NULL) {
+	  n2 = p->node;
+	  t2 = CountLinks(p->ref);
+	  dE += 2. * (cmat[n1][n2] - t1 * t2 * msfac);
+	}
+	
+	/* Accept the change according to the Boltzman factor */
+	if( (dE >= 0.0) || (prng_get_next(gen) < exp(dE/T)) ){
+	  MoveNode(nlist[target], glist[oldg], glist[newg]);
+	}
+      }
+      
+      T = T * Ts;
+    } /* End of temperature loop */
 
-/*     } while (IsThereLink(n1, n4->num) == 1 || */
-/* 	     IsThereLink(n2, n3->num) == 1); */
+  } /* End of else (network is connected) */
+  
+  if (cluster_sw == 1) {
+    RemovePartition(split);
+    RemoveGraph(net);
+    RemoveBinet(binet);
+  }
+  else {
+    free(nlist);
+  }
 
-/*     // switch the link */
-/*     RemoveLink(n1, n2); */
-/*     RemoveLink(n3, n4); */
-/*     AddAdjacencyFull(n1, n4, 1); */
-/*     AddAdjacencyFull(n4, n1, 1); */
-/*     AddAdjacencyFull(n3, n2, 1); */
-/*     AddAdjacencyFull(n2, n3, 1); */
-
-/*     ori[target1] = n1; */
-/*     des[target1] = n4; */
-/*     ori[target2] = n3; */
-/*     des[target2] = n2; */
-/*   } */
-
-/*   free(ori); */
-/*   free(des); */
-
-/*   return binet; */
-/* } */
-
-
-/* /\* */
-/*   --------------------------------------------------------------------- */
-/*   Print a bipartite network in Pajek format */
-/*   --------------------------------------------------------------------- */
-/* *\/ */
-/* PrintPajekBinet(struct binet *net) */
-/* { */
-/*   struct node_gra *p = NULL; */
-/*   struct node_lis *li; */
-/*   FILE *fit; */
-/*   int trans1[maxim_int]; */
-/*   int trans2[maxim_int]; */
-/*   int i,co; */
-/*   int Stot, S1, S2; */
-
-/*   S1 = CountNodes(net->net1); */
-/*   S2 = CountNodes(net->net2); */
-/*   Stot  = S1 + S2; */
-
-/*   for(i = 0;i<maxim_int;i++){ */
-/*     trans1[i] = 0; */
-/*     trans2[i] = 0; */
-/*   } */
-
-/*   fit = fopen("bigraph.net","w"); */
-
-/*   fprintf(fit,"*Vertices %d %d\n", Stot, S1); */
-
-/*   co = 1; */
-
-/*   // Print the nodes */
-/*   p = net->net1; */
-/*   while(p->next != NULL){ */
-/*     p = p->next; */
-
-/*     trans1[p->num] = co++; */
-/*     fprintf(fit,"%d \"A%d\"\n",trans1[p->num],p->num+1); */
-/*   } */
-
-/*   p = net->net2; */
-/*   while(p->next != NULL){ */
-/*     p = p->next; */
-
-/*     trans2[p->num] = co++; */
-/*     fprintf(fit,"%d \"B%d\"\n",trans2[p->num],p->num+1); */
-/*   } */
-
-/*   // Print the links */
-/*   fprintf(fit,"*Edges\n"); */
-/*   p = net->net1; */
-/*   while(p->next != NULL){ */
-/*     p = p->next; */
-/*     li = p->neig; */
-/*     while(li->next != NULL){ */
-/*       li = li->next; */
-/*       fprintf(fit,"%d %d\n",trans1[p->num],trans2[li->node]); */
-/*     } */
-/*   } */
-
-/*   fclose(fit); */
-/* } */
+  /* Done */
+  return;
+}
 
 
-/* /\* */
-/*   --------------------------------------------------------------------- */
-/*   Print a bipartite network in Pajek format */
-/*   --------------------------------------------------------------------- */
-/* *\/ */
-/* PrintPajekBinetFName(struct binet *net, char *fname) */
-/* { */
-/*   struct node_gra *p = NULL; */
-/*   struct node_lis *li; */
-/*   FILE *fit; */
-/*   int trans1[maxim_int]; */
-/*   int trans2[maxim_int]; */
-/*   int i,co; */
-/*   int Stot, S1, S2; */
 
-/*   S1 = CountNodes(net->net1); */
-/*   S2 = CountNodes(net->net2); */
-/*   Stot  = S1 + S2; */
 
-/*   for(i = 0;i<maxim_int;i++){ */
-/*     trans1[i] = 0; */
-/*     trans2[i] = 0; */
-/*   } */
 
-/*   fit = fopen(fname, "w"); */
 
-/*   fprintf(fit,"*Vertices %d %d\n", Stot, S1); */
 
-/*   co = 1; */
 
-/*   // Print the nodes */
-/*   p = net->net1; */
-/*   while((p = p->next) != NULL){ */
-/*     trans1[p->num] = co++; */
-/*     fprintf(fit,"%d \"A%d\"           %lf %lf %lf\n", */
-/* 	    trans1[p->num], p->num+1, */
-/* 	    p->coorX, p->coorY, 0.5); */
-/*   } */
-/*   p = net->net2; */
-/*   while((p = p->next) != NULL){ */
-/*     trans2[p->num] = co++; */
-/*     fprintf(fit,"%d \"B%d\"           %lf %lf %lf\n", */
-/* 	    trans2[p->num], p->num+1, */
-/* 	    p->coorX, p->coorY, 0.5); */
-/*   } */
 
-/*   // Print the links */
-/*   fprintf(fit,"*Arcs\n"); */
-/*   fprintf(fit,"*Edges\n"); */
-/*   p = net->net1; */
-/*   while(p->next != NULL){ */
-/*     p = p->next; */
-/*     li = p->neig; */
-/*     while(li->next != NULL){ */
-/*       li = li->next; */
-/*       fprintf(fit,"%d %d\n",trans1[p->num],trans2[li->node]); */
-/*     } */
-/*   } */
 
-/*   fclose(fit); */
-/* } */
+
+
+
+
 
 
 
@@ -806,140 +919,6 @@ ModularityBinet(struct binet *binet, struct group *part)
 /* } */
 
 
-/* /\* */
-/*   --------------------------------------------------------------------- */
-/*   Splits one group into two new groups (thermalized with the outer */
-/*   SA), checking first if the network contains disconnected clusters. */
-/*   --------------------------------------------------------------------- */
-/* *\/ */
-/* ThermalPercBinetworkSplit(struct group *target_g, */
-/* 			  struct group *empty_g, */
-/* 			  double prob, double Ti, double Tf, */
-/* 			  double **cmat, double msfac, */
-/* 			  struct prng *gen) */
-/* { */
-/*   struct group *glist[2], *g = NULL, *split = NULL; */
-/*   struct node_gra *nlist[maxim_int]; */
-/*   int trans[maxim_int]; */
-/*   struct node_lis *p = NULL, *lastp = NULL; */
-/*   int nnod = 0; */
-/*   int i; */
-/*   int n1, n2, t1, t2; */
-/*   int target, oldg, newg; */
-/*   double dE = 0.0; */
-/*   double T, Ts = 0.95; */
-/*   double dice; */
-/*   struct node_gra *net; */
-/*   struct binet *binet; */
-  
-/*   /\* */
-/*     Map the groups and the nodes */
-/*   *\/ */
-/*   glist[0] = target_g; */
-/*   glist[1] = empty_g; */
-
-/*   p = target_g->nodeList; */
-/*   while ((p = p->next) != NULL) { */
-/*     nlist[nnod] = p->ref; */
-/*     trans[p->node] = nnod++; */
-/*   } */
-
-/*   /\* */
-/*     Check if the network is disconnected */
-/*   *\/ */
-/*   // Build a network from the nodes in the target group */
-/*   binet = CreateBinet(); */
-/*   binet->net1 = BuildNetFromPart(target_g); */
-/*   binet->net2 = CreateHeaderGraph(); */
-/*   net = ProjectBinet(binet); */
-/*   split = ClustersPartition(net); */
-
-/*   /\*  */
-/*      If the network is disconnected */
-/*   *\/ */
-/* /\*   printf("Clusters: %d\n", CountGroups(split)); *\/ */
-/*   if (CountGroups(split) > 1 && prng_get_next(gen) < prob) { */
-/* /\*     printf("Going perc\n"); *\/ */
-/*     // Move the nodes in some (half) clusters to empty module */
-/*     g = split; */
-/*     while ((g = g->next) != NULL) { */
-/*       if (prng_get_next(gen) < 0.5) { // With prob=0.5 move to empty */
-/* 	p = g->nodeList; */
-/* 	while ((p = p->next) != NULL) { */
-/* 	  MoveNode(nlist[trans[p->node]], target_g, empty_g); */
-/* 	} */
-/*       } */
-/*     } */
-/*   } */
-
-/*   /\* */
-/*     Else if the network is connected */
-/*   *\/ */
-/*   else { */
-/* /\*     printf("Going SA\n"); *\/ */
-/*     // Randomly assign the nodes to the groups */
-/*     lastp = p = target_g->nodeList; */
-/*     while ((p = p->next) != NULL) { */
-/*       dice = prng_get_next(gen); */
-/*       if (dice < 0.5) { */
-/* 	MoveNode(p->ref, target_g, empty_g); */
-/* 	p = lastp; */
-/*       } */
-/*       else { */
-/* 	lastp = p; */
-/*       } */
-/*     } */
-
-/*     // Do SA to "optimize" the splitting */
-/*     T = Ti; */
-/*     while (T >= Tf) { */
-
-/*       for (i=0; i<nnod; i++) { */
-/* 	target = floor(prng_get_next(gen) * (double)nnod); */
-/* 	if (nlist[target]->inGroup == target_g->label) */
-/* 	  oldg = 0; */
-/* 	else */
-/* 	  oldg = 1; */
-/* 	newg = 1 - oldg; */
-	
-/* 	// Calculate the change of energy */
-/* 	dE = 0.0; */
-/* 	n1 = nlist[target]->num; */
-/* 	t1 = CountLinks(nlist[target]); */
-	
-/* 	// Old group */
-/* 	p = glist[oldg]->nodeList; */
-/* 	while ((p = p->next) != NULL) { */
-/* 	  n2 = p->node; */
-/* 	  if (n2 != n1) { */
-/* 	    t2 = CountLinks(p->ref); */
-/* 	    dE -= 2. * (cmat[n1][n2] - t1 * t2 * msfac); */
-/* 	  } */
-/* 	} */
-
-/* 	// New group */
-/* 	p = glist[newg]->nodeList; */
-/* 	while ((p = p->next) != NULL) { */
-/* 	  n2 = p->node; */
-/* 	  t2 = CountLinks(p->ref); */
-/* 	  dE += 2. * (cmat[n1][n2] - t1 * t2 * msfac); */
-/* 	} */
-	
-/* 	// Accept the change according to the Boltzman factor */
-/* 	if( (dE >= 0.0) || (prng_get_next(gen) < exp(dE/T)) ){ */
-/* 	  MoveNode(nlist[target], glist[oldg], glist[newg]); */
-/* 	} */
-/*       } */
-      
-/*       T = T * Ts; */
-/*     } // End of temperature loop */
-
-/*   } // End of else (network is connected) */
-  
-/*   RemovePartition(split); */
-/*   RemoveGraph(net); */
-/*   RemoveBinet(binet); */
-/* } */
 
 
 /* /\* */

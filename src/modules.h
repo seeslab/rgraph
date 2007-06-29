@@ -96,6 +96,7 @@ void MergeGroups(struct group *g1, struct group *g2);
 struct group *CopyGroup(struct group *copy_root, struct group *g);
 struct group *CopyPartition(struct group *original);
 struct node_gra *BuildNetFromGroup(struct group *group);
+struct node_gra *BuildNetFromGroupNeig(struct group *group);
 
 /*
   ---------------------------------------------------------------------
