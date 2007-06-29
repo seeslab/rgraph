@@ -1774,8 +1774,9 @@ SACommunityIdent(struct node_gra *net,
   else
     cicle2 = floor(fac * (double)nnod);
 
-  /* Do the simulated annealing
-     -------------------------------------------------------------------
+  /*
+    Do the simulated annealing
+    -------------------------------------------------------------------
   */
   /* Determine initial values */
   T = Ti;

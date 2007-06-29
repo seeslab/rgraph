@@ -17,6 +17,8 @@
 
 #include "bipartite.h"
 
+#define EPSILON_MOD_B 1.e-6
+
 /*
   ---------------------------------------------------------------------
   ---------------------------------------------------------------------
@@ -31,7 +33,7 @@
   ---------------------------------------------------------------------
 */
 struct binet *
-CreateBinet()
+CreateBipart()
 {
   struct binet *temp;
   
@@ -110,7 +112,7 @@ FBuildNetworkBipart(FILE *inFile,
   tdestroy(dict2, FreeNodeTree);
 
   /* Create the bipartite network and return */
-  net = CreateBinet();
+  net = CreateBipart();
   net->net1 = root1;
   net->net2 = root2;
   return net;
@@ -264,7 +266,7 @@ BuildModularBipartiteNetwork(int *modSizes,
   } /* end of loop over teams */
   
   /* Create the bipartite network */
-  net = CreateBinet();
+  net = CreateBipart();
   net->net1 = root1;
   net->net2 = root2;
 
@@ -288,7 +290,7 @@ BuildModularBipartiteNetwork(int *modSizes,
   ---------------------------------------------------------------------
 */
 void
-RemoveBinet(struct binet *net)
+RemoveBipart(struct binet *net)
 {
   RemoveGraph(net->net1);
   RemoveGraph(net->net2);
@@ -343,7 +345,7 @@ NCommonLinksBipart(struct node_gra *n1, struct node_gra *n2)
   ---------------------------------------------------------------------
 */
 struct binet *
-CopyBinet(struct binet *binet)
+CopyBipart(struct binet *binet)
 {
   struct binet *copy = NULL;
   struct node_gra *p1 = NULL, *p2 = NULL;
@@ -353,7 +355,7 @@ CopyBinet(struct binet *binet)
   struct node_tree *ntree1=NULL, *ntree2=NULL;
 
   /* Create the copy binet */
-  copy = CreateBinet();
+  copy = CreateBipart();
   last1 = copy->net1 = CreateHeaderGraph();
   last2 = copy->net2 = CreateHeaderGraph();
 
@@ -423,7 +425,7 @@ CopyBinet(struct binet *binet)
   ---------------------------------------------------------------------
 */
 struct binet *
-InvertBinet(struct binet *net)
+InvertBipart(struct binet *net)
 {
   struct node_gra *temp;
 
@@ -440,7 +442,7 @@ InvertBinet(struct binet *net)
   ---------------------------------------------------------------------
 */
 int
-NLinksBinet(struct binet *binet)
+NLinksBipart(struct binet *binet)
 {
   struct node_gra *p = binet->net1;
   int nlink = 0;
@@ -459,7 +461,7 @@ NLinksBinet(struct binet *binet)
   ---------------------------------------------------------------------
 */
 struct node_gra *
-ProjectBinet(struct binet *binet)
+ProjectBipart(struct binet *binet)
 {
   struct node_gra *projnet = NULL;
   struct node_gra *last = NULL;
@@ -510,7 +512,7 @@ ProjectBinet(struct binet *binet)
   ---------------------------------------------------------------------
 */
 struct binet *
-RandomizeBinet(struct binet *binet, double times, struct prng *gen)
+RandomizeBipart(struct binet *binet, double times, struct prng *gen)
 {
   int i;
   int nlink, niter, coun = 0;
@@ -521,7 +523,7 @@ RandomizeBinet(struct binet *binet, double times, struct prng *gen)
   struct node_gra **ori, **des;
 
   /* Build the link lists (one for link origins and one for ends) */
-  nlink = NLinksBinet(binet);
+  nlink = NLinksBipart(binet);
   niter = ceil(times * (double)nlink);
   ori = (struct node_gra **) calloc(nlink, sizeof(struct node_gra *));
   des = (struct node_gra **) calloc(nlink, sizeof(struct node_gra *));
@@ -537,7 +539,7 @@ RandomizeBinet(struct binet *binet, double times, struct prng *gen)
   }
 
   if (coun !=  nlink)
-    fprintf(stderr, "Error in RandomizeBinet: coun !=  nlink!!\n");
+    fprintf(stderr, "Error in RandomizeBipart: coun !=  nlink!!\n");
 
   /* Randomize the network */
   for (i=0; i<niter; i++) {
@@ -673,7 +675,7 @@ FPrintPajekFileBipart (char *fname,
   ---------------------------------------------------------------------
 */
 double
-ModularityBinet(struct binet *binet, struct group *part)
+ModularityBipart(struct binet *binet, struct group *part)
 {
   struct node_gra *p = binet->net2;
   struct node_lis *n1, *n2;
@@ -756,10 +758,10 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
   if (cluster_sw == 1) {
     /* Build a network from the nodes in the target group and find
        disconected clusters  */
-    binet = CreateBinet();
+    binet = CreateBipart();
     binet->net1 = BuildNetFromGroup(target_g);
     binet->net2 = CreateHeaderGraph();
-    net = ProjectBinet(binet); /* This trick to generate the projection
+    net = ProjectBipart(binet); /* This trick to generate the projection
 				  works, although it is not elegant */
     split = ClustersPartition(net);
   }
@@ -853,7 +855,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
   if (cluster_sw == 1) {
     RemovePartition(split);
     RemoveGraph(net);
-    RemoveBinet(binet);
+    RemoveBipart(binet);
   }
   else {
     free(nlist);
@@ -863,6 +865,355 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
   return;
 }
 
+/*
+  ---------------------------------------------------------------------
+  Identify modules in the net1 network of a bipartite network using
+  simulated annealing.
+
+  Ti: Initial temperature for the SA
+
+  Tf: Final temperature for the SA
+
+  Ts: Cooling factor
+
+  fac: Iteration factor
+
+  merge: implement collective moves (merge=1) or not (merge=0)
+
+  prob: only used if merge==1. Use percolation split with probability
+  prob (prob>0) or do not use percolation (prob<0)
+  ---------------------------------------------------------------------
+*/
+struct group *
+SACommunityIdentBipart(struct binet *binet,
+		      double Ti, double Tf, double Ts,
+		      double fac,
+		      int ngroup,
+		      char initial_sw,
+		      int collective_sw,
+		      char output_sw,
+		      struct prng *gen)
+{
+  int i;
+  struct node_gra *net1 = binet->net1;
+  struct node_gra *net2 = binet->net2;
+  double sms = 0.0, sms2 = 0.0, msfac;
+  struct node_gra *p, *p2;
+  int nnod;
+  struct group *part = NULL, *g = NULL, *split = NULL;
+  struct node_gra **nlist;
+  struct group **glist, *lastg;
+  int cicle1, cicle2;
+  int count = 0, limit = 25;
+  double energy, energyant, dE, e;
+  double T;
+  int target, oldg, newg;
+  double **cmat;
+  int g1, g2, empty;
+  struct node_lis *nod, *nod2;
+  double t1, t2;
+  struct group *best_part = NULL;
+  double best_E = -100.0;
+  double cluster_prob = 0.5;
+  int dice;
+  void *nodeDict;
+
+  /*
+    Preliminaries: Initialize, allocate memory, and place nodes in
+    initial groups
+    -------------------------------------------------------------------
+  */
+  /* Create the groups and assign each node to one group */
+  nnod = CountNodes(net1);
+  ResetNetGroup(net1);
+  part = CreateHeaderGroup();
+  p = net1;
+
+  /* Create a node dictionary for fast access to nodes by label */
+  nodeDict = MakeLabelDict(net1);
+
+  /* Allocate memory for the node list */
+  nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
+
+  /* Create the groups and assign nodes to the initial group according
+     to initial_sw. Additionally, map nodes and groups to lists for
+     faster access. */
+  switch (initial_sw) {
+
+  case 'o':         /*  One node in each group */
+    ngroup = nnod;
+    glist = (struct group **) calloc(ngroup, sizeof(struct group *));
+    while ((p = p->next) != NULL) {
+      glist[p->num] = CreateGroup(part, p->num);
+      nlist[p->num] = p;
+      AddNodeToGroup(glist[p->num], p);
+    }
+    break;
+
+  case 'r':        /*  Random placement of nodes in groups */
+    glist = (struct group **) calloc(ngroup, sizeof(struct group *));
+    lastg = part;
+    for (i=0; i<ngroup; i++)
+      glist[i] = lastg = CreateGroup(lastg, i);
+    while ((p = p->next) != NULL) {
+      nlist[p->num] = p;
+      dice = floor(prng_get_next(gen)* (double)ngroup);
+      AddNodeToGroup(glist[dice], p);
+    }
+    break;
+  }
+
+  /* Calculate s2ms=(sum m_s)^2 and sms2=sum(m_s^2) */
+  p = net2;
+  while ((p = p->next) != NULL) {
+    sms += (double)CountLinks(p);
+    sms2 += (double)(CountLinks(p) * CountLinks(p));
+  }
+  msfac = 1. / (sms * sms);
+
+  /* Calculate the c matrix of concurrences */
+  cmat = allocate_d_mat(nnod, nnod);
+  p = net1;
+  while ((p = p->next) != NULL) {
+    p2 = net1;
+    while ((p2 = p2->next) != NULL) {
+      cmat[p->num][p2->num] = (double)NCommonLinksBipart(p, p2) /
+	(sms2 - sms);
+    }
+  }
+
+  /*
+    Determine the number of iterations at each temperature
+    -------------------------------------------------------------------
+  */
+  if (fac * (double)(nnod * nnod) < 10)
+    cicle1 = 10;
+  else
+    cicle1 = floor(fac * (double)(nnod * nnod));
+
+  if (fac * (double)nnod < 2)
+    cicle2 = 2;
+  else
+    cicle2 = floor(fac * (double)nnod);
+
+  /*
+    Do the simulated annealing
+    -------------------------------------------------------------------
+  */
+  /* Determine initial values */
+  T = Ti;
+  energy = ModularityBipart(binet, part);
+
+  /* Temperature loop */
+  while ((T > Tf) && (count < limit)) {
+
+    /* Output */
+    switch (output_sw) {
+    case 'n':
+      break;
+    case 'm':
+      fprintf(stderr, "%g %lf %g\n",1.0/T, energy, T);
+      break;
+    case 'v':
+      fprintf(stderr, "%g %lf %lf %g\n",
+	      1.0/T, energy, ModularityBipart(binet, part), T);
+      break;
+    case 'd':
+      FPrintPartition(stderr, part, 0);
+      fprintf(stderr, "%g %lf %lf %g\n",
+	      1.0/T, energy, ModularityBipart(binet, part), T);
+    }
+    
+    /*
+      Do cicle2 collective change iterations
+    */
+    if (collective_sw == 1) {
+      for (i=0; i<cicle2; i++){
+	
+	/* MERGE */
+	target = floor(prng_get_next(gen) * nnod);
+	g1 = nlist[target]->inGroup;
+
+	if (glist[g1]->size < nnod) {
+	  do {
+	    target = floor(prng_get_next(gen) * nnod);
+	    g2 = nlist[target]->inGroup;
+	  } while (g1 == g2);
+	  
+	  /* Calculate dE */
+	  dE = 0.0;
+	  nod = glist[g1]->nodeList;
+	  while ((nod = nod->next) != NULL) {
+	    nod2 = glist[g2]->nodeList;
+	    while ((nod2 = nod2->next) != NULL) {
+	      t1 = CountLinks(nod->ref);
+	      t2 = CountLinks(nod2->ref);
+	      dE += 2. * (cmat[nod->node][nod2->node] -
+			  t1 * t2 * msfac);
+	    }
+	  }
+
+	  /* Accept or reject change */
+	  if ((dE > 0) || (prng_get_next(gen) < exp(dE/T))) {
+	    MergeGroups(glist[g1], glist[g2]);
+	    energy += dE;
+	  }
+	} /* End of merge move */
+	
+	/* SPLIT */
+	/* Look for an empty group */
+	g = part;
+	empty = -1;
+	while (((g = g->next) != NULL) && (empty < 0)) {
+	  if (g->size == 0) {
+	    empty = g->label;
+	    break;
+	  }
+	}
+
+	if (empty >= 0 ) { /* if there are no empty groups, do nothing */
+	  /* Select group to split */
+	  do {
+	    target = floor(prng_get_next(gen) * (double)nnod); /* node */
+	    target = nlist[target]->inGroup;    /* target group */
+	  } while (glist[target]->size == 1);
+	  
+	  /* Split the group */
+	  SAGroupSplitBipart(glist[target], glist[empty],
+			     T, 0., 0.95,
+			     cluster_prob,
+			     cmat, msfac, gen);
+	  
+	  /* Calculate dE for remerging the groups */
+	  dE = 0.0;
+	  nod = glist[target]->nodeList;
+	  while ((nod = nod->next) != NULL) {
+	    nod2 = glist[empty]->nodeList;
+	    while ((nod2 = nod2->next) != NULL) {
+	      t1 = CountLinks(nod->ref);
+	      t2 = CountLinks(nod2->ref);
+	      dE += 2. * (cmat[nod->node][nod2->node] -
+			  t1 * t2 * msfac);
+	    }
+	  }
+
+	  /* Accept the change according to "inverse" Metroppolis.
+	     Inverse means that the algor is applied to the split and
+	     NOT to the merge! */
+	  if ((dE > 0.0) && (prng_get_next(gen) > exp(-dE/T))) {
+	    /* Undo the split */
+	    MergeGroups(glist[target],glist[empty]);
+	  }
+	  else{
+	    /* Update energy */
+	    energy -= dE;
+	  }
+	} /* End of split move */
+      } /* End of cicle2 loop */
+    } /* End of 'if collective_sw==1' loop */
+
+    /*
+      Do cicle1 individual change iterations
+    */
+    for (i=0; i<cicle1; i++) {
+
+      /* Propose an individual change */
+      target = floor(prng_get_next(gen) * (double)nnod);
+      oldg = nlist[target]->inGroup;
+      do {
+	newg = floor(prng_get_next(gen) * nnod);
+      } while (newg == oldg);
+
+      /* Calculate the change of energy */
+      dE = 0.0;
+      t1 = CountLinks(nlist[target]);
+
+      /* Old group contribution */
+      nod = glist[oldg]->nodeList;
+      while ((nod = nod->next) != NULL) {
+	t2 = CountLinks(nod->ref);
+	dE -= 2. * (cmat[nlist[target]->num][nod->node] -
+		    t1 * t2 * msfac);
+      }
+      
+      /* New group contribution */
+      nod = glist[newg]->nodeList;
+      while ((nod = nod->next) != NULL) {
+	t2 = CountLinks(nod->ref);
+	dE += 2. * (cmat[nlist[target]->num][nod->node] -
+		    t1 * t2 * msfac);
+      }
+      dE += 2. * (cmat[nlist[target]->num][nlist[target]->num] -
+		  t1 * t1 * msfac);
+
+      /* Accept or reject movement according to Metropolis */
+      if ((dE > 0) || (prng_get_next(gen) < exp(dE/T))) {
+	energy += dE;
+	MoveNode(nlist[target],glist[oldg],glist[newg]);
+      }
+    }
+
+    /* Update the no-change counter */
+    if (fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B ||
+	fabs(energyant) < EPSILON_MOD_B) {
+      count++;
+      
+      /* If the SA is ready to stop (count==limit) but the current
+	 partition is not the best one so far, replace the current
+	 partition by the best one and continue from there. */
+      if ((count == limit) && (energy + EPSILON_MOD_B < best_E)) {
+	switch (output_sw) {
+	case 'n':
+	  break;
+	default:
+	  fprintf(stderr, "# Resetting partition\n");
+	  break;
+	}
+
+	/* Remap the partition to the best partition */
+	RemovePartition(part);
+	g = part = CopyPartition(best_part);
+	while ((g = g->next) != NULL)
+	  glist[g->label] = g;
+	MapPartToNet(part, binet->net1);
+
+	/* Reset energy and counter */
+	energy = best_E;
+	count = 0;
+      }
+    }
+
+    else {
+      energyant = energy;
+      count = 0;
+    }
+
+    /* Compare the current partition to the best partition so far and
+       save the current if it is better than the best so far. */
+    if ( energy > best_E ) {
+      if ( best_part != NULL )
+	RemovePartition(best_part);
+      best_part = CopyPartition(part);
+      MapPartToNet(part, binet->net1); /* MUST DO this after copying a
+					  part! */
+      best_E = energy;
+    }
+
+    /* Update the temperature */
+    T = T * Ts;
+
+  } /* End of simulated annealing */
+
+  /* Free memory */
+  free_d_mat(cmat, nnod);
+  RemovePartition(best_part);
+  FreeLabelDict(nodeDict);
+  free(glist);
+  free(nlist);
+
+  /* Done */
+  return CompressPart(part);
+}
 
 
 
@@ -888,7 +1239,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 /*   bipartite network */
 /*   --------------------------------------------------------------------- */
 /* *\/ */
-/* double BinetCoModularity(struct binet *binet, struct group *part) */
+/* double BipartCoModularity(struct binet *binet, struct group *part) */
 /* { */
 /*   struct node_lis *n1, *n2; */
 /*   double bimod = 0.0; */
@@ -898,7 +1249,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 
 /* /\*   S1 = CountNodes(binet->net1); *\/ */
 /* /\*   S2 = CountNodes(binet->net2); *\/ */
-/*   L = NLinksBinet(binet); */
+/*   L = NLinksBipart(binet); */
 
 /*   // Calculate the modularity */
 /*   while ((part = part->next) != NULL){ */
@@ -920,90 +1271,6 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 
 
 
-
-/* /\* */
-/*   --------------------------------------------------------------------- */
-/*   Splits one group into two new groups (thermalized with the outer SA) */
-/*   --------------------------------------------------------------------- */
-/* *\/ */
-/* ThermalBinetworkSplit(struct group *target_g, struct group *empty_g, */
-/* 		      double Ti, double Tf, */
-/* 		      double **cmat, double msfac, */
-/* 		      struct prng *gen) */
-/* { */
-/*   struct group *glist[2]; */
-/*   struct node_gra *nlist[maxim_int]; */
-/*   struct node_lis *p = NULL, *lastp = NULL; */
-/*   int nnod = 0; */
-/*   int i; */
-/*   int n1, n2, t1, t2; */
-/*   int target, oldg, newg; */
-/*   double dE = 0.0; */
-/*   double T, Ts = 0.95; */
-/*   double dice; */
-
-/*   // Map the groups */
-/*   glist[0] = target_g; */
-/*   glist[1] = empty_g; */
-
-/*   // Randomly assign the nodes to the groups */
-/*   lastp = p = target_g->nodeList; */
-/*   while ((p = p->next) != NULL) { */
-/*     nlist[nnod++] = p->ref; */
-/*     dice = prng_get_next(gen); */
-/*     if (dice < 0.5) { */
-/*       MoveNode(p->ref, target_g, empty_g); */
-/*       p = lastp; */
-/*     } */
-/*     else { */
-/*       lastp = p; */
-/*     } */
-/*   } */
-
-/*   // Do SA to "optimize" the splitting */
-/*   T = Ti; */
-/*   while (T >= Tf) { */
-
-/*     for (i=0; i<nnod; i++) { */
-/*       target = floor(prng_get_next(gen) * (double)nnod); */
-/*       if (nlist[target]->inGroup == target_g->label) */
-/* 	oldg = 0; */
-/*       else */
-/* 	oldg = 1; */
-/*       newg = 1 - oldg; */
-	
-/*       // Calculate the change of energy */
-/*       dE = 0.0; */
-/*       n1 = nlist[target]->num; */
-/*       t1 = CountLinks(nlist[target]); */
-	
-/*       // Old group */
-/*       p = glist[oldg]->nodeList; */
-/*       while ((p = p->next) != NULL) { */
-/* 	n2 = p->node; */
-/* 	if (n2 != n1) { */
-/* 	  t2 = CountLinks(p->ref); */
-/* 	  dE -= 2. * (cmat[n1][n2] - t1 * t2 * msfac); */
-/* 	} */
-/*       } */
-
-/*       // New group */
-/*       p = glist[newg]->nodeList; */
-/*       while ((p = p->next) != NULL) { */
-/* 	n2 = p->node; */
-/* 	t2 = CountLinks(p->ref); */
-/* 	dE += 2. * (cmat[n1][n2] - t1 * t2 * msfac); */
-/*       } */
-
-/*       // Accept the change according to the Boltzman factor */
-/*       if( (dE >= 0.0) || (prng_get_next(gen) < exp(dE/T)) ){ */
-/* 	MoveNode(nlist[target], glist[oldg], glist[newg]); */
-/*       } */
-/*     } */
-
-/*     T = T * Ts; */
-/*   } // End of temperature loop */
-/* } */
 
 
 /* /\* */
@@ -1069,7 +1336,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 /*   } */
   
 /*   // Create the bipartite network and return it */
-/*   binet = CreateBinet(); */
+/*   binet = CreateBipart(); */
 /*   binet->net1 = root1; */
 /*   binet->net2 = root2; */
 /*   return binet; */
@@ -1082,7 +1349,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 /*   (thermalized with the outer SA) */
 /*   --------------------------------------------------------------------- */
 /* *\/ */
-/* ThermalBinetworkCoSplit(struct group *target_g, struct group *empty_g, */
+/* ThermalBipartworkCoSplit(struct group *target_g, struct group *empty_g, */
 /* 			double Ti, double Tf, */
 /* 			struct prng *gen) */
 /* { */
@@ -1106,7 +1373,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 
 /*   // Create a bipartite network with the nodes in the target_g only */
 /*   module_binet = BuildNetworkFromCopart(target_g); */
-/*   L = NLinksBinet(module_binet); */
+/*   L = NLinksBipart(module_binet); */
 /*   S1 = CountNodes(module_binet->net1); */
 /*   S2 = CountNodes(module_binet->net2); */
 /*   nlinks = allocate_i_vec(S1 + S2); */
@@ -1223,7 +1490,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 /*   } */
 
 /*   // Free memory */
-/*   RemoveBinet(module_binet); */
+/*   RemoveBipart(module_binet); */
 /*   RemovePartition(temp_part); */
 /*   free_i_vec(nlinks); */
 /*   free_i_mat(isThereLink, S1 + S2); */
@@ -1248,7 +1515,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 /*     } */
 /*   } */
 /* } */
-/* struct group *BinetClustersPartition(struct binet *binet) */
+/* struct group *BipartClustersPartition(struct binet *binet) */
 /* { */
 /*   struct node_gra *p; */
 /*   int ngroup = 0, i; */
@@ -1298,12 +1565,12 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 
 /* /\* */
 /*   --------------------------------------------------------------------- */
-/*   Same as ThermalBinetCoSplit, but checks first if there are */
+/*   Same as ThermalBipartCoSplit, but checks first if there are */
 /*   disconnected components. If indeed the module is disconnected, */
 /*   proposes a split using this fact. */
 /*   --------------------------------------------------------------------- */
 /* *\/ */
-/* ThermalPercBinetworkCoSplit(struct group *target_g, struct group *empty_g, */
+/* ThermalPercBipartworkCoSplit(struct group *target_g, struct group *empty_g, */
 /* 			    double prob, double Ti, double Tf, */
 /* 			    struct prng *gen) */
 /* { */
@@ -1329,7 +1596,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 
 /*   // Create a bipartite network with the nodes in the target_g only */
 /*   module_binet = BuildNetworkFromCopart(target_g); */
-/*   L = NLinksBinet(module_binet); */
+/*   L = NLinksBipart(module_binet); */
 /*   S1 = CountNodes(module_binet->net1); */
 /*   S2 = CountNodes(module_binet->net2); */
 
@@ -1347,7 +1614,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 /*   } */
 
 /*   // Check if there are disconnected clusters */
-/*   temp_part = BinetClustersPartition(module_binet); */
+/*   temp_part = BipartClustersPartition(module_binet); */
 
 /*   if (CountGroups(temp_part) > 1 && prng_get_next(gen) < prob) { */
 /*     /\* */
@@ -1499,292 +1766,12 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 /*   } */
 
 /*   // Free memory */
-/*   RemoveBinet(module_binet); */
+/*   RemoveBipart(module_binet); */
 /*   RemovePartition(temp_part); */
 /*   free_i_vec(nlinks); */
 /* } */
 
 
-/* /\* */
-/*   --------------------------------------------------------------------- */
-/*   Identify modules in the net1 network of a bipartite network using */
-/*   simulated annealing. */
-
-/*   Ti: Initial temperature for the SA */
-/*   Tf: Final temperature for the SA */
-/*   Ts: Cooling factor */
-/*   fac: Iteration factor */
-/*   merge: implement collective moves (merge=1) or not (merge=0) */
-/*   prob: only used if merge==1. Use percolation split with probability */
-/*   prob (prob>0) or do not use percolation (prob<0) */
-/*   --------------------------------------------------------------------- */
-/* *\/ */
-/* struct group *SACommunityIdentBinet(struct binet *binet, */
-/* 				    double Ti, double Tf, double Ts, */
-/* 				    double fac, int merge, double prob, */
-/* 				    struct prng *gen) */
-/* { */
-/*   int i; */
-/*   struct node_gra *net1 = binet->net1; */
-/*   struct node_gra *net2 = binet->net2; */
-/*   double sms = 0.0, sms2 = 0.0, msfac; */
-/*   struct node_gra *p, *p2; */
-/*   int nnod; */
-/*   struct group *part = NULL, *g = NULL, *split = NULL; */
-/*   struct node_gra *nlist[maxim_int]; */
-/*   struct group *glist[maxim_int]; */
-/*   int cicle1, cicle2; */
-/*   int count = 0, limit = 25; */
-/*   double energy, energyant, dE, e; */
-/*   double T; */
-/*   int target, oldg, newg; */
-/*   double **cmat; */
-/*   int g1, g2, empty; */
-/*   struct node_lis *nod, *nod2; */
-/*   double t1, t2; */
-/*   struct group *best_part = NULL; */
-/*   double best_E = -100.0; */
-
-/*   cmat = allocate_d_mat(maxim_int, maxim_int); */
-
-/*   // Calculate s2ms=(sum m_s)^2 and sms2=sum(m_s^2) */
-/*   p = net2; */
-/*   while ((p = p->next) != NULL) { */
-/*     sms += (double)CountLinks(p); */
-/*     sms2 += (double)(CountLinks(p) * CountLinks(p)); */
-/*   } */
-/*   msfac = 1. / (sms * sms); */
-
-/*   // Create the groups and assign each node to one group */
-/*   nnod = CountNodes(net1); */
-/*   part = CreateHeaderGroup(); */
-/*   ResetNetGroup(net1); // All nodes reset to group -1 */
-/*   p = net1->next; */
-
-/*   nlist[0] = p; */
-/*   glist[0] = CreateGroup(part, 0); */
-/*   AddNodeToGroup(glist[0], p); */
-  
-/*   for(i=1; i<nnod; i++) { */
-/*     p = p->next; */
-/*     nlist[i] = p; */
-/*     glist[i] = CreateGroup(glist[i-1],i); */
-/*     AddNodeToGroup(glist[i],p); */
-/*   } */
-
-/*   // Calculate the c matrix of concurrences */
-/*   p = net1; */
-/*   while(p->next != NULL){ */
-/*     p = p->next; */
-
-/*     p2 = net1; */
-/*     while(p2->next != NULL){ */
-/*       p2 = p2->next; */
-
-/*       cmat[p->num][p2->num] = (double)NCommonLinksBipart(p, p2) / */
-/* 	(sms2 - sms); */
-/*     } */
-/*   } */
-
-/*   // Number of iterations at each temperature */
-/*   if (fac*(double)(nnod*nnod) < 10) */
-/*     cicle1 = 10; */
-/*   else */
-/*     cicle1 = floor(fac*(double)(nnod*nnod)); */
-
-/*   if (fac*(double)nnod < 2) */
-/*     cicle2 = 2; */
-/*   else */
-/*     cicle2 = floor(fac*(double)nnod); */
-
-/*   // START THE SIMULATED ANNEALING */
-/*   T = Ti; */
-/*   energy = ModularityBinet(binet, part); */
-
-/*   while ((T > Tf) && (count < limit)) { */
-
-/*     printf("%g %lf %g\n", 1.0/T, energy, T); */
-/* /\*     printf("%g %lf %lf %g\n", 1.0/T, energy, *\/ */
-/* /\* 	   ModularityBinet(binet, part), T); *\/ */
-    
-/*     /\* */
-/*       Do cicle2 collective change iterations */
-/*     *\/ */
-/*     if (merge == 1) { */
-/*       for (i=0; i<cicle2; i++){ */
-	
-/* 	// Merge ------------------------------ */
-/* 	target = floor(prng_get_next(gen) * nnod); */
-/* 	g1 = nlist[target]->inGroup; */
-
-/* 	if (glist[g1]->size < nnod) { */
-/* 	  do { */
-/* 	    target = floor(prng_get_next(gen) * nnod); */
-/* 	    g2 = nlist[target]->inGroup; */
-/* 	  } while (g1 == g2); */
-	  
-/* 	  // Calculate dE */
-/* 	  dE = 0.0; */
-/* 	  nod = glist[g1]->nodeList; */
-/* 	  while ((nod = nod->next) != NULL) { */
-/* 	    nod2 = glist[g2]->nodeList; */
-/* 	    while ((nod2 = nod2->next) != NULL) { */
-/* 	      t1 = CountLinks(nod->ref); */
-/* 	      t2 = CountLinks(nod2->ref); */
-/* 	      dE += 2. * (cmat[nod->node][nod2->node] - */
-/* 			  t1 * t2 * msfac); */
-/* 	    } */
-/* 	  } */
-/* 	  // Accept/reject change */
-/* 	  if ((dE > 0) || (prng_get_next(gen) < exp(dE/T))) { */
-/* 	    MergeGroups(glist[g1], glist[g2]); */
-/* 	    energy += dE; */
-/* 	  } */
-/* 	} // End of merge move */
-	
-/* 	// Split ------------------------------ */
-/* 	// Look for an empty group */
-/* 	g = part; */
-/* 	empty = -1; */
-/* 	while (((g = g->next) != NULL) && (empty < 0)) { */
-/* 	  if (g->size == 0) { */
-/* 	    empty = g->label; */
-/* 	    break; */
-/* 	  } */
-/* 	} */
-
-/* 	if (empty >= 0 ) { // if there are no empty groups, do nothing */
-/* 	  // Select group */
-/* 	  do { */
-/* 	    target = floor(prng_get_next(gen) * (double)nnod); // node */
-/* 	    target = nlist[target]->inGroup;    // target group */
-/* 	  } while (glist[target]->size == 1); */
-
-/* 	  // Split the group */
-/* 	  if (prob < 0.) */
-/* 	    ThermalBinetworkSplit(glist[target], glist[empty], */
-/* 				     Ti, T, cmat, msfac, gen); */
-/* 	  else */
-/* 	    ThermalPercBinetworkSplit(glist[target], glist[empty], */
-/* 				      prob, Ti, T, */
-/* 				      cmat, msfac, gen); */
-	  
-/* 	  // Calculate dE for remerging the groups */
-/* 	  dE = 0.0; */
-/* 	  nod = glist[target]->nodeList; */
-/* 	  while ((nod = nod->next) != NULL) { */
-/* 	    nod2 = glist[empty]->nodeList; */
-/* 	    while ((nod2 = nod2->next) != NULL) { */
-/* 	      t1 = CountLinks(nod->ref); */
-/* 	      t2 = CountLinks(nod2->ref); */
-/* 	      dE += 2. * (cmat[nod->node][nod2->node] - */
-/* 			  t1 * t2 * msfac); */
-/* 	    } */
-/* 	  } */
-
-/* 	  // Accept the change according to "inverse" Metroppolis. */
-/* 	  // Inverse means that the algor is applied to the split and */
-/* 	  // NOT to the merge! */
-/* 	  if ((dE > 0.0) && (prng_get_next(gen) > exp(-dE/T))) { */
-/* 	    // Undo the split */
-/* 	    MergeGroups(glist[target],glist[empty]); */
-/* 	  } */
-/* 	  else{ */
-/* 	    // Update energy */
-/* 	    energy -= dE; */
-/* 	  } */
-/* 	} // End of split move */
-
-/*       } // End of cicle2 loop */
-/*     } // End of 'if merge==1' loop */
-
-/*     /\* */
-/*       Do cicle1 individual change iterations */
-/*     *\/ */
-/*     for (i=0; i<cicle1; i++) { */
-
-/*       // Propose an individual change // */
-/*       target = floor(prng_get_next(gen) * (double)nnod); */
-/*       oldg = nlist[target]->inGroup; */
-/*       do { */
-/* 	newg = floor(prng_get_next(gen) * nnod); */
-/*       } while (newg == oldg); */
-
-/*       // Calculate the change of energy */
-/*       dE = 0.0; */
-/*       t1 = CountLinks(nlist[target]); */
-/*       // Old group contribution */
-/*       nod = glist[oldg]->nodeList; */
-/*       while ((nod = nod->next) != NULL) { */
-/* 	t2 = CountLinks(nod->ref); */
-/* 	dE -= 2. * (cmat[nlist[target]->num][nod->node] - */
-/* 		    t1 * t2 * msfac); */
-/*       } */
-
-/*       // New group contribution */
-/*       nod = glist[newg]->nodeList; */
-/*       while ((nod = nod->next) != NULL) { */
-/* 	t2 = CountLinks(nod->ref); */
-/* 	dE += 2. * (cmat[nlist[target]->num][nod->node] - */
-/* 		    t1 * t2 * msfac); */
-/*       } */
-/*       dE += 2. * (cmat[nlist[target]->num][nlist[target]->num] - */
-/* 		  t1 * t1 * msfac); */
-
-/*       // Accept/reject movement according to Metropolis */
-/*       if ((dE > 0) || (prng_get_next(gen) < exp(dE/T))) { */
-/* 	energy += dE; */
-/* 	MoveNode(nlist[target],glist[oldg],glist[newg]); */
-/*       } */
-/*     } */
-
-/*     // Update the no-change counter */
-/*     if (energy == energyant) { */
-/*       count++; */
-      
-/*       // If the program is ready to stop (count==limit) but the */
-/*       // current partition is not the best one so far, replace the */
-/*       // current partition by the best one and continue from there. */
-/*       if ((count == limit) && (energy < best_E)) { */
-/* 	printf("# Resetting partition\n"); */
-/* 	RemovePartition(part); */
-/* 	g = part = CopyPartition(best_part); */
-	
-/* 	while ((g = g->next) != NULL) { */
-/* 	  glist[g->label] = g; */
-/* 	} */
-
-/* 	MapPartToNet(part, binet->net1); */
-/* 	energy = best_E; */
-/* 	count = 0; */
-/*       } */
-/*     } */
-/*     else { */
-/*       energyant = energy; */
-/*       count = 0; */
-/*     } */
-
-/*     // Compare the current partition to the best partition so far and */
-/*     // save the current if it is better than the best so far. */
-/*     if ( energy > best_E ) { */
-/*       if ( best_part != NULL ) */
-/* 	RemovePartition(best_part); */
-/*       // Save the best partition */
-/*       best_part = CopyPartition(part); */
-/*       MapPartToNet(part, binet->net1); // MUST DO this after copying a */
-/* 				       // part! */
-/*       best_E = energy; */
-/*     } */
-
-/*     // Update the temperature */
-/*     T = T * Ts; */
-
-/*   } // End of temperature loop */
-
-/*   free_d_mat(cmat, maxim_int); */
-/*   RemovePartition(best_part); */
-/*   return CompressPart(part); */
-/* } */
 
 
 /* /\* */
@@ -1801,7 +1788,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 /*   prob (prob>0) or do not use percolation (prob<0) */
 /*   --------------------------------------------------------------------- */
 /* *\/ */
-/* struct group *SACommunityCoIdentBinet(struct binet *binet, */
+/* struct group *SACommunityCoIdentBipart(struct binet *binet, */
 /* 				      double Ti, double Tf, double Ts, */
 /* 				      double fac, */
 /* 				      int merge, */
@@ -1830,7 +1817,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 /*   // Count nodes and links */
 /*   S1 = CountNodes(binet->net1); */
 /*   S2 = CountNodes(binet->net2); */
-/*   L = NLinksBinet(binet); */
+/*   L = NLinksBipart(binet); */
 /*   nnod = S1 + S2; */
 
 /*   // Create the groups and assign each node to one group */
@@ -1866,13 +1853,13 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 
 /*   // START THE SIMULATED ANNEALING */
 /*   T = Ti; */
-/*   energy = BinetCoModularity(binet, part); */
+/*   energy = BipartCoModularity(binet, part); */
 
 /*   while ((T > Tf) && (count < limit)) { */
 
 /* /\*     printf("%g %lf %g\n", 1.0/T, energy, T); *\/ */
 /*     printf("%g %lf %lf %g %d\n", 1.0/T, energy, */
-/* 	   BinetCoModularity(binet, part), T, */
+/* 	   BipartCoModularity(binet, part), T, */
 /* 	   CountNonEmptyGroups(part)); */
     
 /*     /\* */
@@ -1938,10 +1925,10 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 
 /* 	  // Split the group */
 /* 	  if (prob < 0.) */
-/* 	    ThermalBinetworkCoSplit(glist[target], glist[empty], */
+/* 	    ThermalBipartworkCoSplit(glist[target], glist[empty], */
 /* 				    Ti, T, gen); */
 /* 	  else */
-/* 	    ThermalPercBinetworkCoSplit(glist[target], glist[empty], */
+/* 	    ThermalPercBipartworkCoSplit(glist[target], glist[empty], */
 /* 					prob, Ti, T, */
 /* 					gen); */
 	  

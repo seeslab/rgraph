@@ -37,15 +37,15 @@ int main()
 				       0.85, randGen);
 
   fprintf(stderr, "Inverting the network twice...\n");
-  InvertBinet(binet);
-  InvertBinet(binet);
+  InvertBipart(binet);
+  InvertBipart(binet);
 
   fprintf(stderr, "Randomizing the network...\n");
-  RandomizeBinet(binet, 100, randGen);
+  RandomizeBipart(binet, 100, randGen);
 
   fprintf(stderr, "Projecting the network...\n");
   struct node_gra *projection;
-  projection = ProjectBinet(binet);
+  projection = ProjectBipart(binet);
   RemoveGraph(projection);
 
   FPrintPajekFileBipart ("binet.net", binet, 0, 0);
@@ -55,14 +55,14 @@ int main()
     Network properties
     ------------------------------------------------------------
   */
-  printf("L = %d\n", NLinksBinet(binet));
+  printf("L = %d\n", NLinksBipart(binet));
       
   /*
     ------------------------------------------------------------
     Free memory
     ------------------------------------------------------------
   */
-  RemoveBinet(binet);
+  RemoveBipart(binet);
   prng_free(randGen);
 
   return 0;
