@@ -85,13 +85,13 @@ void SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 			double **cmat, double msfac,
 			struct prng *gen);
 struct group *SACommunityIdentBipart(struct binet *binet,
-				    double Ti, double Tf, double Ts,
-				    double fac,
-				    int ngroup,
-				    char initial_sw,
-				    int collective_sw,
-				    char output_sw,
-				    struct prng *gen);
+				     double Ti, double Tf, double Ts,
+				     double fac,
+				     int ngroup,
+				     char initial_sw,
+				     int collective_sw,
+				     char output_sw,
+				     struct prng *gen);
 
 
 #endif /* !RGRAPH_BIPARTITE_H */
