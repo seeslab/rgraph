@@ -2055,13 +2055,19 @@ ParticipationCoefficient(struct node_gra *node)
   ---------------------------------------------------------------------
 */
 double
-WithinModuleRelativeDegree(struct node_gra *node, struct group *group)
+WithinModuleRelativeDegree(struct node_gra *node, struct group *part)
 {
   struct node_lis *p;
   double z;
+  struct group *group=NULL;
 
   int inDegree;
   double kmean = 0.0, k2mean = 0.0, kstd;
+
+  /* Find the group of the node */
+  group = part;
+  while (group->label != node->inGroup)
+    group = group->next;
 
   /* Go through all the nodes in the group and calculate mean and
      standard deviation of the within-module degrees */
@@ -2076,7 +2082,10 @@ WithinModuleRelativeDegree(struct node_gra *node, struct group *group)
   kstd = sqrt(k2mean - kmean * kmean);
   
   /* Calculate the z-score */
-  z = ((double)NLinksToGroup(node, group) - kmean) / kstd;
+  if (kstd == 0.0)
+    z = 0.0;
+  else
+    z = ((double)NLinksToGroup(node, group) - kmean) / kstd;
   return z;
 }
 
