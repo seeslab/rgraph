@@ -1983,9 +1983,10 @@ SACommunityIdent(struct node_gra *net,
     }
 
     else {
-      energyant = energy;
       count = 0;
     }
+    /* Update the last energy */
+    energyant = energy;
 
     /* Compare the current partition to the best partition so far and
        save the current if it is better than the best so far. */
@@ -2110,7 +2111,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
   /* Create the groups */
   roles = CreateHeaderGroup();
-  ResetNetGroup(net);  /* All nodes reset to group -1 */
+  MapPartToNet(mod, net);
   glist[0] = CreateGroup(roles, 0);
   for (i=1; i<nroles; i++) {
     glist[i] = CreateGroup(glist[i-1],i);

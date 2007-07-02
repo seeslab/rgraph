@@ -39,6 +39,6 @@ AC_CHECK_FUNCS([floor sqrt])
 AC_CONFIG_FILES(lib/Makefile
 		src/Makefile
 		test/Makefile
-		src-nature/Makefile
+		netcarto/Makefile
 		Makefile)
 AC_OUTPUT()

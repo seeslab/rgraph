@@ -320,11 +320,11 @@ CopyNetwork(struct node_gra *p1)
     CopyAdjacencyList(p1, p2);
   }
 
-  // Rewire the network to make all soft links hard and to set the
-  // labels
-  RewireAdjacencyByNum(root2);
+  /* Rewire the network to make all soft links hard and to set the
+     labels */
+  RewireAdjacencyByLabel(root2);
 
-  // Done
+  /* Done */
   return root2;
 }
 
@@ -1121,10 +1121,12 @@ RenumberNodes(struct node_gra *net)
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
 
-// ---------------------------------------------------------------------
-// Randomize the links of a network using the Markov chain switching
-// algorithm
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Randomize the links of a network using the Markov chain switching
+  algorithm
+  ---------------------------------------------------------------------
+*/
 struct node_gra *
 RandomizeSymmetricNetwork(struct node_gra *net,
 			  double times,
@@ -1140,7 +1142,7 @@ RandomizeSymmetricNetwork(struct node_gra *net,
   int coun=0;
   int niter=0;
 
-  // Build the link lists (one for link origins and one for ends)
+  /* Build the link lists (one for link origins and one for ends) */
   nlink = TotalNLinks(net, 1);
   niter =  ceil(times * (double)nlink);
   ori = (struct node_gra **)calloc(nlink, sizeof(struct node_gra *));
@@ -1159,9 +1161,9 @@ RandomizeSymmetricNetwork(struct node_gra *net,
   if(coun !=  nlink)
     fprintf(stderr, "Error in RandomizeNetwork: coun != nlink!!\n");
 
-  // Randomize the links
+  /* Randomize the links */
   for (i=0; i<niter; i++) {
-    // select the 4 nodes different nodes
+    /* select the 4 nodes different nodes */
     do {
       target1 = floor(prng_get_next(gen) * (double)nlink);
       n1 = ori[target1];
@@ -1184,7 +1186,7 @@ RandomizeSymmetricNetwork(struct node_gra *net,
     printf("%s-%s %s-%s\n",
 	   n1->label, n2->label, n3->label, n4->label);
 
-    // switch the link
+    /* switch the link */
     RemoveLink(n1, n2, 1);
     RemoveLink(n3, n4, 1);
     AddAdjacency(n1, n4, 0, 0, 1., 1);
@@ -1198,7 +1200,7 @@ RandomizeSymmetricNetwork(struct node_gra *net,
     des[target2] = n2;
   }
 
-  // Free memory and return the network
+  /* Free memory and return the network */
   free(ori);
   free(des);
   return net;
@@ -2351,7 +2353,7 @@ GetLargestStronglyConnectedSet(struct node_gra *root,
     }while(*size != size_ant);
 
     CleanAdjacencies(root_loc);
-    RewireAdjacencyByNum(root_loc);
+    RewireAdjacencyByLabel(root_loc);
     RenumberNodes(root_loc);
 
     if (CountNodes(root_loc) > maxS) {
@@ -2491,7 +2493,7 @@ GetLargestWeaklyConnectedSet(struct node_gra *root,int thres)
 
     // Rewire the cluster
     CleanAdjacencies(root_loc);
-    RewireAdjacencyByNum(root_loc);
+    RewireAdjacencyByLabel(root_loc);
     RenumberNodes(root_loc);
 
     // Check if this is the largest component

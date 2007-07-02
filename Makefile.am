@@ -2,5 +2,5 @@ AUTOMAKE_OPTIONS = gnu
 
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = lib src test src-nature
+SUBDIRS = lib src test netcarto
 
