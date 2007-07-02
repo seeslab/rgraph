@@ -1183,9 +1183,6 @@ RandomizeSymmetricNetwork(struct node_gra *net,
     } while (IsThereLinkSoft(n1, n4->num) == 1 ||
 	     IsThereLinkSoft(n2, n3->num) == 1);
 
-    printf("%s-%s %s-%s\n",
-	   n1->label, n2->label, n3->label, n4->label);
-
     /* switch the link */
     RemoveLink(n1, n2, 1);
     RemoveLink(n3, n4, 1);

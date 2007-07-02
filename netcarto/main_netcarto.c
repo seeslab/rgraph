@@ -121,7 +121,6 @@ main()
   */
   fprintf(stderr, "\n# Finding node roles\n");
   roles = CatalogRoleIdent(net, part);
-  fprintf(stderr, "\n# Finding node roles\n");
 
   outFile = fopen("roles.dat","w");
   FPrintPartition(outFile, roles, 0);
@@ -137,7 +136,7 @@ main()
   */
   ranmodav = 0.0;
   for (i=0; i<rep; i++) {
-    fprintf(stderr, "\nRandomization %d\n\n", i+1);
+    fprintf(stderr, "\nRandomization %d\n", i+1);
 
     RemovePartition(part);
     if ( netran != NULL)
@@ -146,7 +145,7 @@ main()
     netran = RandomizeSymmetricNetwork(CopyNetwork(net), 100, rand_gen);
     part = SACommunityIdent(netran,
 			    2.0 / (double)S, Tf, Tsched,
-			    iterfac, 0, 'o', 1, 'm', rand_gen);
+			    iterfac, 0, 'o', 1, 'n', rand_gen);
     ranmodlis[i] = Modularity(part);
     ranmodav += ranmodlis[i];
   }
