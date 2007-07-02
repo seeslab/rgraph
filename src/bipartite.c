@@ -1184,9 +1184,10 @@ SACommunityIdentBipart(struct binet *binet,
     }
 
     else {
-      energyant = energy;
       count = 0;
     }
+    /* Update the last energy */
+    energyant = energy;
 
     /* Compare the current partition to the best partition so far and
        save the current if it is better than the best so far. */
