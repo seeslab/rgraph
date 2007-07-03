@@ -730,7 +730,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 {
   struct group *glist[2], *g = NULL, *split = NULL;
   struct node_gra **nlist;
-  struct node_lis *p = NULL, *lastp = NULL;
+  struct node_lis *p = NULL;
   int nnod = 0;
   int i;
   int n1, n2, t1, t2;
@@ -795,16 +795,15 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
     nnod = 0;
 
     /* Randomly assign the nodes to the groups */
-    lastp = p = target_g->nodeList;
-    while ((p = p->next) != NULL) {
-      nlist[nnod++] = p->ref;
+    p = target_g->nodeList;
+    while (p->next != NULL) {
+      nlist[nnod++] = p->next->ref;
       dice = prng_get_next(gen);
       if (dice < 0.5) {
-	MoveNode(p->ref, target_g, empty_g);
-	p = lastp;
+	MoveNode(p->next->ref, target_g, empty_g);
       }
       else {
-	lastp = p;
+	p = p->next;
       }
     }
     
@@ -856,6 +855,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
     RemovePartition(split);
     RemoveGraph(net);
     RemoveBipart(binet);
+    tdestroy(dict, FreeNodeTree);
   }
   else {
     free(nlist);
@@ -917,6 +917,7 @@ SACommunityIdentBipart(struct binet *binet,
   double cluster_prob = 0.5;
   int dice;
   void *nodeDict;
+  int *nlink=NULL;
 
   /*
     Preliminaries: Initialize, allocate memory, and place nodes in
@@ -971,10 +972,13 @@ SACommunityIdentBipart(struct binet *binet,
   }
   msfac = 1. / (sms * sms);
 
-  /* Calculate the c matrix of concurrences */
+  /* Calculate the c matrix of concurrences, and the number of links
+     of each node */
   cmat = allocate_d_mat(nnod, nnod);
+  nlink = allocate_i_vec(nnod);
   p = net1;
   while ((p = p->next) != NULL) {
+    nlink[p->num] = CountLinks(p);
     p2 = net1;
     while ((p2 = p2->next) != NULL) {
       cmat[p->num][p2->num] = (double)NCommonLinksBipart(p, p2) /
@@ -1024,6 +1028,48 @@ SACommunityIdentBipart(struct binet *binet,
 	      1.0/T, energy, ModularityBipart(binet, part), T);
     }
     
+
+    /*
+      Do cicle1 individual change iterations
+    */
+    for (i=0; i<cicle1; i++) {
+
+      /* Propose an individual change */
+      target = floor(prng_get_next(gen) * (double)nnod);
+      oldg = nlist[target]->inGroup;
+      do {
+	newg = floor(prng_get_next(gen) * ngroup);
+      } while (newg == oldg);
+
+      /* Calculate the change of energy */
+      dE = 0.0;
+      t1 = nlink[target];
+
+      /* Old group contribution */
+      nod = glist[oldg]->nodeList;
+      while ((nod = nod->next) != NULL) {
+	t2 = nlink[nod->ref->num];
+	dE -= 2. * (cmat[nlist[target]->num][nod->node] -
+		    t1 * t2 * msfac);
+      }
+      
+      /* New group contribution */
+      nod = glist[newg]->nodeList;
+      while ((nod = nod->next) != NULL) {
+	t2 = nlink[nod->ref->num];
+	dE += 2. * (cmat[nlist[target]->num][nod->node] -
+		    t1 * t2 * msfac);
+      }
+      dE += 2. * (cmat[nlist[target]->num][nlist[target]->num] -
+		  t1 * t1 * msfac);
+
+      /* Accept or reject movement according to Metropolis */
+      if ((dE > 0) || (prng_get_next(gen) < exp(dE/T))) {
+	energy += dE;
+	MoveNode(nlist[target],glist[oldg],glist[newg]);
+      }
+    }
+
     /*
       Do cicle2 collective change iterations
     */
@@ -1046,8 +1092,8 @@ SACommunityIdentBipart(struct binet *binet,
 	  while ((nod = nod->next) != NULL) {
 	    nod2 = glist[g2]->nodeList;
 	    while ((nod2 = nod2->next) != NULL) {
-	      t1 = CountLinks(nod->ref);
-	      t2 = CountLinks(nod2->ref);
+	      t1 = nlink[nod->ref->num];
+	      t2 = nlink[nod2->ref->num];
 	      dE += 2. * (cmat[nod->node][nod2->node] -
 			  t1 * t2 * msfac);
 	    }
@@ -1080,7 +1126,7 @@ SACommunityIdentBipart(struct binet *binet,
 	  
 	  /* Split the group */
 	  SAGroupSplitBipart(glist[target], glist[empty],
-			     T, 0., 0.95,
+			     Ti, T, 0.95,
 			     cluster_prob,
 			     cmat, msfac, gen);
 	  
@@ -1090,8 +1136,8 @@ SACommunityIdentBipart(struct binet *binet,
 	  while ((nod = nod->next) != NULL) {
 	    nod2 = glist[empty]->nodeList;
 	    while ((nod2 = nod2->next) != NULL) {
-	      t1 = CountLinks(nod->ref);
-	      t2 = CountLinks(nod2->ref);
+	      t1 = nlink[nod->ref->num];
+	      t2 = nlink[nod2->ref->num];
 	      dE += 2. * (cmat[nod->node][nod2->node] -
 			  t1 * t2 * msfac);
 	    }
@@ -1111,47 +1157,6 @@ SACommunityIdentBipart(struct binet *binet,
 	} /* End of split move */
       } /* End of cicle2 loop */
     } /* End of 'if collective_sw==1' loop */
-
-    /*
-      Do cicle1 individual change iterations
-    */
-    for (i=0; i<cicle1; i++) {
-
-      /* Propose an individual change */
-      target = floor(prng_get_next(gen) * (double)nnod);
-      oldg = nlist[target]->inGroup;
-      do {
-	newg = floor(prng_get_next(gen) * nnod);
-      } while (newg == oldg);
-
-      /* Calculate the change of energy */
-      dE = 0.0;
-      t1 = CountLinks(nlist[target]);
-
-      /* Old group contribution */
-      nod = glist[oldg]->nodeList;
-      while ((nod = nod->next) != NULL) {
-	t2 = CountLinks(nod->ref);
-	dE -= 2. * (cmat[nlist[target]->num][nod->node] -
-		    t1 * t2 * msfac);
-      }
-      
-      /* New group contribution */
-      nod = glist[newg]->nodeList;
-      while ((nod = nod->next) != NULL) {
-	t2 = CountLinks(nod->ref);
-	dE += 2. * (cmat[nlist[target]->num][nod->node] -
-		    t1 * t2 * msfac);
-      }
-      dE += 2. * (cmat[nlist[target]->num][nlist[target]->num] -
-		  t1 * t1 * msfac);
-
-      /* Accept or reject movement according to Metropolis */
-      if ((dE > 0) || (prng_get_next(gen) < exp(dE/T))) {
-	energy += dE;
-	MoveNode(nlist[target],glist[oldg],glist[newg]);
-      }
-    }
 
     /* Update the no-change counter */
     if (fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B ||
@@ -1207,6 +1212,7 @@ SACommunityIdentBipart(struct binet *binet,
 
   /* Free memory */
   free_d_mat(cmat, nnod);
+  free_i_vec(nlink);
   RemovePartition(best_part);
   FreeLabelDict(nodeDict);
   free(glist);
