@@ -28,15 +28,15 @@ struct binet {
   ---------------------------------------------------------------------
 */
 struct binet *CreateBipart();
-struct binet * BuildModularBipartiteNetwork(int *mod_size,
-					    int nodpermod,
-					    int nmod,
-					    double *col_prob,
-					    int S2,
-					    int mmin, int mmax,
-					    double geom_p,
-					    double p,
-					    struct prng *gen);
+struct binet *BuildModularBipartiteNetwork(int *mod_size,
+					   int nodpermod,
+					   int nmod,
+					   double *col_prob,
+					   int S2,
+					   int mmin, int mmax,
+					   double geom_p,
+					   double p,
+					   struct prng *gen);
 struct binet *FBuildNetworkBipart(FILE *inFile,
 				  int weight_sw,
 				  int add_weight_sw);
