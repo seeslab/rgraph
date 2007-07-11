@@ -952,6 +952,8 @@ SACommunityIdentBipart(struct binet *binet,
     break;
 
   case 'r':        /*  Random placement of nodes in groups */
+    if (ngroup < 1)
+      ngroup = nnod;
     glist = (struct group **) calloc(ngroup, sizeof(struct group *));
     lastg = part;
     for (i=0; i<ngroup; i++)
