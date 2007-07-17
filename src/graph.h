@@ -13,9 +13,11 @@
 
 #define MAX_LABEL_LENGTH 20
 
-// ---------------------------------------------------------------------
-//  Definition of the node_gra structure
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Definition of the node_gra structure
+  ---------------------------------------------------------------------
+*/
 struct node_gra{
   char *label;             // label of the node
   int num;                 // ID of the node
@@ -30,9 +32,11 @@ struct node_gra{
   double dvar1;            // rush variable to store doubles
 };
 
-// ---------------------------------------------------------------------
-// Definition of the node_lis structure
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Definition of the node_lis structure
+  ---------------------------------------------------------------------
+*/
 struct node_lis{
   int node;                // num of the referenced node
   char *nodeLabel;         // label of the referenced node
@@ -43,10 +47,12 @@ struct node_lis{
   double weight;           // weight of the link.
 };
 
-// ---------------------------------------------------------------------
-// Definition of the node_tree structure for the binary tree data
-// structure
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Definition of the node_tree structure for the binary tree data
+  structure
+  ---------------------------------------------------------------------
+*/
 struct node_tree{
   char *label;                  // label of the node
   struct node_gra *ref;         // pointer to the corresponding
@@ -65,17 +71,21 @@ struct node_bfs{
   struct pred *pred;
 };
 
-// ---------------------------------------------------------------------
-// Predecessor structure for the betweenness calculaton
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Predecessor structure for the betweenness calculaton
+  ---------------------------------------------------------------------
+*/
 struct pred{
   struct node_bfs *ref;
   struct pred *next;
 };
 
-// ---------------------------------------------------------------------
-// Node, link, and graph creation and memory allocation
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Node, link, and graph creation and memory allocation
+  ---------------------------------------------------------------------
+*/
 struct node_gra *CreateHeaderGraph();
 struct node_gra *CreateNodeGraph(struct node_gra *net,
 				 char *label);
@@ -100,9 +110,11 @@ void CopyAdjacencyList(struct node_gra *n1,
 struct node_gra *CopyNetwork(struct node_gra *p1);
 void *MakeLabelDict(struct node_gra *net);
 
-// ---------------------------------------------------------------------
-// Node, link, and graph removal
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Node, link, and graph removal
+  ---------------------------------------------------------------------
+*/
 void FreeNodeTree(struct node_tree *ntree,
 		  VISIT value,
 		  int level);
@@ -116,9 +128,11 @@ void RemoveLink(struct node_gra *n1,
 		int symmetric_sw);
 void FreeLabelDict(void *dict);
 
-// ---------------------------------------------------------------------
-// Network input
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Network input
+  ---------------------------------------------------------------------
+*/
 int NodeTreeLabelCompare(const void *n1,
 			 const void *n2);
 struct node_gra *FBuildNetwork(FILE *inFile,
@@ -127,9 +141,11 @@ struct node_gra *FBuildNetwork(FILE *inFile,
 			       int add_weight_sw,
 			       int symmetric_sw);
 
-// ---------------------------------------------------------------------
-// Network printing and output
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Network printing and output
+  ---------------------------------------------------------------------
+*/
 void FPrintDegrees(FILE *file,
 		   struct node_gra *p);
 void FPrintNetAdjacencyList(FILE *outf,
@@ -143,9 +159,11 @@ void FPrintPajekFile(char *fname,
 		     int weight_sw,
 		     int symmetric_sw);
 
-// ---------------------------------------------------------------------
-// Node and link operations
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Node and link operations
+  ---------------------------------------------------------------------
+*/
 struct node_gra *GetNode(int num,
 			 struct node_gra *p);
 struct node_gra *GetNodeDict(char *label,
@@ -160,9 +178,11 @@ int IsThereLinkSoft(struct node_gra *n1,
 int RemoveIsolatedNodes(struct node_gra *root);
 void CleanAdjacencies(struct node_gra *net);
 
-// ---------------------------------------------------------------------
-// BFS list operations
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  BFS list operations
+  ---------------------------------------------------------------------
+*/
 struct node_bfs *GetBFS(struct node_gra *node,
 			struct node_bfs *list);
 void AddPredecessor(struct node_bfs *node,
@@ -190,22 +210,28 @@ struct node_bfs *RenewQueue(struct node_bfs *list,
 void ClearList(struct node_bfs *list,
 	       int *size);
 
-// ---------------------------------------------------------------------
-// Network resetting
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Network resetting
+  ---------------------------------------------------------------------
+*/
 void ResetNodesState(struct node_gra *p);
 void RenumberNodes(struct node_gra *net);
 
-// ---------------------------------------------------------------------
-// Network randomization
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Network randomization
+  ---------------------------------------------------------------------
+*/
 struct node_gra *RandomizeSymmetricNetwork(struct node_gra *net,
 					   double times,
 					   struct prng *gen);
 
-// ---------------------------------------------------------------------
-// Network properties
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Network properties
+  ---------------------------------------------------------------------
+*/
 int CountNodes(struct node_gra *p);
 int CountLinks(struct node_gra *node);
 double AverageDegree(struct node_gra *root,
@@ -214,7 +240,7 @@ int TotalNLinks(struct node_gra *p,
 		int symmetric_sw);
 double NodeStrength(struct node_gra *node);
 
-// Distance and related functions
+/* Distance and related functions */
 void FPrintDistanceHistogram(FILE *file,
 				struct node_gra *root);
 void FPrintDistanceHistogramFromNode(FILE *file,
@@ -223,7 +249,7 @@ void FPrintDistanceHistogramFromNode(FILE *file,
 double AveragePathLength(struct node_gra *root);
 double AverageInverseDistance(struct node_gra *root);
 
-// Clustering coefficient and related functions
+/* Clustering coefficient and related functions */
 int SumCommonLinks(struct node_gra *node,
 		   struct node_gra *root);
 int CalculateLinksBetweenNeig(struct node_bfs *p,
@@ -237,18 +263,18 @@ double OneNodeClusteringCoefficient(struct node_gra *node,
 double OneNodeSquareClustering(struct node_gra *node,
 			       struct node_gra *root);
 
-// Betweenness centrality and related functions
+/* Betweenness centrality and related functions */
 void CalculateLinkBetweenness(struct node_gra *root);
 void CalculateBiggestLinkBetweenness(struct node_gra *root,
 				     int *n1,
 				     int *n2);
 
-// Degree correlations
+/* Degree correlations */
 double Assortativity(struct node_gra *net);
 double CalculateKnn(struct node_gra *node);
 double CalculateGroupConCor(struct node_gra *net);
 
-// Components
+/* Components */
 int IsGraphConnected(struct node_gra *p, int N);
 int AreConnectedList(struct node_gra *root,
 		     struct node_gra *n1,
@@ -259,9 +285,11 @@ struct node_gra *GetLargestStronglyConnectedSet(struct node_gra *root,
 struct node_gra *GetLargestWeaklyConnectedSet(struct node_gra *root,
 					      int thres);
 
-// ---------------------------------------------------------------------
-// Node and network comparison
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Node and network comparison
+  ---------------------------------------------------------------------
+*/
 double TopologicalOverlap(struct node_gra *n1,
 			  struct node_gra *n2);
 

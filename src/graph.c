@@ -2270,9 +2270,11 @@ CountStronglyConnectedSets(struct node_gra *root)
   return nclus;
 }
 
-// ---------------------------------------------------------------------
-// Creates a network that contains only the giant component of root
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Creates a network that contains only the giant component of root
+  ---------------------------------------------------------------------
+*/
 struct node_gra *
 GetLargestStronglyConnectedSet(struct node_gra *root,
 			       int thres)
@@ -2359,7 +2361,7 @@ GetLargestStronglyConnectedSet(struct node_gra *root,
 	RemoveGraph(giant);
       }
       giant = root_loc;
-      if (maxS > nnod/2 || maxS>thres) {
+      if (maxS > nnod/2 || maxS > thres) {
 	ClearList(list, size);
 	RemoveGraph(root_cop); // WAS COMMENTED OUT?!?!?!?!
 	return giant;
