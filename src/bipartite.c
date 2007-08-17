@@ -743,6 +743,8 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
   int S1 = target_g->size;
   int cluster_sw;
   void *dict=NULL;
+  double energy, energyant;
+  int count = 0, limit = 5;
 
   /* Initialize */
   glist[0] = target_g;
@@ -809,9 +811,13 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
     
     /* Do SA to "optimize" the splitting */
     T = Ti;
-    while (T >= Tf) {
+    energy = energyant = 0.0;
+    while ((T >= Tf) && (count < limit)) {
 
+      /* Do nnod moves */
       for (i=0; i<nnod; i++) {
+
+	/* Determine target node */
 	target = floor(prng_get_next(gen) * (double)nnod);
 	if (nlist[target]->inGroup == target_g->label)
 	  oldg = 0;
@@ -843,10 +849,23 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 	/* Accept the change according to the Boltzman factor */
 	if( (dE >= 0.0) || (prng_get_next(gen) < exp(dE/T)) ){
 	  MoveNode(nlist[target], glist[oldg], glist[newg]);
+	  energy += dE;
 	}
       }
       
+      /* Update the no-change counter */
+      if (fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B ||
+	  fabs(energyant) < EPSILON_MOD_B)
+	count++;
+      else
+	count = 0;
+
+      /* Update the last energy */
+      energyant = energy;
+
+      /* Update the temperature */
       T = T * Ts;
+
     } /* End of temperature loop */
 
   } /* End of else (network is connected) */
@@ -1011,7 +1030,7 @@ SACommunityIdentBipart(struct binet *binet,
   energy = ModularityBipart(binet, part);
 
   /* Temperature loop */
-  while ((T > Tf) && (count < limit)) {
+  while ((T >= Tf) && (count < limit)) {
 
     /* Output */
     switch (output_sw) {
