@@ -92,6 +92,7 @@ struct group *SACommunityIdentBipart(struct binet *binet,
 				     int collective_sw,
 				     char output_sw,
 				     struct prng *gen);
+double ParticipationCoefficientBipart(struct node_gra *node);
 
 
 #endif /* !RGRAPH_BIPARTITE_H */

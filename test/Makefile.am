@@ -1,9 +1,9 @@
-TESTS = graph1 giant coclas bipart1
+TESTS = graph1 giant coclas bipart1 bipart2
 
 INCLUDES = -I$(top_builddir) -I$(top_srcdir) \
 	-I$(top_srcdir)/lib -I$(top_srcdir)/src
 
-check_PROGRAMS = graph1 giant coclas bipart1
+check_PROGRAMS = graph1 giant coclas bipart1 bipart2
 
 graph1_SOURCES = main_graph1.c
 graph1_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
@@ -16,3 +16,6 @@ coclas_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
 
 bipart1_SOURCES = main_bipart1.c
 bipart1_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
+
+bipart2_SOURCES = main_bipart2.c
+bipart2_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la

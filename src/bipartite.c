@@ -71,7 +71,7 @@ FBuildNetworkBipart(FILE *inFile,
 
     /* Read the labels (and weight, if necessary) */
     if (weight_sw == 0) {
-      fscanf(inFile,"%s %s\n", label1, label2);
+      fscanf(inFile, "%s %s\n", label1, label2);
       weight = 1.;
     }
     else {
@@ -1243,8 +1243,57 @@ SACommunityIdentBipart(struct binet *binet,
   return CompressPart(part);
 }
 
+/*
+  ---------------------------------------------------------------------
+  Calculte the participation coefficient of a node in a bipartite
+  network
+  ---------------------------------------------------------------------
+*/
+double
+ParticipationCoefficientBipart(struct node_gra *node)
+{
+  struct node_lis *aTeamPoint = node->neig, *aNodePoint = NULL;
+  struct node_gra *temp = node;
+  int norm = 0;
+  int maxNum = 0;
+  int *inGroupCount = NULL, i;
+  double P = 0.0;
 
+  /* Determine the maximum number of groups and create an array for
+     inGroup counts */
+  while (temp != NULL) {
+    maxNum = temp->num;
+    temp = temp->next;
+  }
+  inGroupCount = allocate_i_vec(maxNum + 1);
+  for (i=0; i<=maxNum; i++)
+    inGroupCount[i] = 0;
 
+  /* Go through the teams to which the node belongs */
+  while ((aTeamPoint = aTeamPoint->next) != NULL) {
+    /* Go through the members of the team and update inGroupCount */
+    aNodePoint = aTeamPoint->ref->neig;
+    while ((aNodePoint = aNodePoint->next) != NULL) {
+      if (aNodePoint->ref != node) {
+	norm++;
+	inGroupCount[aNodePoint->ref->inGroup] += 1;
+      }
+    }
+  }
+
+  /* Compute the participation coefficient */
+  for (i=0; i<=maxNum; i++)
+    P +=
+      (double)inGroupCount[i] * (double)inGroupCount[i] /
+      ((double)norm * (double)norm);
+  P = 1.0 - P;
+
+  /* Free memory */
+  free_i_vec(inGroupCount);
+
+  /* Done */
+  return P;
+}
 
 
 
