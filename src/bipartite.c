@@ -1,5 +1,5 @@
 /*
-  modules.c
+  bipartite.c
   $LastChangedDate$
   $Revision$
 */
