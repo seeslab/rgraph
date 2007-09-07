@@ -1676,7 +1676,8 @@ SAGroupSplit(struct group *targ,
   network. collective_sw determines whether collective merge-split
   moves are used (1) or not (0). output_sw determines the amount of
   information printed to stdout (from less information to more
-  information: 'n'=none, 'm'=minimal, 'v'=verbose, and 'd'=debug).
+  information: 'n'=none, 'b'=backup, 'm'=minimal, 'v'=verbose, and
+  'd'=debug).
   ---------------------------------------------------------------------
 */
 struct group *
@@ -1712,6 +1713,7 @@ SACommunityIdent(struct node_gra *net,
   struct group *best_part = NULL;
   double best_E = -100.0;
   void *nodeDict;
+  FILE *outf;
 
   /*
     Preliminaries: Initialize, allocate memory, and place nodes in
@@ -1788,6 +1790,8 @@ SACommunityIdent(struct node_gra *net,
     /* Output */
     switch (output_sw) {
     case 'n':
+      break;
+    case 'b':
       break;
     case 'm':
       fprintf(stderr, "%g %lf %g\n",1.0/T, energy, T);
@@ -1964,6 +1968,8 @@ SACommunityIdent(struct node_gra *net,
 	switch (output_sw) {
 	case 'n':
 	  break;
+	case 'b':
+	  break;
 	default:
 	  fprintf(stderr, "# Resetting partition\n");
 	  break;
@@ -1997,6 +2003,16 @@ SACommunityIdent(struct node_gra *net,
       MapPartToNet(part, net); /*  MUST DO this after copying a
 				   part! */
       best_E = energy;
+    }
+
+    /* Save the partition to a file if necessary */
+    switch (output_sw) {
+    case 'b':
+      outf = fopen("part.tmp", "w");
+      FPrintPartition(outf, best_part, 1);
+      fclose(outf);
+    default:
+      break;
     }
 
     /* Uptade the temperature */

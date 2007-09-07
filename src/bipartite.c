@@ -937,6 +937,7 @@ SACommunityIdentBipart(struct binet *binet,
   int dice;
   void *nodeDict;
   int *nlink=NULL;
+  FILE *outf;
 
   /*
     Preliminaries: Initialize, allocate memory, and place nodes in
@@ -1035,6 +1036,8 @@ SACommunityIdentBipart(struct binet *binet,
     /* Output */
     switch (output_sw) {
     case 'n':
+      break;
+    case 'b':
       break;
     case 'm':
       fprintf(stderr, "%g %lf %g\n",1.0/T, energy, T);
@@ -1191,6 +1194,8 @@ SACommunityIdentBipart(struct binet *binet,
 	switch (output_sw) {
 	case 'n':
 	  break;
+	case 'b':
+	  break;
 	default:
 	  fprintf(stderr, "# Resetting partition\n");
 	  break;
@@ -1224,6 +1229,16 @@ SACommunityIdentBipart(struct binet *binet,
       MapPartToNet(part, binet->net1); /* MUST DO this after copying a
 					  part! */
       best_E = energy;
+    }
+
+    /* Save the partition to a file if necessary */
+    switch (output_sw) {
+    case 'b':
+      outf = fopen("part.tmp", "w");
+      FPrintPartition(outf, best_part, 1);
+      fclose(outf);
+    default:
+      break;
     }
 
     /* Update the temperature */
