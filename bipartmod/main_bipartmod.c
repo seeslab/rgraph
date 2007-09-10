@@ -52,14 +52,11 @@ main(int argc, char **argv)
     Build the network
     ------------------------------------------------------------------
   */
-  fprintf(stderr, "Here\n");
   inF = fopen(file_name, "r");
   binet = FBuildNetworkBipart(inF, 0, 0);
   fclose(inF);
-  fprintf(stderr, "Here\n");
   if (invert == 1)
     InvertBipart(binet);
-  fprintf(stderr, "Here\n");
 
   /*
     ------------------------------------------------------------------
