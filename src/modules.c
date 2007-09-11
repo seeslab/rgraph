@@ -1676,8 +1676,8 @@ SAGroupSplit(struct group *targ,
   network. collective_sw determines whether collective merge-split
   moves are used (1) or not (0). output_sw determines the amount of
   information printed to stdout (from less information to more
-  information: 'n'=none, 'b'=backup, 'm'=minimal, 'v'=verbose, and
-  'd'=debug).
+  information: 'n'=none, 'b'=backup, 'm'=minimal, 's'=backup +
+  minimal, 'v'=verbose, and 'd'=debug).
   ---------------------------------------------------------------------
 */
 struct group *
@@ -1792,6 +1792,8 @@ SACommunityIdent(struct node_gra *net,
     case 'n':
       break;
     case 'b':
+      break;
+    case 's':
       break;
     case 'm':
       fprintf(stderr, "%g %lf %g\n",1.0/T, energy, T);
@@ -1970,6 +1972,8 @@ SACommunityIdent(struct node_gra *net,
 	  break;
 	case 'b':
 	  break;
+	case 's':
+	  break;
 	default:
 	  fprintf(stderr, "# Resetting partition\n");
 	  break;
@@ -2008,6 +2012,10 @@ SACommunityIdent(struct node_gra *net,
     /* Save the partition to a file if necessary */
     switch (output_sw) {
     case 'b':
+      outf = fopen("part.tmp", "w");
+      FPrintPartition(outf, best_part, 1);
+      fclose(outf);
+    case 's':
       outf = fopen("part.tmp", "w");
       FPrintPartition(outf, best_part, 1);
       fclose(outf);

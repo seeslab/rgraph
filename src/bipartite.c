@@ -1039,6 +1039,8 @@ SACommunityIdentBipart(struct binet *binet,
       break;
     case 'b':
       break;
+    case 's':
+      break;
     case 'm':
       fprintf(stderr, "%g %lf %g\n",1.0/T, energy, T);
       break;
@@ -1196,6 +1198,8 @@ SACommunityIdentBipart(struct binet *binet,
 	  break;
 	case 'b':
 	  break;
+	case 's':
+	  break;
 	default:
 	  fprintf(stderr, "# Resetting partition\n");
 	  break;
@@ -1234,6 +1238,10 @@ SACommunityIdentBipart(struct binet *binet,
     /* Save the partition to a file if necessary */
     switch (output_sw) {
     case 'b':
+      outf = fopen("part.tmp", "w");
+      FPrintPartition(outf, best_part, 1);
+      fclose(outf);
+    case 's':
       outf = fopen("part.tmp", "w");
       FPrintPartition(outf, best_part, 1);
       fclose(outf);
