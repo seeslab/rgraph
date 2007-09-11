@@ -1794,6 +1794,7 @@ SACommunityIdent(struct node_gra *net,
     case 'b':
       break;
     case 's':
+      fprintf(stderr, "%g %lf %g\n",1.0/T, energy, T);
       break;
     case 'm':
       fprintf(stderr, "%g %lf %g\n",1.0/T, energy, T);
@@ -1971,8 +1972,6 @@ SACommunityIdent(struct node_gra *net,
 	case 'n':
 	  break;
 	case 'b':
-	  break;
-	case 's':
 	  break;
 	default:
 	  fprintf(stderr, "# Resetting partition\n");
