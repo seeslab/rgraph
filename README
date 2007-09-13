@@ -14,7 +14,10 @@ build from the libraries, are also included.
 
 In a Unix-like system, you can install the libraries and the
 executables by uncompressing the tarball (tar -xzvf
-rgraph-version.tar.gz) and running the usual:
+rgraph-version.tar.gz) and running the usual stuff from the
+rgraph-version directory:
+
+cd rgraph-version
 
 ./configure
 
@@ -27,8 +30,17 @@ rgraph-version.tar.gz) and running the usual:
 either Cygwin or MinGW.)
 
 This will install the libraries in your_default_lib_directory/rgrpah
-and the executables in your_default_bin_directory. You can uninstall
-the whole thing by running
+and the executables in your_default_bin_directory. To install in a
+different directory run
+
+./configure --prefix=path_to_install_direcotory
+
+instead of just "./configure". For other configure options run:
+
+./configure -h
+
+
+You can uninstall the whole thing by running
 
 ./make uninstall
 
