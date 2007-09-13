@@ -30,10 +30,10 @@ main(int argc, char **argv)
   printf("\n# Enter the name of the network file: ");
   scanf("%s", &file_name);
 
-  printf("\n# Enter iteration factor: ");
+  printf("\n# Enter iteration factor (recommended 1.0): ");
   scanf("%lf", &fac);
   
-  printf("\n# Enter the cooling factor (>~0 (fast); <~1 (slow)): ");
+  printf("\n# Enter the cooling factor (recommended 0.950-0.995): ");
   scanf("%lf", &Ts);
 
   printf("\n# Find modules from first column (0) or second columnd (1): ");

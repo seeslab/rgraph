@@ -46,10 +46,10 @@ main()
   printf("\n# Enter the name of the network file: ");
   scanf("%s", &netF);
   
-  printf("\n# Enter iteration factor: ");
+  printf("\n# Enter iteration factor (recommended 1.0): ");
   scanf("%lf", &iterfac);
   
-  printf("\n# Enter the cooling factor (>~0 (fast); <~1 (slow)): ");
+  printf("\n# Enter the cooling factor (recommended 0.950-0.995): ");
   scanf("%lf", &Tsched);
 
   printf("\n# Enter the number of randomizations: ");
