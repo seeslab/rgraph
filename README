@@ -223,6 +223,24 @@ deviation of the modularity of the randomized networks.
 
 
 ----------------------------------------------------------------------
+netcarto_cl
+----------------------------------------------------------------------
+
+netcarto_cl is equivalen to netcarto, but arguments are passed
+directly from the command line (so that it is easier to script around
+the executable). Additionally, netcarto_cl allows you to fix the
+initial temperature. Please read the netcarto documentation to learn
+more about netcarto_cl.
+
+The arguments need to be passed in the following orther:
+
+> netcarto_cl net_file_name seed T_ini iteration_factor cooling_factor
+  #_randomizations
+
+T_ini, iteration_factor, and cooling_factor can be set to -1 to use
+the defaults (2/size_of_network, 1.0, and 0.995, respectively).
+
+----------------------------------------------------------------------
 bipartmod
 ----------------------------------------------------------------------
 
