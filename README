@@ -226,7 +226,7 @@ deviation of the modularity of the randomized networks.
 netcarto_cl
 ----------------------------------------------------------------------
 
-netcarto_cl is equivalen to netcarto, but arguments are passed
+netcarto_cl is equivalent to netcarto, but arguments are passed
 directly from the command line (so that it is easier to script around
 the executable). Additionally, netcarto_cl allows you to fix the
 initial temperature. Please read the netcarto documentation to learn
