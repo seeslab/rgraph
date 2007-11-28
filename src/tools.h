@@ -30,4 +30,14 @@ void free_d_mat(double **data, int nrows);
 */
 int geometric_dist_val(double p, struct prng *gen);
 
+/*
+  ---------------------------------------------------------------------
+  Statistics
+  ---------------------------------------------------------------------
+*/
+double mean(double *data, int N);
+double stddev(double *data, int N);
+double max(double *data, int N);
+double min(double *data, int N);
+
 #endif /* !RGRAPH_TOOLS_H */

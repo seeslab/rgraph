@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "tools.h"
 
@@ -194,4 +195,89 @@ geometric_dist_val(double p, struct prng *gen)
     val++;
 
   return val;
+}
+
+/*
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+  Statistics
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+*/
+
+/*
+  ---------------------------------------------------------------------
+  Get the mean of the values in an array (of size N).
+  ---------------------------------------------------------------------
+*/
+double 
+mean(double *data, int N)
+{
+  int i;
+  double m = 0.0;
+
+  for (i=0; i<N; i++)
+    m += data[i];
+
+  return m / (double)N;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Get the standard deviation of the values in an array (of size N).
+  ---------------------------------------------------------------------
+*/
+double 
+stddev(double *data, int N)
+{
+  int i;
+  double m = 0.0, m2 = 0.0;
+  double s;
+
+  for (i=0; i<N; i++) {
+    m += data[i];
+    m2 += data[i] * data[i];
+  }
+
+  m /= (double)N;
+  m2 /= (double)N;
+  s = sqrt(m2 - m * m);
+
+  return m / (double)N;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Get the largest of the values in an array (of size N).
+  ---------------------------------------------------------------------
+*/
+double
+max(double *data, int N)
+{
+  int i;
+  double m = data[0];
+
+  for (i=1; i<N; i++)
+    if (data[i] > m)
+      m = data[i];
+
+  return m;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Get the smallest of the values in an array (of size N).
+  ---------------------------------------------------------------------
+*/
+double
+min(double *data, int N)
+{
+  int i;
+  double m = data[0];
+
+  for (i=1; i<N; i++)
+    if (data[i] < m)
+      m = data[i];
+
+  return m;
 }
