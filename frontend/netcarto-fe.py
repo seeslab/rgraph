@@ -82,6 +82,7 @@ class MainWindow(wx.Frame):
 
         # Add all event handlers
         # ---------------------------------------------------------------------
+##         AButton.Bind(wx.EVT_BUTTON, self.OnButtonPush) THIS IS PREFERED
         wx.EVT_BUTTON(
             self,
             SA_PARAMETERS['Iteration factor'][1],
