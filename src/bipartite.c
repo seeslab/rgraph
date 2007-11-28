@@ -1317,8 +1317,43 @@ ParticipationCoefficientBipart(struct node_gra *node)
   return P;
 }
 
+/*
+  ---------------------------------------------------------------------
+  Calculate the largest, smallest, average, and standard deviation of
+  the participation coefficient of all nodes in a network.
+  ---------------------------------------------------------------------
+*/
+void
+StatisticsParticipationCoefficientBipart(struct node_gra *net,
+					 double *theMean,
+					 double *theStddev,
+					 double *theMin,
+					 double *theMax
+					 )
+{
+  struct node_gra *p = net;
+  int N = CountNodes(net);
+  double *PList = NULL;
+  
+  /* Allocate memory */
+  PList = allocate_d_vec(N);
 
+  /* Calculate all Ps */
+  while ((p = p->next) != NULL)
+    PList[p->num] = ParticipationCoefficientBipart(p);
+  
+  /* Get the statistics */
+  *theMean = mean(PList, N);
+  *theStddev = stddev(PList, N);
+  *theMin = min(PList, N);
+  *theMax = max(PList, N);
 
+  /* Free memory */
+  free_d_vec(PList);
+
+  /* Done */
+  return;
+}
 
 
 
