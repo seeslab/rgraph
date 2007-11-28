@@ -227,7 +227,7 @@ mean(double *data, int N)
   Get the standard deviation of the values in an array (of size N).
   ---------------------------------------------------------------------
 */
-double 
+double
 stddev(double *data, int N)
 {
   int i;
@@ -243,7 +243,7 @@ stddev(double *data, int N)
   m2 /= (double)N;
   s = sqrt(m2 - m * m);
 
-  return m / (double)N;
+  return s;
 }
 
 /*
