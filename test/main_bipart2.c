@@ -21,7 +21,7 @@ int main()
   void *labelDict = NULL;
   struct node_gra *target = NULL;
   double P;
-  int result;
+  int result = 0;
 
   /*
     ------------------------------------------------------------
@@ -53,9 +53,19 @@ int main()
   fprintf(stderr, "P(%s) = %lf\n", target->label, P);
   if (fabs(P - 12./25.) > 1.e-10)
     result = 1;  /* Wrong result */
-  else
-    result = 0;  /* Right result */
-  
+
+  target = GetNodeDict("5", labelDict);
+  P = ParticipationCoefficientBipart(target);
+  fprintf(stderr, "P(%s) = %lf\n", target->label, P);
+  if (fabs(P - 1./2.) > 1.e-10)
+    result = 1;  /* Wrong result */
+
+  target = GetNodeDict("2", labelDict);
+  P = ParticipationCoefficientBipart(target);
+  fprintf(stderr, "P(%s) = %lf\n", target->label, P);
+  if (fabs(P) > 1.e-10)
+    result = 1;  /* Wrong result */
+
   /*
     ------------------------------------------------------------
     Free memory
