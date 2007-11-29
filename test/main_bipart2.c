@@ -66,6 +66,23 @@ int main()
   if (fabs(P) > 1.e-10)
     result = 1;  /* Wrong result */
 
+  double m, s, mi, ma;
+  StatisticsParticipationCoefficientBipart(binet->net1,
+					   &m,
+					   &s,
+					   &mi,
+					   &ma);
+  
+  if (fabs(m - 1.48/6.) > 1.e-10)
+    result = 1;  /* Wrong result */
+  if (fabs(s - 0.24675674031) > 1.e-10)
+    result = 1;  /* Wrong result */
+  if (fabs(mi - 0.0) > 1.e-10)
+    result = 1;  /* Wrong result */
+  if (fabs(ma - 0.5) > 1.e-10)
+    result = 1;  /* Wrong result */
+
+
   /*
     ------------------------------------------------------------
     Free memory
