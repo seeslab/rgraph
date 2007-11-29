@@ -1,7 +1,7 @@
 /*
   main_tools.c
-  $LastChangedDate: 2007-06-26 18:15:39 -0500 (Tue, 26 Jun 2007) $
-  $Revision: 60 $
+  $LastChangedDate$
+  $Revision$
 */
 
 #include <stdio.h>
