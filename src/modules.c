@@ -940,6 +940,45 @@ BuildNetFromGroupNeig(struct group *group)
   return net;
 }
 
+/*
+  ---------------------------------------------------------------------
+  Get some statistical properties (mean, std dev, min, and max) for
+  the sizes of the modules in a partition.
+  ---------------------------------------------------------------------
+*/
+void
+GroupSizeStatistics(struct group *part,
+		    double *theMean,
+		    double *theStddev,
+		    double *theMin,
+		    double *theMax)
+{
+  int nGroups = NNonEmptyGroups(part);
+  double *sizes = NULL;
+  int count = 0;
+  struct group *g = part;
+
+  /* Allocate memory */
+  sizes = allocate_d_vec(nGroups);
+  
+  /* Get group sizes */
+  while ((g = g->next) != NULL) {
+    if (g->size > 0) {
+      sizes[count] = (double)g->size;
+      count++;
+    }
+  }
+  
+  /* Get the statistical properties */
+  (*theMean) = mean(sizes, nGroups);
+  (*theStddev) = stddev(sizes, nGroups);
+  (*theMin) = min(sizes, nGroups);
+  (*theMax) = max(sizes, nGroups);
+
+  /* Free memory and return */
+  free_d_vec(sizes);
+  return;
+}
 
 /*
   ---------------------------------------------------------------------

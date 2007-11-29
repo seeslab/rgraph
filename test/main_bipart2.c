@@ -66,13 +66,13 @@ int main()
   if (fabs(P) > 1.e-10)
     result = 1;  /* Wrong result */
 
+  /* Participation coefficient for bipartite networks */
   double m, s, mi, ma;
   StatisticsParticipationCoefficientBipart(binet->net1,
 					   &m,
 					   &s,
 					   &mi,
 					   &ma);
-  
   if (fabs(m - 1.48/6.) > 1.e-10)
     result = 1;  /* Wrong result */
   if (fabs(s - 0.24675674031) > 1.e-10)
@@ -80,6 +80,17 @@ int main()
   if (fabs(mi - 0.0) > 1.e-10)
     result = 1;  /* Wrong result */
   if (fabs(ma - 0.5) > 1.e-10)
+    result = 1;  /* Wrong result */
+
+  /* Group size statistical properties */
+  GroupSizeStatistics(part, &m, &s, &mi, &ma);
+  if (fabs(m - 3.0) > 1.e-10)
+    result = 1;  /* Wrong result */
+  if (fabs(s - 1.0) > 1.e-10)
+    result = 1;  /* Wrong result */
+  if (fabs(mi - 2.0) > 1.e-10)
+    result = 1;  /* Wrong result */
+  if (fabs(ma - 4.0) > 1.e-10)
     result = 1;  /* Wrong result */
 
 

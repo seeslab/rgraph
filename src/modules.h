@@ -97,6 +97,11 @@ struct group *CopyGroup(struct group *copy_root, struct group *g);
 struct group *CopyPartition(struct group *original);
 struct node_gra *BuildNetFromGroup(struct group *group);
 struct node_gra *BuildNetFromGroupNeig(struct group *group);
+void GroupSizeStatistics(struct group *part,
+			 double *theMean,
+			 double *theStddev,
+			 double *theMin,
+			 double *theMax);
 
 /*
   ---------------------------------------------------------------------
