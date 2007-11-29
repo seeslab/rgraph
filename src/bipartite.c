@@ -1325,10 +1325,10 @@ ParticipationCoefficientBipart(struct node_gra *node)
 */
 void
 StatisticsParticipationCoefficientBipart(struct node_gra *net,
-					 double *theMean,
-					 double *theStddev,
-					 double *theMin,
-					 double *theMax
+					 double *PMean,
+					 double *PStddev,
+					 double *PMin,
+					 double *PMax
 					 )
 {
   struct node_gra *p = net;
@@ -1343,10 +1343,10 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
     PList[p->num] = ParticipationCoefficientBipart(p);
   
   /* Get the statistics */
-  *theMean = mean(PList, N);
-  *theStddev = stddev(PList, N);
-  *theMin = min(PList, N);
-  *theMax = max(PList, N);
+  *PMean = mean(PList, N);
+  *PStddev = stddev(PList, N);
+  *PMin = min(PList, N);
+  *PMax = max(PList, N);
 
   /* Free memory */
   free_d_vec(PList);

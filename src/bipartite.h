@@ -94,10 +94,10 @@ struct group *SACommunityIdentBipart(struct binet *binet,
 				     struct prng *gen);
 double ParticipationCoefficientBipart(struct node_gra *node);
 void StatisticsParticipationCoefficientBipart(struct node_gra *net,
-					      double *mean,
-					      double *stddev,
-					      double *min,
-					      double *max);
+					      double *theMean,
+					      double *theStddev,
+					      double *theMin,
+					      double *theMax);
 
 
 #endif /* !RGRAPH_BIPARTITE_H */
