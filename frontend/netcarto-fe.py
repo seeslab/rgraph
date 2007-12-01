@@ -1,8 +1,6 @@
 import os
 import wx
 
-ID_BUTTON1=110
-
 SA_PARAMETERS = {
     'Iteration factor' : (1.0, 1001),
     'Cooling factor' : (0.995, 1002),
@@ -86,7 +84,7 @@ class MainWindow(wx.Frame):
         wx.EVT_BUTTON(
             self,
             SA_PARAMETERS['Iteration factor'][1],
-            self.OnIterationFactorDefault
+            self.OnSAParameterDefault
             )
 
         return sizer
@@ -166,8 +164,9 @@ class MainWindow(wx.Frame):
             f.close()
         dlg.Destroy()
 
-    def OnIterationFactorDefault(self, e):
-        print self.SAParametersControl['Iteration factor'].GetValue()
+    def OnSAParameterDefault(self, e):
+        ID = e.GetID()
+        print ID, self.SAParametersControl['Iteration factor'].GetValue()
 ##         self.SAParameters['Iteration factor'] = SA_PARAMETERS['Iteration factor'][0]
 ##         print self.SAParameters['Iteration factor']
 
