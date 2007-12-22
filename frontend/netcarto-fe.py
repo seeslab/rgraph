@@ -1,6 +1,8 @@
 import os
 import wx
 
+import network
+
 SA_PARAMETERS = {
     'Iteration factor' : (1.0, 1001),
     'Cooling factor' : (0.995, 1002),
@@ -8,13 +10,16 @@ SA_PARAMETERS = {
     'Initial T' : (1., 1004),
     }
 
+SA_PARAMETERS_ID = dict([(SA_PARAMETERS[anSAParam][1], anSAParam)
+                         for anSAParam in SA_PARAMETERS])
+
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 # The MainWindow class
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 class MainWindow(wx.Frame):
-    """The MainWindow class.
+    """ The MainWindow class.
 
     This class takes care of the main window of the application.
     """
@@ -27,22 +32,23 @@ class MainWindow(wx.Frame):
         sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         rows = {}
 
-##         rows[aParam] = wx.BoxSizer(wx.HORIZONTAL)
-##         nodesText = wx.StaticText(self, 0, 'Nodes')
-##         text.SetFont(wx.Font(10, wx.SWISS, wx.NORMAL, wx.NORMAL))
-##         rows[aParam].Add(text, 1, wx.CENTER)
-##         textcontrol = wx.TextCtrl(self, 0, value=`PARAMETERS[aParam]`)
-##         rows[aParam].Add(textcontrol, 1, wx.CENTER)
-##         button = wx.Button(self, 1, "Default")
-##         rows[aParam].Add(button, 1, wx.CENTER)
-##         sizer.Add(rows[aParam], wx.EXPAND)
+        self.NNodesText = wx.StaticText(self, 0, 'Nodes: 0')
+        sizer.Add(self.NNodesText)
+
+        self.NLinksText = wx.StaticText(self, 0, 'Links: 0')
+        sizer.Add(self.NLinksText)
 
         return sizer
 
     # -------------------------------------------------------------------------
-    # 
+    # The SA parameters sizer
     # -------------------------------------------------------------------------
     def SA_parameter_sizer(self):
+        """ The SA parameters sizer.
+
+        This sizer contains text control areas to enter the simulated
+        annealing parameters, as well as buttons to set the defaults.
+        """
 
         # The overall frame
         # ---------------------------------------------------------------------
@@ -59,8 +65,9 @@ class MainWindow(wx.Frame):
         # ---------------------------------------------------------------------
         box = wx.FlexGridSizer(cols=2)
         for aParam in SA_PARAMETERS:
+            # The title
             title = wx.StaticText(self, 0, aParam)
-##             title.SetFont(wx.Font(10, wx.DEFAULT, wx.DEFAULT, wx.DEFAULT))
+            # Text control
             textControl = wx.TextCtrl(
                 self,
                 SA_PARAMETERS[aParam][1],
@@ -71,29 +78,26 @@ class MainWindow(wx.Frame):
             textbox.Add(textControl, 1, wx.CENTER)
             box.Add(textbox, 1, wx.EXPAND)
             self.SAParametersControl[aParam] = textControl
+            # Button
             button = wx.Button(
                 self,
                 SA_PARAMETERS[aParam][1],
                 "Set default")
+            # Button event handler
+            button.Bind(wx.EVT_BUTTON, self.OnSAParameterDefault)
+            # Add the button
             box.Add(button, 1, wx.CENTER)
         sizer.Add(box)
-
-        # Add all event handlers
+        
+        # Done
         # ---------------------------------------------------------------------
-##         AButton.Bind(wx.EVT_BUTTON, self.OnButtonPush) THIS IS PREFERED
-        wx.EVT_BUTTON(
-            self,
-            SA_PARAMETERS['Iteration factor'][1],
-            self.OnSAParameterDefault
-            )
-
         return sizer
 
     # -------------------------------------------------------------------------
     # Constructor
     # -------------------------------------------------------------------------
     def __init__(self,parent,id,title):
-        """MainWindow constructor."""
+        """ MainWindow constructor. """
 
         # Init the parent class
         # ---------------------------------------------------------------------
@@ -101,11 +105,11 @@ class MainWindow(wx.Frame):
 
         # Some stuff
         # ---------------------------------------------------------------------
-        self.dirName=''
-        self.fileName=''
-        self.networkNodes=''
-        self.networkLinks=''
-##         self.control = wx.TextCtrl(self, 1, style=wx.TE_MULTILINE)
+        self.dirName = ''
+        self.fileName = ''
+        self.fullFileName = ''
+        self.networkNodes = ''
+        self.networkLinks = ''
 
         # Statusbar at the bottom of the frame
         # ---------------------------------------------------------------------
@@ -118,19 +122,24 @@ class MainWindow(wx.Frame):
         self.SetMenuBar(menuBar)
 
         # The File menu
-        filemenu= wx.Menu()
-        filemenu.Append(wx.ID_OPEN, "&Open", "Open a file to edit")
+        filemenu = wx.Menu()
+        filemenu.Append(wx.ID_OPEN, "&Open", "Open a network file")
         wx.EVT_MENU(self, wx.ID_OPEN, self.OnOpen)
 
         filemenu.AppendSeparator()
-        filemenu.Append(wx.ID_ABOUT, "&About", "Information about this program")
-        wx.EVT_MENU(self, wx.ID_ABOUT, self.OnAbout)
-
-        filemenu.AppendSeparator()
-        filemenu.Append(wx.ID_EXIT, "E&xit", "Terminate the program")
+        filemenu.Append(wx.ID_EXIT, "&Quit", "Terminate NetCarto")
         wx.EVT_MENU(self, wx.ID_EXIT, self.OnExit)
 
-        menuBar.Append(filemenu, "&File") # Adding the "filemenu" to the MenuBar
+        menuBar.Append(filemenu, "&File") # Adding "filemenu" to MenuBar
+
+        # The Help menu
+        helpmenu = wx.Menu()
+        helpmenu.Append(wx.ID_ABOUT,
+                        "&About",
+                        "Information about NetCarto")
+        wx.EVT_MENU(self, wx.ID_ABOUT, self.OnAbout)
+
+        menuBar.Append(helpmenu, "&Help") # Adding "help" to MenuBar
 
         # The sizers
         self.sizer = wx.GridSizer(cols=2)
@@ -145,32 +154,93 @@ class MainWindow(wx.Frame):
         self.sizer.Fit(self)
         self.Show(1)
 
-    def OnAbout(self,e):
-        d= wx.MessageDialog( self, " A sample editor \n"
-                            " in wxPython","About Sample Editor", wx.OK)
-                            # Create a message dialog box
-        d.ShowModal() # Shows it
-        d.Destroy() # finally destroy it when finished.
-    def OnExit(self,e):
-        self.Close(True)  # Close the frame.
-    def OnOpen(self,e):
-        """ Open a file"""
-        dlg = wx.FileDialog(self, "Choose a file", self.dirName, "", "*.*", wx.OPEN)
+    # -------------------------------------------------------------------------
+    # Set default SA parameter
+    # -------------------------------------------------------------------------
+    def OnSAParameterDefault(self, event):
+        """ Set default SA parameter.
+
+        Which parameter is actually set to the default is determined
+        by the ID of the event.
+        """
+        ID = event.GetId()
+        param = SA_PARAMETERS_ID[ID]
+        self.SAParametersControl[param].SetValue(`SA_PARAMETERS[param][0]`)
+
+    # -------------------------------------------------------------------------
+    # Open network file
+    # -------------------------------------------------------------------------
+    def OnOpen(self, event):
+        """ Open a network file.
+
+        Besides opening the file, we check that it is a valid network
+        file, that is, a list of adjacencies.
+        """
+        # Open the file dialog
+        # ---------------------------------------------------------------------
+        dlg = wx.FileDialog(self,
+                            "Choose a file",
+                            self.dirName,
+                            "",
+                            "*.*",
+                            wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
-            self.filename=dlg.GetFilename()
-            self.dirName=dlg.GetDirectory()
-            f=open(os.path.join(self.dirName, self.filename),'r')
-            self.control.SetValue(f.read())
-            f.close()
+            fileName = dlg.GetFilename()
+            dirName = dlg.GetDirectory()
+            fullFileName = os.path.join(dirName, fileName)
+            success, nNodes, nLinks = \
+                  network.read_undirected_network(fullFileName)
+            if success: # Good!
+                self.fileName = fileName
+                self.dirName = dirName
+                self.fullFileName = fullFileName
+                self.networkNodes = `nNodes`
+                self.networkLinks = `nLinks`
+                self.NNodesText.SetLabel('Nodes: %s' % self.networkNodes)
+                self.NLinksText.SetLabel('Links: %s' % self.networkLinks)
+            else:  # Show error message
+                d = wx.MessageDialog(
+                    self,
+                    "%s is not a valid network file" % fileName,
+                    "Error opening file",
+                    wx.OK
+                    )
+                d.ShowModal()
+                d.Destroy()
+                
+                
+        # Done
+        # ---------------------------------------------------------------------
         dlg.Destroy()
 
-    def OnSAParameterDefault(self, e):
-        ID = e.GetID()
-        print ID, self.SAParametersControl['Iteration factor'].GetValue()
-##         self.SAParameters['Iteration factor'] = SA_PARAMETERS['Iteration factor'][0]
-##         print self.SAParameters['Iteration factor']
+    # -------------------------------------------------------------------------
+    # Quit
+    # -------------------------------------------------------------------------
+    def OnExit(self, event):
+        """ Quit the program. """
+        self.Close(True)  # Close the frame.
+
+    # -------------------------------------------------------------------------
+    # About
+    #--------------------------------------------------------------------------
+    def OnAbout(self, event):
+        d= wx.MessageDialog(self,
+                            "The Network Cartography software\n"
+                            "\n"
+                            "by Roger Guimera\n"
+                            "and the Amaral Lab",
+                            "About NetCarto",
+                            wx.OK)
+        d.ShowModal()
+        d.Destroy()
 
 
-app = wx.PySimpleApp()
-frame = MainWindow(None, -1, "NetCarto")
-app.MainLoop()
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# The main loop
+# -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+if __name__ == '__main__':
+    app = wx.PySimpleApp()
+    frame = MainWindow(None, -1, "NetCarto")
+    app.MainLoop()
