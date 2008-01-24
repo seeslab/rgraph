@@ -57,8 +57,6 @@ main(int argc, char **argv)
   rep = atoi(argv[6]);
   
   /* Default values */
-  if (Ti < 0.0)
-    Ti = 2.0 / (double)S;
   if (iterfac < 0.0)
     iterfac = 1.0;
   if (Tsched < 0.0)
@@ -85,6 +83,8 @@ main(int argc, char **argv)
   fclose(inFile);
 
   S = CountNodes(net);
+  if (Ti < 0.0)
+    Ti = 2.0 / (double)S; /* Default initial temperature */
   fprintf(stderr, "\n# The network has %d nodes\n", S);
 
   /*
