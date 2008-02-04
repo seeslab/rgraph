@@ -88,7 +88,7 @@ main()
 
   part = SACommunityIdent(net,
 			  2.0 / (double)S, Tf, Tsched,
-			  iterfac, 0, 'o', 1, 'm', rand_gen);
+			  iterfac, 0, 'o', 1, 'b', rand_gen);
 
   outFile = fopen("modules.dat", "w");
   FPrintPartition(outFile, part, 0);
