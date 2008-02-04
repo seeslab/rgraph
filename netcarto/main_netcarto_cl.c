@@ -97,7 +97,7 @@ main(int argc, char **argv)
 
   part = SACommunityIdent(net,
 			  Ti, Tf, Tsched,
-			  iterfac, 0, 'o', 1, 'b', rand_gen);
+			  iterfac, 0, 'o', 1, 's', rand_gen);
 
   outFile = fopen("modules.dat", "w");
   FPrintPartition(outFile, part, 0);
