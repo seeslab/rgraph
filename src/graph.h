@@ -11,7 +11,7 @@
 
 #include "prng.h"
 
-#define MAX_LABEL_LENGTH 20
+#define MAX_LABEL_LENGTH 100
 
 /*
   ---------------------------------------------------------------------
@@ -292,6 +292,11 @@ struct node_gra *GetLargestWeaklyConnectedSet(struct node_gra *root,
 */
 double TopologicalOverlap(struct node_gra *n1,
 			  struct node_gra *n2);
+void CompareTwoNetworks(struct node_gra *netA, struct node_gra *netB,
+			int *nA_nod, int *nB_nod, int *ncom_nod, 
+			double *p_nAB, double *p_nBA,
+			int *nA_lin, int *nB_lin, int *ncom_lin, 
+			double *p_lAB, double *p_lBA);
 
 
 #endif /* !RGRAPH_GRAPH_H */

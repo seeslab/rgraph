@@ -744,9 +744,11 @@ IsThereNode(char *label, struct node_gra *p)
   return 0;
 }
 
-// ---------------------------------------------------------------------
-// Returns 1 if there is a link between two nodes a and b
-// ---------------------------------------------------------------------
+/*
+  -----------------------------------------------------------------------------
+  Returns 1 if there is a link between two nodes a and b
+  -----------------------------------------------------------------------------
+*/
 int
 IsThereLink(struct node_gra *n1, struct node_gra *n2)
 {
@@ -2573,4 +2575,116 @@ TopologicalOverlap(struct node_gra *n1, struct node_gra *n2)
   overlap = (double)ncom / (double)minim;
 
   return overlap;
+}
+
+/*
+  -----------------------------------------------------------------------------
+  Given two networks whose nodes are comparable (that is, their labels
+  are the same in both networks), the subroutine returns a number of
+  conditional probabilities.
+  -----------------------------------------------------------------------------
+*/
+void
+CompareTwoNetworks(struct node_gra *netA, struct node_gra *netB,
+		   int *nA_nod, int *nB_nod, int *ncom_nod, 
+		   double *p_nAB, double *p_nBA,
+		   int *nA_lin, int *nB_lin, int *ncom_lin, 
+		   double *p_lAB, double *p_lBA)
+{
+  int i;
+  struct node_gra *pA, *pB, *n1, *n2;
+  struct node_lis *lA, *lB;
+  int ntot_lin = 0;
+  void *node_dictA=NULL, *node_dictB=NULL;
+  struct node_tree *n_tree=NULL, *ntreeA=NULL, *ntreeB=NULL;
+
+  /* Initialize variables */
+  *ncom_nod = 0;
+  *nA_nod = 0;
+  *nB_nod = 0;
+  *ncom_lin = 0;
+  *nA_lin = 0;
+  *nB_lin = 0;
+
+  /*
+    Calculate node overlap
+  */
+  /* Go through the first network and build its dictionary */
+  pA = netA;
+  while ((pA = pA->next) != NULL) {
+    n_tree = CreateNodeTree();
+    strcpy(n_tree->label, pA->label);
+    ntreeA = *(struct node_tree **)tsearch((void *)n_tree,
+					   &node_dictA,
+					   NodeTreeLabelCompare);
+    ntreeA->ref = pA;
+    (*nA_nod) += 1;
+  }
+
+  /* Go through the second network and build its
+     dictionary. Additionally, keep counting the number of common
+     nodes (that is, how many nodes in B are also in A). */
+  pB = netB;
+  while ((pB = pB->next) != NULL) {
+    n_tree = CreateNodeTree();
+    strcpy(n_tree->label, pB->label);
+    ntreeB = *(struct node_tree **)tsearch((void *)n_tree,
+					   &node_dictB,
+					   NodeTreeLabelCompare);
+    ntreeB->ref = pB;
+    (*nB_nod) += 1;
+
+    /* Is this node in A? */
+    if (GetNodeDict(pB->label, node_dictA) != NULL)
+      (*ncom_nod) += 1;
+  }
+
+  /* Calculate node conditional node probabilities*/
+  *p_nAB = (double)(*ncom_nod) / (double)(*nB_nod);
+  *p_nBA = (double)(*ncom_nod) / (double)(*nA_nod);
+
+  /* Calculate number of links (that could exist in both networks,
+     that is, disregarding those whose endpoint nodes are not in both
+     networks) and link overlap */
+  pA = netA;
+  while ((pA = pA->next) != NULL) {
+    lA = pA->neig;
+    while ((lA = lA->next) != NULL) {
+      /* If both nodes exist in both networks... */
+      if (((n1 = GetNodeDict(pA->label, node_dictB)) != NULL) &&
+	  ((n2 = GetNodeDict(lA->ref->label, node_dictB)) != NULL)) {
+	ntot_lin++;
+	(*nA_lin) += 1;
+	if (IsThereLink(n1, n2) == 1) {
+	  (*ncom_lin) += 1;
+	}
+      }
+    }
+  }
+
+  pB = netB;
+  while ((pB = pB->next) != NULL) {
+    lB = pB->neig;
+    while ((lB = lB->next) != NULL) {
+      /* If both nodes exist in both networks... */
+      if (((n1 = GetNodeDict(pB->label, node_dictA)) != NULL) &&
+	  ((n2 = GetNodeDict(lB->ref->label, node_dictA)) != NULL)) {
+	(*nB_lin) += 1;
+	if (IsThereLink(n1, n2) != 1) {
+	  ntot_lin++;
+	}
+      }
+    }
+  }
+
+  (*nA_lin) /= 2;
+  (*nB_lin) /= 2;
+  (*ncom_lin) /= 2;
+      
+  /* Calculate node conditional probabilities */
+  *p_lAB = (double)(*ncom_lin) / (double)(*nB_lin);
+  *p_lBA = (double)(*ncom_lin) / (double)(*nA_lin);
+
+  /* Done */
+  return;
 }
