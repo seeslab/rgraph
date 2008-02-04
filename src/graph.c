@@ -2591,7 +2591,6 @@ CompareTwoNetworks(struct node_gra *netA, struct node_gra *netB,
 		   int *nA_lin, int *nB_lin, int *ncom_lin, 
 		   double *p_lAB, double *p_lBA)
 {
-  int i;
   struct node_gra *pA, *pB, *n1, *n2;
   struct node_lis *lA, *lB;
   int ntot_lin = 0;
@@ -2685,6 +2684,8 @@ CompareTwoNetworks(struct node_gra *netA, struct node_gra *netB,
   *p_lAB = (double)(*ncom_lin) / (double)(*nB_lin);
   *p_lBA = (double)(*ncom_lin) / (double)(*nA_lin);
 
-  /* Done */
+  /* Free memory and return */
+  FreeLabelDict(node_dictA);
+  FreeLabelDict(node_dictB);
   return;
 }
