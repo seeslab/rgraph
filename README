@@ -12,7 +12,11 @@ This package includes the RGraph libraries, the C libraries for
 complex network analysis developed by Roger Guimera. Some executables,
 build from the libraries, are also included.
 
-In a Unix-like system, you can install the libraries and the
+For the libraries to compile, you will NEED TO INSTALL, first, the
+PRNG library for pseudo-random number generation, available from
+http://statmath.wu-wien.ac.at/prng/.
+
+In a Unix-like system, you can install the RGraph libraries and the
 executables by uncompressing the tarball (tar -xzvf
 rgraph-version.tar.gz) and running the usual stuff from the
 rgraph-version directory:
@@ -29,7 +33,7 @@ cd rgraph-version
 "Unix emulation." I have successfully compiled the libraries using
 either Cygwin or MinGW.)
 
-This will install the libraries in your_default_lib_directory/rgrpah
+This will install the libraries in your_default_lib_directory/rgraph
 and the executables in your_default_bin_directory. To install in a
 different directory run
 
@@ -51,10 +55,6 @@ You can also test that everything is working by running
 ./make check
 
 from the installation directory.
-
-For the libraries to compile, you will NEED TO INSTALL, first, the
-PRNG library for pseudo-random number generation, available from
-http://statmath.wu-wien.ac.at/prng/.
 
 
 ----------------------------------------------------------------------
@@ -240,6 +240,7 @@ The arguments need to be passed in the following orther:
 T_ini, iteration_factor, and cooling_factor can be set to -1 to use
 the defaults (2/size_of_network, 1.0, and 0.995, respectively).
 
+
 ----------------------------------------------------------------------
 bipartmod
 ----------------------------------------------------------------------
@@ -309,6 +310,16 @@ Program output
 
 The program returns a file modules_bipart.dat, which is formally
 identical to the modules.dat described above for netcarto.
+
+
+----------------------------------------------------------------------
+Utils
+----------------------------------------------------------------------
+
+Additionally, a few utility programs are also compiled and installed.
+
+*netcompare netA netA: compares two networks.
+
 
 ----------------------------------------------------------------------
 CONTACT
