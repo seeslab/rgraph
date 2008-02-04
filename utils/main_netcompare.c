@@ -1,7 +1,7 @@
 /*
   main_netcompare.c
-  $LastChangedDate: 2008-02-04 12:10:18 -0600 (Mon, 04 Feb 2008) $
-  $Revision: 113 $
+  $LastChangedDate$
+  $Revision$
 */
 
 #include <stdio.h>

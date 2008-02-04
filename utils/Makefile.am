@@ -1,5 +1,5 @@
-# $LastChangedDate: 2007-10-26 17:05:23 -0500 (Fri, 26 Oct 2007) $
-# $Revision: 96 $
+# $LastChangedDate$
+# $Revision$
 
 INCLUDES = -I$(top_builddir) -I$(top_srcdir) \
 	-I$(top_srcdir)/lib -I$(top_srcdir)/src
