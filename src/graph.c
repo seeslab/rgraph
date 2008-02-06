@@ -517,7 +517,7 @@ FBuildNetwork(FILE *inFile,
       fscanf(inFile,"%s %s %lf\n", &label1[0], &label2[0], &weight);
     }
 /*     printf("%s %s\n", label1, label2); */
-    
+   
     // Check if the nodes already exist, and create them otherwise
     n_tree = CreateNodeTree();
     strcpy(n_tree->label, label1);
@@ -2619,7 +2619,7 @@ CompareTwoNetworks(struct node_gra *netA, struct node_gra *netB,
     ntreeA->ref = pA;
     (*nA_nod) += 1;
   }
-
+  
   /* Go through the second network and build its
      dictionary. Additionally, keep counting the number of common
      nodes (that is, how many nodes in B are also in A). */
@@ -2634,8 +2634,9 @@ CompareTwoNetworks(struct node_gra *netA, struct node_gra *netB,
     (*nB_nod) += 1;
 
     /* Is this node in A? */
-    if (GetNodeDict(pB->label, node_dictA) != NULL)
+    if (GetNodeDict(pB->label, node_dictA) != NULL) {
       (*ncom_nod) += 1;
+    }
   }
 
   /* Calculate node conditional node probabilities*/
