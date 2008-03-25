@@ -12,6 +12,7 @@
 #include "prng.h"
 
 #include "tools.h"
+#include "datastruct.h"
 #include "graph.h"
 
 // ---------------------------------------------------------------------
@@ -2042,6 +2043,93 @@ CalculateBiggestLinkBetweenness(struct node_gra *root,int *n1,int *n2)
   free_i_vec(ocupacio);
   free_d_vec(bet_loc);
   free(list);
+}
+
+/*
+  ----------------------------------------------------------------------------
+  Calculates the betweenness of all nodes in a network. Results are
+  stored in the dvar1 attribute of each node. The algorithm is
+  directly taken from the pseudo-code in Algorithm 1 of the paper "A
+  faster algorithm for betweenness centrality," by Ulrik Brandes.
+  ----------------------------------------------------------------------------
+*/
+void
+CalculateNodeBetweenness(struct node_gra *net)
+{
+  struct node_gra *nodep, *s, *v, *w;
+  struct node_lis *wp;
+  struct stack *S;
+  struct queue *Q;
+  struct queue **P;
+  int *sigma, *d;
+  double *delta;
+  int nnod = CountNodes(net);
+  int i;
+
+  /* Reset dvar1 to 0 for all nodes */
+  nodep = net;
+  while ((nodep = nodep->next) != NULL)
+    nodep->dvar1 = 0.0;
+
+  /* Brandes algorithm */
+  s = net;
+  while ((s = s->next) != NULL) {
+    S = stack_create();
+    P = (struct queue **)calloc(nnod, sizeof(struct queue *));
+    sigma = allocate_i_vec(nnod);
+    d = allocate_i_vec(nnod);
+    delta = allocate_d_vec(nnod);
+    Q = queue_create();
+    for (i=0; i<nnod; i++) {
+      P[i] = queue_create();
+      sigma[i] = 0;
+      d[i] = -1;
+      delta[i] = 0.0;
+    }
+    sigma[s->num] = 1;
+    d[s->num] = 0;
+    queue_enqueue(Q, (void *)s);
+    while (!queue_empty(Q)) {
+      v = (struct node_gra *)queue_dequeue(Q);
+      stack_push(S, (void *)v);
+      wp = v->neig;
+      while ((wp = wp->next) != NULL) {
+	w = wp->ref;
+	/* w found for the first time? */
+	if (d[w->num] < 0) {
+	  queue_enqueue(Q, (void *)w);
+	  d[w->num] = d[v->num] + 1;
+	}
+	/* Shortest path to w via v? */
+	if (d[w->num] == d[v->num] + 1) {
+	  sigma[w->num] = sigma[w->num] + sigma[v->num];
+	  queue_enqueue(P[w->num], (void *)v);
+	}
+      }
+    }
+
+    /* S returns vertices in order of non-increasing distance from s */
+    while (!stack_empty(S)) {
+      w = (struct node_gra *)stack_pop(S);
+      while (!queue_empty(P[w->num])) {
+	v = (struct node_gra *)queue_dequeue(P[w->num]);
+	delta[v->num] += (1. + delta[w->num]) * sigma[v->num] / sigma[w->num];
+      }
+      if (w->num != s->num)
+	w->dvar1 += delta[w->num];
+    }
+
+    /* Free all memory */
+    stack_free(S);
+    for (i=0; i<nnod; i++) {
+      queue_free(P[i]);
+    }
+    free(P);
+    free_i_vec(sigma);
+    free_i_vec(d);
+    free_d_vec(delta);
+    queue_free(Q);
+  }
 }
 
 // ---------------------------------------------------------------------
