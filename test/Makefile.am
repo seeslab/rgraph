@@ -22,3 +22,5 @@ bipart2_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
 
 tools_SOURCES = main_tools.c
 tools_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
+
+EXTRA_DIST = test.dat testbinet.dat testbinetpart.dat
