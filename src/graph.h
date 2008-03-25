@@ -269,6 +269,11 @@ void CalculateBiggestLinkBetweenness(struct node_gra *root,
 				     int *n1,
 				     int *n2);
 void CalculateNodeBetweenness(struct node_gra *net);
+void NodeBetweennessStatistics(struct node_gra *net,
+			       double *theMean,
+			       double *theStddev,
+			       double *theMin,
+			       double *theMax);
 
 /* Degree correlations */
 double Assortativity(struct node_gra *net);

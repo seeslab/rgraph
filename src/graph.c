@@ -2132,6 +2132,43 @@ CalculateNodeBetweenness(struct node_gra *net)
   }
 }
 
+/*
+  ---------------------------------------------------------------------
+  Get some statistical properties (mean, std dev, min, and max) for
+  the betweennesses of the nodes in the network.
+  ---------------------------------------------------------------------
+*/
+void
+NodeBetweennessStatistics(struct node_gra *net,
+			  double *theMean,
+			  double *theStddev,
+			  double *theMin,
+			  double *theMax)
+{
+  int nnod = CountNodes(net);
+  double *betws = NULL;
+  int count = 0;
+  struct node_gra *p = net;
+  
+  /* Allocate memory */
+  betws = allocate_d_vec(nnod);
+  
+  /* Get betweennesses */
+  CalculateNodeBetweenness(net);
+  while ((p = p->next) != NULL)
+    betws[p->num] = p->dvar1;
+  
+  /* Get the statistical properties */
+  (*theMean) = mean(betws, nnod);
+  (*theStddev) = stddev(betws, nnod);
+  (*theMin) = min(betws, nnod);
+  (*theMax) = max(betws, nnod);
+
+  /* Free memory and return */
+  free_d_vec(betws);
+  return;
+}
+
 // ---------------------------------------------------------------------
 // Calculates the assortativity of a network
 // ---------------------------------------------------------------------
