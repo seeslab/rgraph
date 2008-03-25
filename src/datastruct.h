@@ -1,3 +1,9 @@
+/*
+  datastruct.h
+  $LastChangedDate$
+  $Revision$
+*/
+
 #include <stdbool.h>
 
 #ifndef RGRAPH_DATASTRUCT_H

@@ -1,3 +1,9 @@
+/*
+  datastruct.c
+  $LastChangedDate$
+  $Revision$
+*/
+
 #include <stdlib.h>
 
 #include "datastruct.h"
