@@ -779,7 +779,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
     /* Move the nodes in some (half) of the clusters to empty module */
     g = split;
     while ((g = g->next) != NULL) {
-      if (prng_get_next(gen) < 0.5) { // With prob=0.5 move to empty
+      if (prng_get_next(gen) < 0.500000) { // With prob=0.5 move to empty
 	p = g->nodeList;
 	while ((p = p->next) != NULL) {
 	  MoveNode(GetNodeDict(p->nodeLabel, dict), target_g, empty_g);
@@ -801,7 +801,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
     while (p->next != NULL) {
       nlist[nnod++] = p->next->ref;
       dice = prng_get_next(gen);
-      if (dice < 0.5) {
+      if (dice < 0.500000) {
 	MoveNode(p->next->ref, target_g, empty_g);
       }
       else {
@@ -847,7 +847,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 	}
 	
 	/* Accept the change according to the Boltzman factor */
-	if( (dE >= 0.0) || (prng_get_next(gen) < exp(dE/T)) ){
+	if (prng_get_next(gen) < exp(dE/T)) {
 	  MoveNode(nlist[target], glist[oldg], glist[newg]);
 	  energy += dE;
 	}
@@ -933,7 +933,7 @@ SACommunityIdentBipart(struct binet *binet,
   double t1, t2;
   struct group *best_part = NULL;
   double best_E = -100.0;
-  double cluster_prob = 0.5;
+  double cluster_prob = 0.500000;
   int dice;
   void *nodeDict;
   int *nlink=NULL;
@@ -1090,8 +1090,8 @@ SACommunityIdentBipart(struct binet *binet,
       dE += 2. * (cmat[nlist[target]->num][nlist[target]->num] -
 		  t1 * t1 * msfac);
 
-      /* Accept or reject movement according to Metropolis */
-      if ((dE > 0) || (prng_get_next(gen) < exp(dE/T))) {
+      /* Accept or reject movement according to Metropolis */ 
+      if (prng_get_next(gen) < exp(dE/T)) {
 	energy += dE;
 	MoveNode(nlist[target],glist[oldg],glist[newg]);
       }
@@ -1127,7 +1127,7 @@ SACommunityIdentBipart(struct binet *binet,
 	  }
 
 	  /* Accept or reject change */
-	  if ((dE > 0) || (prng_get_next(gen) < exp(dE/T))) {
+	  if (prng_get_next(gen) < exp(dE/T)) {
 	    MergeGroups(glist[g1], glist[g2]);
 	    energy += dE;
 	  }
@@ -1173,7 +1173,7 @@ SACommunityIdentBipart(struct binet *binet,
 	  /* Accept the change according to "inverse" Metroppolis.
 	     Inverse means that the algor is applied to the split and
 	     NOT to the merge! */
-	  if ((dE > 0.0) && (prng_get_next(gen) > exp(-dE/T))) {
+	  if ((dE > EPSILON_MOD_B) && (prng_get_next(gen) > exp(-dE/T))) {
 	    /* Undo the split */
 	    MergeGroups(glist[target],glist[empty]);
 	  }
@@ -1184,10 +1184,11 @@ SACommunityIdentBipart(struct binet *binet,
 	} /* End of split move */
       } /* End of cicle2 loop */
     } /* End of 'if collective_sw==1' loop */
-
+      
     /* Update the no-change counter */
-    if (fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B ||
-	fabs(energyant) < EPSILON_MOD_B) {
+    if ((T < Ti / 1000.) &&
+	(fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B ||
+	fabs(energyant) < EPSILON_MOD_B)) {
       count++;
       
       /* If the SA is ready to stop (count==limit) but the current
