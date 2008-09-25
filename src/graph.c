@@ -1854,10 +1854,13 @@ OneNodeSquareClustering(struct node_gra *node,
   return T;
 }
 
-// ---------------------------------------------------------------------
-// Calculates the betweenness of each link and stores in the btw field
-// of the node_lis
-// ---------------------------------------------------------------------
+
+/*
+  ---------------------------------------------------------------------
+  Calculates the betweenness of each link and stores in the btw field
+  of the node_lis
+  ---------------------------------------------------------------------
+*/
 void
 CalculateLinkBetweenness(struct node_gra *root)
 {

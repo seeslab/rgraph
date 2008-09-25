@@ -28,7 +28,7 @@ struct node_gra{
   struct node_lis *neig;   // header of the adjacency list
   struct node_gra *next;   // next node in the graph
   int inGroup;             // group to which the node belongs
-  int ivar1;              // number of packets currently at the node
+  int ivar1;               // number of packets currently at the node
   double dvar1;            // rush variable to store doubles
 };
 
