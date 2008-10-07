@@ -40,4 +40,13 @@ double stddev(double *data, int N);
 double max(double *data, int N);
 double min(double *data, int N);
 
+/*
+  ---------------------------------------------------------------------
+  Other
+  ---------------------------------------------------------------------
+*/
+long int fact(long int a);
+float LogBinomialCoef(int a, int b);
+
+
 #endif /* !RGRAPH_TOOLS_H */

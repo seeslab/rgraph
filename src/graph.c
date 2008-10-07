@@ -855,11 +855,52 @@ CleanAdjacencies(struct node_gra *net)
   return;
 }
 
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
-// Node_lis operations
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
+/*
+  -----------------------------------------------------------------------------
+  Remove each link with probability p
+  -----------------------------------------------------------------------------
+*/
+void
+RemoveRandomLinks(struct node_gra *net,
+		  double prob,
+		  int symmetric_sw,
+		  struct prng *gen)
+{
+  struct node_gra *p=net;
+  struct node_lis *n=NULL;
+
+  /* Go over all links and remove each of them with probability
+     prob. If links are undirected, we only try once per link (by
+     imposing that the origin node has to be smaller than the
+     destination node) */
+  while ((p = p->next) != NULL) {
+    n = p->neig;
+    while (n->next != NULL) {
+      if ((p->num <= ((n->next)->ref)->num) || (symmetric_sw == 0)) {
+	if (prng_get_next(gen) < prob) {
+	  RemoveLink(p, (n->next)->ref, symmetric_sw);
+	}
+	else {
+	  n = n->next;
+	}
+      }
+      else {
+	n = n->next;
+      }
+    }
+  }
+
+  return;
+}
+
+
+/*
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+  BFS list operations
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+*/
 
 // ---------------------------------------------------------------------
 // Returns the node_bfs in list that corresponds to the node_gra node

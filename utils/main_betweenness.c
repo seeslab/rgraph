@@ -1,5 +1,5 @@
 /*
-  main_netcompare.c
+  main_betweenness.c
   $LastChangedDate$
   $Revision$
 */

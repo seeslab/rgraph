@@ -2216,14 +2216,151 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 }
 
 
+/*
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+  Missing links
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+*/
+/*
+  ---------------------------------------------------------------------
+  Partition H
+  ---------------------------------------------------------------------
+*/
+double
+PartitionH(struct group *part)
+{
+  struct group *g1=part, *g2;
+  double r, l, H=0.0;
 
+  while ((g1 = g1->next) != NULL) {
+    if (g1->size > 0) {
+      r = g1->size * (g1->size - 1) / 2;
+      l = g1->inlinks;
+      H += log(r + 1) + LogBinomialCoef(r, l);
+      g2 = g1;
+      while ((g2 = g2->next) != NULL) {
+	if (g2->size > 0) {
+	  r = g1->size * g2->size;
+	  l = NG2GLinks(g1, g2);
+	  H += log(r + 1) + LogBinomialCoef(r, l);
+	}
+      }
+    }
+  }
 
+  return H;
+}
 
+/*
+  ---------------------------------------------------------------------
+  
+  ---------------------------------------------------------------------
+*/
+double **
+MissingLinks(struct node_gra *net, struct prng *gen)
+{
+  int nnod=CountNodes(net);
+  struct group *part;
+  struct node_gra *p, *node;
+  struct node_gra **nlist;
+  struct group **glist;
+  struct group *lastg;
+  double H, dH;
+  int iter, nIter, step, nStep;
+  int dice, oldg, newg, nold, nnew, inold, innew, g2g;
+  double **predA, Z=0.0;
+  int i, j;
+  int r, l;
 
+  /* Initialize the predicted adjacency matrix */
+  predA = allocate_d_mat(nnod, nnod);
+  for (i=0; i<nnod; i++)
+    for (j=0; j<nnod; j++)
+      predA[i][j] = 0.0;
 
+  /* Map nodes and groups to a list for faster access */
+  nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
+  glist = (struct group **) calloc(nnod, sizeof(struct group *));
+  lastg = part = CreateHeaderGroup();
+  p = net;
+  while ((p = p->next) != NULL) {
+    nlist[p->num] = p;
+    lastg = glist[p->num] = CreateGroup(lastg, p->num);
+  }
 
+  /* Place nodes in random partitions */
+  p = net;
+  while ((p = p->next) != NULL) {
+    dice = floor(prng_get_next(gen) * (double)nnod);
+    AddNodeToGroup(glist[dice], p);
+  }
 
+  /*
+    Do the Metropolis sampling
+    -------------------------------------------------------------------
+  */
+  H = PartitionH(part);
+  nIter = 1000;
+  nStep = nnod * nnod;
+  for (iter=0; iter<nIter; iter++) {
+    for (step=0; step<nStep; step++) {
+      
+      /* Choose node and destination group */
+      dice = floor(prng_get_next(gen) * (double)nnod);
+      node = nlist[dice];
+      oldg = node->inGroup;
+      do {
+	newg = floor(prng_get_next(gen) * (double)nnod);
+      } while (newg == oldg);
 
+      /* Calculate the change of energy */
+      MoveNode(node, glist[oldg], glist[newg]);
+      dH = PartitionH(part) - H;
+      
+      /* Metropolis rule */
+      if ((dH <= 0.0) || (prng_get_next(gen) < exp(-dH)))
+	H += dH;  /* Accept move */
+      else
+	MoveNode(node, glist[newg], glist[oldg]);  /* Undo move */
+	
+    }  /* End of step loop */
+    fprintf(stderr, "%d %lf\n", iter, H);
+/*     FPrintPartition(stderr, part, 0);  */
+
+    /* Update the partition function and the predicted adjacency matrix */
+    Z += exp(-H);
+    for (i=0; i<nnod; i++) {
+      for (j=0; j<nnod; j++) {
+	if (nlist[i]->inGroup == nlist[j]->inGroup) {
+	  l = glist[nlist[i]->inGroup]->inlinks;
+	  r = glist[nlist[i]->inGroup]->size *
+	    (glist[nlist[i]->inGroup]->size - 1) / 2;
+	}
+	else {
+	  l = NG2GLinks(glist[nlist[i]->inGroup], glist[nlist[j]->inGroup]);
+	  r = glist[nlist[i]->inGroup]->size * glist[nlist[j]->inGroup]->size;
+	}
+	predA[i][j] += exp(-H) * (float)(l + 1) / (float)(r + 2);
+      }
+    }
+
+  }  /* End of iter loop */
+
+  /* Normalize the predicted adjacency matrix */
+  for (i=0; i<nnod; i++) {
+    for (j=0; j<nnod; j++) {
+      predA[i][j] /= Z;
+    }
+  }
+
+  /* Done */
+  free(glist);
+  free(nlist);
+
+  return predA;
+}
 
 
 

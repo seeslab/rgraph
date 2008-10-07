@@ -122,7 +122,6 @@ void FreeNodeLis(struct node_lis *p);
 void FreeAdjacencyList(struct node_lis *p);
 void FreeNode(struct node_gra *node);
 void RemoveGraph(struct node_gra *p);
-
 void RemoveLink(struct node_gra *n1,
 		struct node_gra *n2,
 		int symmetric_sw);
@@ -177,6 +176,10 @@ int IsThereLinkSoft(struct node_gra *n1,
 		    int n2_num);
 int RemoveIsolatedNodes(struct node_gra *root);
 void CleanAdjacencies(struct node_gra *net);
+void RemoveRandomLinks(struct node_gra *net,
+		       double prob,
+		       int symmetric_sw,
+		       struct prng *gen);
 
 /*
   ---------------------------------------------------------------------
