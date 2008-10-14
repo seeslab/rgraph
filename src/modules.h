@@ -164,8 +164,6 @@ struct group *CatalogRoleIdent(struct node_gra *net,
 			       struct group *comm);
 
 
-#endif /* !RGRAPH_MODULES_H */
-
 /*
   ---------------------------------------------------------------------
   Missing links
@@ -173,3 +171,5 @@ struct group *CatalogRoleIdent(struct node_gra *net,
 */
 double PartitionH(struct group *part);
 double **MissingLinks(struct node_gra *net, struct prng *gen);
+
+#endif /* !RGRAPH_MODULES_H */

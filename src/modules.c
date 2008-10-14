@@ -2302,7 +2302,7 @@ MissingLinks(struct node_gra *net, struct prng *gen)
     -------------------------------------------------------------------
   */
   H = PartitionH(part);
-  nIter = 1000;
+  nIter = 250;
   nStep = nnod * nnod;
   for (iter=0; iter<nIter; iter++) {
     for (step=0; step<nStep; step++) {
