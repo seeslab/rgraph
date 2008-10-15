@@ -303,24 +303,37 @@ fact(long int a)
     return a * fact(a-1);
 }
 
+
+/*
+  ---------------------------------------------------------------------
+  Binomial coefficient
+  ---------------------------------------------------------------------
+*/
+long double
+Choose(int n, int k)
+{
+  int i;
+  double accum = 1.0;
+
+  if (k > n)
+    return 0.0;
+  
+  if (k > n/2)
+    k = n-k; // faster
+
+  for (i=1; i<=k; i++)
+    accum *= (double)(n-k+i) / (double)i;
+
+  return floor(accum + 0.5); // avoid rounding error
+}
+
 /*
   ---------------------------------------------------------------------
   Logarithm of the binomial coefficient
   ---------------------------------------------------------------------
 */
-float
-LogBinomialCoef(int a, int b)
+long double
+LogChoose(int a, int b)
 {
-  int i;
-  double result=0.0;
-
-  if (a-b < b)
-    b = a-b;
-
-  for (i=b+1; i<=a; i++)
-    result += log(i);
-  for (i=1; i<=a-b; i++)
-    result -= log(i);
-  
-  return result;
+  return logl(Choose(a, b));
 }

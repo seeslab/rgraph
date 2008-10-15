@@ -46,7 +46,8 @@ double min(double *data, int N);
   ---------------------------------------------------------------------
 */
 long int fact(long int a);
-float LogBinomialCoef(int a, int b);
+long double Choose(int a, int b);
+long double LogChoose(int a, int b);
 
 
 #endif /* !RGRAPH_TOOLS_H */
