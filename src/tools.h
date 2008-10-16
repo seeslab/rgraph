@@ -47,7 +47,14 @@ double min(double *data, int N);
 */
 long int fact(long int a);
 long double Choose(int a, int b);
-long double LogChoose(int a, int b);
+double LogChoose(int a, int b);
+double **InitializeFastLogChoose(int LogChooseListSize);
+void FreeFastLogChoose(double **LogChooseList,
+		       int LogChooseListSize);
+double FastLogChoose(int a,
+		     int b,
+		     double **LogChooseList,
+		     int LogChooseListSize);
 
 
 #endif /* !RGRAPH_TOOLS_H */

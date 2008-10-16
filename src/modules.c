@@ -2253,9 +2253,11 @@ PartitionH(struct group *part)
   return H;
 }
 
+
 /*
   ---------------------------------------------------------------------
-  
+  Predict the links missing in a network. The algorithm returns a
+  matrix of scores for all links.
   ---------------------------------------------------------------------
 */
 double **
@@ -2278,6 +2280,8 @@ MissingLinks(struct node_gra *net, struct prng *gen)
   int stepFactor = 250;
   int **G2G;
   int *n2gList;
+  int LogChooseListSize = 500;
+  double **LogChooseList=InitializeFastLogChoose(LogChooseListSize);
 
   /* Initialize the predicted adjacency matrix */
   predA = allocate_d_mat(nnod, nnod);
@@ -2347,27 +2351,37 @@ MissingLinks(struct node_gra *net, struct prng *gen)
 	if (g->size > 0) {
 	  if (g->label == oldg->label) {
 	    /* old conf, oldg-oldg */
-	    dH -= log(noldg * (noldg - 1) / 2 + 1) +
-	      LogChoose(noldg * (noldg - 1) / 2, oldg2oldg);
+	    r = noldg * (noldg - 1) / 2;
+	    l = oldg2oldg;
+	    dH -= log(r + 1) + FastLogChoose(r, l,
+					     LogChooseList, LogChooseListSize);
 	    /* new conf, oldg-olg */
-	    dH += log((noldg - 1) * (noldg - 2) / 2 + 1) +
-	      LogChoose((noldg - 1) * (noldg - 2) / 2,
-			      oldg2oldg - n2oldg);
+	    r = (noldg - 1) * (noldg - 2) / 2;
+	    l = oldg2oldg - n2oldg;
+	    dH += log(r + 1) + FastLogChoose(r, l,
+					     LogChooseList, LogChooseListSize);
 	    /* old conf, newg-oldg */
-	    dH -= log(nnewg * noldg + 1) +
-	      LogChoose(nnewg * noldg, newg2oldg);
+	    r = nnewg * noldg;
+	    l = newg2oldg;
+	    dH -= log(r + 1) + FastLogChoose(r, l,
+					     LogChooseList, LogChooseListSize);
 	    /* new conf, newg-oldg */
-	    dH += log((nnewg + 1) * (noldg - 1) + 1) +
-	      LogChoose((nnewg + 1) * (noldg - 1),
-			      newg2oldg + n2oldg - n2newg);
+	    r = (nnewg + 1) * (noldg - 1);
+	    l = newg2oldg + n2oldg - n2newg;
+	    dH += log(r + 1) + FastLogChoose(r, l,
+					     LogChooseList, LogChooseListSize);
 	  }
 	  else if (g->label == newg->label) {
 	    /* old conf, newg-newg */
-	    dH -= log(nnewg * (nnewg - 1) / 2 + 1) +
-	      LogChoose(nnewg * (nnewg - 1) / 2, newg2newg);
+	    r = nnewg * (nnewg - 1) / 2;
+	    l = newg2newg;
+	    dH -= log(r + 1) + FastLogChoose(r, l,
+					     LogChooseList, LogChooseListSize);
 	    /* new conf, newg-olg */
-	    dH += log((nnewg + 1) * nnewg / 2 + 1) +
-	      LogChoose((nnewg + 1) * nnewg / 2, newg2newg + n2newg);
+	    r = (nnewg + 1) * nnewg / 2;
+	    l = newg2newg + n2newg;
+	    dH += log(r + 1) + FastLogChoose(r, l,
+					     LogChooseList, LogChooseListSize);
 	  }
 	  else {
 	    n2g = n2gList[g->label];
@@ -2375,17 +2389,25 @@ MissingLinks(struct node_gra *net, struct prng *gen)
 	    newg2g = G2G[newg->label][g->label];
 	    ng = g->size;
 	    /* old conf, oldg-g */
-	    dH -= log(noldg * ng + 1) +
-	      LogChoose(noldg * ng, oldg2g);
+	    r = noldg * ng;
+	    l = oldg2g;
+	    dH -= log(r + 1) + FastLogChoose(r, l,
+					     LogChooseList, LogChooseListSize);
 	    /* new conf, oldg-g */
-	    dH += log((noldg - 1) * ng + 1) +
-	      LogChoose((noldg - 1) * ng, oldg2g - n2g);
+	    r = (noldg - 1) * ng;
+	    l = oldg2g - n2g;
+	    dH += log(r + 1) + FastLogChoose(r, l,
+					     LogChooseList, LogChooseListSize);
 	    /* old conf, newg-g */
-	    dH -= log(nnewg * ng + 1) +
-	      LogChoose(nnewg * ng, newg2g);
+	    r = nnewg * ng;
+	    l = newg2g;
+	    dH -= log(r + 1) + FastLogChoose(r, l,
+					     LogChooseList, LogChooseListSize);
 	    /* new conf, newg-g */
-	    dH += log((nnewg + 1) * ng + 1) +
-	      LogChoose((nnewg + 1) * ng, newg2g + n2g);
+	    r = (nnewg + 1) * ng;
+	    l = newg2g + n2g;
+	    dH += log(r + 1) + FastLogChoose(r, l,
+					     LogChooseList, LogChooseListSize);
 	  }
 	}
       }
@@ -2407,7 +2429,8 @@ MissingLinks(struct node_gra *net, struct prng *gen)
       }
     }  /* End of step loop */
 
-    fprintf(stderr, "%d %lf\n", iter, H);
+    if (iter % 100 == 0)
+      fprintf(stderr, "%d %lf\n", iter, H);
 /*     fprintf(stderr, "%d %lf %lf\n", iter, H, PartitionH(part)); */
 
     /* Update partition function and predicted adjacency matrix */
@@ -2441,6 +2464,7 @@ MissingLinks(struct node_gra *net, struct prng *gen)
   free(nlist);
   free_i_mat(G2G, nnod);
   free_i_vec(n2gList);
+  FreeFastLogChoose(LogChooseList, LogChooseListSize);
   
   return predA;
 }

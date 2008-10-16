@@ -332,8 +332,61 @@ Choose(int n, int k)
   Logarithm of the binomial coefficient
   ---------------------------------------------------------------------
 */
-long double
+double
 LogChoose(int a, int b)
 {
-  return logl(Choose(a, b));
+  return (double)logl(Choose(a, b));
+}
+
+/*
+  ---------------------------------------------------------------------
+  Initialize a matrix to be used by FastLogChoose
+  ---------------------------------------------------------------------
+*/
+double **
+InitializeFastLogChoose(int LogChooseListSize)
+{
+  double **LogChooseList;
+  int i, j;
+
+  LogChooseList = allocate_d_mat(LogChooseListSize, LogChooseListSize);
+  for (i=0; i<LogChooseListSize; i++)
+    for (j=0; j<LogChooseListSize; j++)
+      LogChooseList[i][j] = -1.0;
+
+  return LogChooseList;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Free a used by FastLogChoose
+  ---------------------------------------------------------------------
+*/
+void
+FreeFastLogChoose(double **LogChooseList, int LogChooseListSize)
+{
+  free_d_mat(LogChooseList, LogChooseListSize);
+  return;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Fast log of the binomial coefficient: checks, first, in a matrix to
+  see if the coefficient has been calculated before. At the begining,
+  the matrix MUST BE initialized to <0 values (RECOMMENDED: Use
+  InitializeFastLogChoose for that purpose).
+  ---------------------------------------------------------------------
+*/
+double
+FastLogChoose(int r, int l, double **LogChooseList, int LogChooseListSize)
+{
+  if (r < LogChooseListSize) {
+    if (LogChooseList[r][l] < 0.) {
+      LogChooseList[r][l] = LogChoose(r, l);
+    }
+    return LogChooseList[r][l];
+  }
+  else {
+    return LogChoose(r, l);
+  }
 }
