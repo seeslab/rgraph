@@ -2253,6 +2253,137 @@ PartitionH(struct group *part)
   return H;
 }
 
+/*
+  ---------------------------------------------------------------------
+  Do a Monte Carlo step for the prediction of missing links
+  ---------------------------------------------------------------------
+*/
+void
+MissingLinksMCStep(double *H,
+		   struct node_gra **nlist,
+		   struct group **glist,
+		   struct group *part,
+		   int nnod,
+		   int **G2G,
+		   int *n2gList,
+		   double **LogChooseList,
+		   int LogChooseListSize,
+		   struct prng *gen)
+{
+  double dH;
+  struct group *g, *oldg, *newg;
+  int dice, oldgnum, newgnum, n2g, oldg2g, newg2g, ng, noldg, nnewg;
+  struct node_gra *node;
+  int n2oldg, n2newg, newg2oldg, oldg2oldg, newg2newg;
+  int r, l;
+  int i, j;
+
+  /* Choose node and destination group */
+  dice = floor(prng_get_next(gen) * (double)nnod);
+  node = nlist[dice];
+  oldgnum = node->inGroup;
+  do {
+    newgnum = floor(prng_get_next(gen) * (double)nnod);
+  } while (newgnum == oldgnum);
+  oldg = glist[oldgnum];
+  newg = glist[newgnum];
+  
+  /* Calculate the change of energy */
+  dH = 0.0;
+  noldg = oldg->size;
+  nnewg = newg->size;
+  n2oldg = NLinksToGroup(node, oldg);
+  n2newg = NLinksToGroup(node, newg);
+  newg2oldg = NG2GLinks(newg, oldg);
+  oldg2oldg = oldg->inlinks;
+  newg2newg = newg->inlinks;
+  g = part;
+  while ((g = g->next) != NULL) {
+    if (g->size > 0) {  /* group is not empty */
+      n2gList[g->label] = NLinksToGroup(node, g);
+      if (g->label == oldg->label) {
+	/* old conf, oldg-oldg */
+	r = noldg * (noldg - 1) / 2;
+	l = oldg2oldg;
+	dH -= log(r + 1) + FastLogChoose(r, l,
+					 LogChooseList, LogChooseListSize);
+	/* new conf, oldg-olg */
+	r = (noldg - 1) * (noldg - 2) / 2;
+	l = oldg2oldg - n2oldg;
+	dH += log(r + 1) + FastLogChoose(r, l,
+					 LogChooseList, LogChooseListSize);
+	/* old conf, newg-oldg */
+	r = nnewg * noldg;
+	l = newg2oldg;
+	dH -= log(r + 1) + FastLogChoose(r, l,
+					 LogChooseList, LogChooseListSize);
+	/* new conf, newg-oldg */
+	r = (nnewg + 1) * (noldg - 1);
+	l = newg2oldg + n2oldg - n2newg;
+	dH += log(r + 1) + FastLogChoose(r, l,
+					 LogChooseList, LogChooseListSize);
+      }
+      else if (g->label == newg->label) {
+	/* old conf, newg-newg */
+	r = nnewg * (nnewg - 1) / 2;
+	l = newg2newg;
+	dH -= log(r + 1) + FastLogChoose(r, l,
+					 LogChooseList, LogChooseListSize);
+	/* new conf, newg-olg */
+	r = (nnewg + 1) * nnewg / 2;
+	l = newg2newg + n2newg;
+	dH += log(r + 1) + FastLogChoose(r, l,
+					 LogChooseList, LogChooseListSize);
+      }
+      else {
+	n2g = n2gList[g->label];
+	oldg2g = G2G[oldg->label][g->label];
+	newg2g = G2G[newg->label][g->label];
+	ng = g->size;
+	/* old conf, oldg-g */
+	r = noldg * ng;
+	l = oldg2g;
+	dH -= log(r + 1) + FastLogChoose(r, l,
+					 LogChooseList, LogChooseListSize);
+	/* new conf, oldg-g */
+	r = (noldg - 1) * ng;
+	l = oldg2g - n2g;
+	dH += log(r + 1) + FastLogChoose(r, l,
+					 LogChooseList, LogChooseListSize);
+	/* old conf, newg-g */
+	r = nnewg * ng;
+	l = newg2g;
+	dH -= log(r + 1) + FastLogChoose(r, l,
+					 LogChooseList, LogChooseListSize);
+	/* new conf, newg-g */
+	r = (nnewg + 1) * ng;
+	l = newg2g + n2g;
+	dH += log(r + 1) + FastLogChoose(r, l,
+					 LogChooseList, LogChooseListSize);
+      }
+    }
+    else { /* group is empty */
+      n2gList[g->label] = 0.0;
+    }
+  }
+
+  /* Metropolis rule */
+  if ((dH <= 0.0) || (prng_get_next(gen) < exp(-dH))) {
+    
+    /* accept move */
+    MoveNode(node, oldg, newg);
+    *H += dH;
+    
+    /* update G2G */
+    for (i=0; i<nnod; i++) {
+      G2G[i][oldgnum] -= n2gList[i];
+      G2G[oldgnum][i] = G2G[i][oldgnum];
+      G2G[i][newgnum] += n2gList[i];
+      G2G[newgnum][i] = G2G[i][newgnum];
+    }
+  }
+}
+
 
 /*
   ---------------------------------------------------------------------
@@ -2269,19 +2400,19 @@ MissingLinks(struct node_gra *net, struct prng *gen)
   struct node_gra **nlist;
   struct group **glist;
   struct group *lastg;
-  double H, dH;
+  double H;
   int iter, nIter, step, nStep;
-  int dice, oldgnum, newgnum, n2g, oldg2g, newg2g, ng, noldg, nnewg;
-  int n2oldg, n2newg, newg2oldg, oldg2oldg, newg2newg;
   double **predA, Z=0.0;
   int i, j;
-  int r, l;
-  struct group *g, *oldg, *newg;
   int stepFactor = 250;
   int **G2G;
   int *n2gList;
   int LogChooseListSize = 500;
   double **LogChooseList=InitializeFastLogChoose(LogChooseListSize);
+  struct node_lis *p1, *p2;
+  double weight, contrib;
+  int dice;
+  int r, l;
 
   /* Initialize the predicted adjacency matrix */
   predA = allocate_d_mat(nnod, nnod);
@@ -2318,137 +2449,79 @@ MissingLinks(struct node_gra *net, struct prng *gen)
 
   /*
     Do the Metropolis sampling
-    -------------------------------------------------------------------
   */
   H = PartitionH(part);
-  nIter = stepFactor * nnod;
+  nIter = stepFactor * nnod * 20;
+  nStep = nnod / 10;
   nStep = nnod;
   for (iter=0; iter<nIter; iter++) {
     for (step=0; step<nStep; step++) {
-      
-      /* Choose node and destination group */
-      dice = floor(prng_get_next(gen) * (double)nnod);
-      node = nlist[dice];
-      oldgnum = node->inGroup;
-      do {
-	newgnum = floor(prng_get_next(gen) * (double)nnod);
-      } while (newgnum == oldgnum);
-      oldg = glist[oldgnum];
-      newg = glist[newgnum];
-
-      /* Calculate the change of energy */
-      dH = 0.0;
-      noldg = oldg->size;
-      nnewg = newg->size;
-      n2oldg = NLinksToGroup(node, oldg);
-      n2newg = NLinksToGroup(node, newg);
-      newg2oldg = NG2GLinks(newg, oldg);
-      oldg2oldg = oldg->inlinks;
-      newg2newg = newg->inlinks;
-      g = part;
-      while ((g = g->next) != NULL) {
-	n2gList[g->label] = NLinksToGroup(node, g);
-	if (g->size > 0) {
-	  if (g->label == oldg->label) {
-	    /* old conf, oldg-oldg */
-	    r = noldg * (noldg - 1) / 2;
-	    l = oldg2oldg;
-	    dH -= log(r + 1) + FastLogChoose(r, l,
-					     LogChooseList, LogChooseListSize);
-	    /* new conf, oldg-olg */
-	    r = (noldg - 1) * (noldg - 2) / 2;
-	    l = oldg2oldg - n2oldg;
-	    dH += log(r + 1) + FastLogChoose(r, l,
-					     LogChooseList, LogChooseListSize);
-	    /* old conf, newg-oldg */
-	    r = nnewg * noldg;
-	    l = newg2oldg;
-	    dH -= log(r + 1) + FastLogChoose(r, l,
-					     LogChooseList, LogChooseListSize);
-	    /* new conf, newg-oldg */
-	    r = (nnewg + 1) * (noldg - 1);
-	    l = newg2oldg + n2oldg - n2newg;
-	    dH += log(r + 1) + FastLogChoose(r, l,
-					     LogChooseList, LogChooseListSize);
-	  }
-	  else if (g->label == newg->label) {
-	    /* old conf, newg-newg */
-	    r = nnewg * (nnewg - 1) / 2;
-	    l = newg2newg;
-	    dH -= log(r + 1) + FastLogChoose(r, l,
-					     LogChooseList, LogChooseListSize);
-	    /* new conf, newg-olg */
-	    r = (nnewg + 1) * nnewg / 2;
-	    l = newg2newg + n2newg;
-	    dH += log(r + 1) + FastLogChoose(r, l,
-					     LogChooseList, LogChooseListSize);
-	  }
-	  else {
-	    n2g = n2gList[g->label];
-	    oldg2g = G2G[oldg->label][g->label];
-	    newg2g = G2G[newg->label][g->label];
-	    ng = g->size;
-	    /* old conf, oldg-g */
-	    r = noldg * ng;
-	    l = oldg2g;
-	    dH -= log(r + 1) + FastLogChoose(r, l,
-					     LogChooseList, LogChooseListSize);
-	    /* new conf, oldg-g */
-	    r = (noldg - 1) * ng;
-	    l = oldg2g - n2g;
-	    dH += log(r + 1) + FastLogChoose(r, l,
-					     LogChooseList, LogChooseListSize);
-	    /* old conf, newg-g */
-	    r = nnewg * ng;
-	    l = newg2g;
-	    dH -= log(r + 1) + FastLogChoose(r, l,
-					     LogChooseList, LogChooseListSize);
-	    /* new conf, newg-g */
-	    r = (nnewg + 1) * ng;
-	    l = newg2g + n2g;
-	    dH += log(r + 1) + FastLogChoose(r, l,
-					     LogChooseList, LogChooseListSize);
-	  }
-	}
-      }
-
-      /* Metropolis rule */
-      if ((dH <= 0.0) || (prng_get_next(gen) < exp(-dH))) {
-
-	/* accept move */
-	MoveNode(node, oldg, newg);
-	H += dH;
-
-	/* update G2G */
-	for (i=0; i<nnod; i++) {
-	  G2G[i][oldgnum] -= n2gList[i];
-	  G2G[oldgnum][i] = G2G[i][oldgnum];
-	  G2G[i][newgnum] += n2gList[i];
-	  G2G[newgnum][i] = G2G[i][newgnum];
-	}
-      }
-    }  /* End of step loop */
+      MissingLinksMCStep(&H, nlist, glist, part,
+			 nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
+			 gen);
+    }
 
     if (iter % 100 == 0)
       fprintf(stderr, "%d %lf\n", iter, H);
-/*     fprintf(stderr, "%d %lf %lf\n", iter, H, PartitionH(part)); */
+/*       fprintf(stderr, "%d %lf %lf\n", iter, H, PartitionH(part)); */
 
-    /* Update partition function and predicted adjacency matrix */
-    Z += exp(-H);
+    /* Update partition function */
+    weight = exp(-H);
+    Z += weight;
+
+    /* Update the predicted adjacency matrix by going through all
+       group pairs */
     for (i=0; i<nnod; i++) {
-      for (j=0; j<nnod; j++) {
-	if (nlist[i]->inGroup == nlist[j]->inGroup) {
-	  l = glist[nlist[i]->inGroup]->inlinks;
-	  r = glist[nlist[i]->inGroup]->size *
-	    (glist[nlist[i]->inGroup]->size - 1) / 2;
+      if (glist[i]->size > 0) {
+	
+	/* update the within-group pairs */
+	r = glist[i]->size * (glist[i]->size - 1) / 2;
+	l = glist[i]->inlinks;
+	contrib = weight * (float)(l + 1) / (float)(r + 2);
+	p1 = glist[i]->nodeList;
+	while ((p1 = p1->next) != NULL) {
+	  p2 = p1;
+	  while ((p2 = p2->next) != NULL) {
+	    predA[p1->node][p2->node] += contrib;
+	    predA[p2->node][p1->node] += contrib;
+	  }
 	}
-	else {
-	  l = G2G[nlist[i]->inGroup][nlist[j]->inGroup];
-	  r = glist[nlist[i]->inGroup]->size * glist[nlist[j]->inGroup]->size;
+      
+	/* update the between-group pairs */
+	for (j=i+1; j<nnod; j++) {
+	  if (glist[j]->size > 0) {
+	    l = G2G[i][j];
+	    r = glist[i]->size * glist[j]->size;
+	    contrib = weight * (float)(l + 1) / (float)(r + 2);
+	    p1 = glist[i]->nodeList;
+	    while ((p1 = p1->next) != NULL) {
+	      p2 = glist[j]->nodeList;
+	      while ((p2 = p2->next) != NULL) {
+		predA[p1->node][p2->node] += contrib;
+		predA[p2->node][p1->node] += contrib;
+	      }
+	    }
+	  }
 	}
-	predA[i][j] += exp(-H) * (float)(l + 1) / (float)(r + 2);
       }
-    }
+    } /* Done updating adjacency matrix */
+
+
+/*     for (i=0; i<nnod; i++) { */
+/*       for (j=i+1; j<nnod; j++) { */
+/* 	if (nlist[i]->inGroup == nlist[j]->inGroup) { */
+/* 	  l = glist[nlist[i]->inGroup]->inlinks; */
+/* 	  r = glist[nlist[i]->inGroup]->size * */
+/* 	    (glist[nlist[i]->inGroup]->size - 1) / 2; */
+/* 	} */
+/* 	else { */
+/* 	  l = G2G[nlist[i]->inGroup][nlist[j]->inGroup]; */
+/* 	  r = glist[nlist[i]->inGroup]->size * glist[nlist[j]->inGroup]->size; */
+/* 	} */
+/* 	predA[i][j] += weight * (float)(l + 1) / (float)(r + 2); */
+/* 	predA[j][i] += weight * (float)(l + 1) / (float)(r + 2); */
+/*       } */
+/*     } */
 
   }  /* End of iter loop */
 

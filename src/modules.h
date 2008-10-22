@@ -170,6 +170,17 @@ struct group *CatalogRoleIdent(struct node_gra *net,
   ---------------------------------------------------------------------
 */
 double PartitionH(struct group *part);
+void
+MissingLinksMCStep(double *H,
+		   struct node_gra **nlist,
+		   struct group **glist,
+		   struct group *part,
+		   int nnod,
+		   int **G2G,
+		   int *n2gList,
+		   double **LogChooseList,
+		   int LogChooseListSize,
+		   struct prng *gen);
 double **MissingLinks(struct node_gra *net, struct prng *gen);
 
 #endif /* !RGRAPH_MODULES_H */
