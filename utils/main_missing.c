@@ -12,6 +12,7 @@
 #include "tools.h"
 #include "graph.h"
 #include "modules.h"
+#include "missing.h"
 
 int
 main(int argc, char **argv)
