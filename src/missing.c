@@ -587,7 +587,7 @@ NetworkReliability(struct node_gra *net, struct prng *gen)
 
   /* Calculate the reliability score */
   for (i=0; i<nnod; i++) {
-    for (j=0; j<nnod; j++) {
+    for (j=i+1; j<nnod; j++) {
       if (IsThereLink(nlist[i], nlist[j]) == 1) {
 	score += (1.0 - pairScore[i][j]) * (1.0 - pairScore[i][j]);
       }
