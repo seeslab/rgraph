@@ -862,9 +862,9 @@ CleanAdjacencies(struct node_gra *net)
 */
 void
 RemoveRandomLinks(struct node_gra *net,
-		  double prob,
-		  int symmetric_sw,
-		  struct prng *gen)
+	       double prob,
+	       int symmetric_sw,
+	       struct prng *gen)
 {
   struct node_gra *p=net;
   struct node_lis *n=NULL;
@@ -890,6 +890,43 @@ RemoveRandomLinks(struct node_gra *net,
     }
   }
 
+  return;
+}
+
+/*
+  -----------------------------------------------------------------------------
+  Add nLinks random links to the network
+  -----------------------------------------------------------------------------
+*/
+void
+AddRandomLinks(struct node_gra *net,
+	       int nLinks,
+	       int symmetric_sw,
+	       struct prng *gen)
+{
+  int nnod = CountLinks(net), n;
+  struct node_gra *p = net;
+  struct node_gra **nlist;
+  int n1, n2;
+
+  /* Map the nodes to a list for faster access */
+  nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
+  p = net;
+  while ((p = p->next) != NULL) {
+    nlist[p->num] = p;
+  }
+
+  /* Add the links */
+  for (n=0; n<nLinks; n++) {
+    do {
+      n1 = (int)(prng_get_next(gen) * nnod);
+      n2 = (int)(prng_get_next(gen) * nnod);
+    } while ((n1 == n2) || IsThereLink(nlist[n1], nlist[n2]) == 1);
+    AddAdjacency(nlist[n1], nlist[n2], 0, 0, 1.0, 0);
+    AddAdjacency(nlist[n2], nlist[n1], 0, 0, 1.0, 0);
+  }
+
+  /* Done */
   return;
 }
 

@@ -180,6 +180,10 @@ void RemoveRandomLinks(struct node_gra *net,
 		       double prob,
 		       int symmetric_sw,
 		       struct prng *gen);
+void AddRandomLinks(struct node_gra *net,
+		    int nLinks,
+		    int symmetric_sw,
+		    struct prng *gen);
 
 /*
   ---------------------------------------------------------------------
