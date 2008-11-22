@@ -857,32 +857,47 @@ CleanAdjacencies(struct node_gra *net)
 
 /*
   -----------------------------------------------------------------------------
-  Remove each link with probability p
+  Remove nLinks random links in the network
   -----------------------------------------------------------------------------
 */
 void
 RemoveRandomLinks(struct node_gra *net,
-	       double prob,
-	       int symmetric_sw,
-	       struct prng *gen)
+		  int nLinks,
+		  int symmetric_sw,
+		  struct prng *gen)
 {
   struct node_gra *p=net;
   struct node_lis *n=NULL;
+  int *targetList, i, totalLinks, linkCounter=0;
+  int n1;
 
-  /* Go over all links and remove each of them with probability
-     prob. If links are undirected, we only try once per link (by
-     imposing that the origin node has to be smaller than the
-     destination node) */
+  /* Create the list with the links to be removed */
+  totalLinks = TotalNLinks(net, symmetric_sw);
+  targetList = allocate_i_vec(totalLinks);
+  for (i=0; i<totalLinks; i++) {
+    targetList[i] = 0;
+  }
+  for (i=0; i<nLinks; i++) {
+    do {
+      n1 = (int)(prng_get_next(gen) * totalLinks);
+    } while (targetList[n1] == 1);
+    targetList[n1] = 1;
+  }
+  
+  /* Go over all links and remove those marked for removal. If links
+     are undirected, we only try once per link (by imposing that the
+     origin node has to be smaller than the destination node) */
   while ((p = p->next) != NULL) {
     n = p->neig;
     while (n->next != NULL) {
       if ((p->num <= ((n->next)->ref)->num) || (symmetric_sw == 0)) {
-	if (prng_get_next(gen) < prob) {
+	if (targetList[linkCounter] == 1) {
 	  RemoveLink(p, (n->next)->ref, symmetric_sw);
 	}
 	else {
 	  n = n->next;
 	}
+	linkCounter++;
       }
       else {
 	n = n->next;
@@ -890,6 +905,7 @@ RemoveRandomLinks(struct node_gra *net,
     }
   }
 
+  /* Done */
   return;
 }
 
@@ -927,6 +943,7 @@ AddRandomLinks(struct node_gra *net,
   }
 
   /* Done */
+  free(nlist);
   return;
 }
 

@@ -177,7 +177,7 @@ int IsThereLinkSoft(struct node_gra *n1,
 int RemoveIsolatedNodes(struct node_gra *root);
 void CleanAdjacencies(struct node_gra *net);
 void RemoveRandomLinks(struct node_gra *net,
-		       double prob,
+		       int nLinks,
 		       int symmetric_sw,
 		       struct prng *gen);
 void AddRandomLinks(struct node_gra *net,
