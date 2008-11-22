@@ -906,6 +906,7 @@ RemoveRandomLinks(struct node_gra *net,
   }
 
   /* Done */
+  free_i_vec(targetList);
   return;
 }
 

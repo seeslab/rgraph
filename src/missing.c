@@ -570,7 +570,7 @@ double
 NetworkReliability(struct node_gra *net, struct prng *gen)
 {
   struct node_gra **nlist;
-  int i, j, nnod=CounNodes(net);
+  int i, j, nnod=CountNodes(net);
   struct node_gra *p;
   double score=0.0;
   double **pairScore;
