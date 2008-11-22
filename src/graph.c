@@ -921,12 +921,13 @@ AddRandomLinks(struct node_gra *net,
 	       int symmetric_sw,
 	       struct prng *gen)
 {
-  int nnod = CountLinks(net), n;
+  int nnod, n;
   struct node_gra *p = net;
   struct node_gra **nlist;
   int n1, n2;
 
   /* Map the nodes to a list for faster access */
+  nnod = CountNodes(net);
   nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
   p = net;
   while ((p = p->next) != NULL) {
