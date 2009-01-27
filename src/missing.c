@@ -563,7 +563,7 @@ MissingLinks(struct node_gra *net, double linC, int nIter, struct prng *gen)
 
 /*
   ---------------------------------------------------------------------
-  Return the network reliability score
+  Return error of the stochastic block model for a given network
   ---------------------------------------------------------------------
 */
 double
@@ -605,5 +605,38 @@ SBMError(struct node_gra *net, struct prng *gen)
   /* Done */
   free(nlist);
   free_d_mat(pairScore, nnod);
+  return score;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Return normalized error of the stochastic block model for a given
+  network
+  ---------------------------------------------------------------------
+*/
+double
+SBMStructureScore(struct node_gra *net, int nrep, struct prng *gen)
+{
+  int rep;
+  double scoreOri, *scoreRan, score;
+  struct node_gra *randNet;
+
+  /* Original network */
+  scoreOri = SBMError(net, gen);
+
+  /* Randomizations */
+  scoreRan = allocate_d_vec(nrep);
+  for (rep=0; rep<nrep; rep++) {
+    randNet = CopyNetwork(net);
+    RandomizeSymmetricNetwork(randNet, 100, gen);
+    scoreRan[rep] = SBMError(randNet, gen);
+    RemoveGraph(randNet);
+  }
+
+  /* The score */
+  score = (mean(scoreRan, nrep) - scoreOri) / stddev(scoreRan, nrep);
+
+  /* Done */
+  free_d_vec(scoreRan);
   return score;
 }
