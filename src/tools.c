@@ -239,8 +239,8 @@ stddev(double *data, int N)
     m2 += data[i] * data[i];
   }
 
-  m /= (double)N;
-  m2 /= (double)N;
+  m /= (double)(N - 1);
+  m2 /= (double)(N - 1);
   s = sqrt(m2 - m * m);
 
   return s;
