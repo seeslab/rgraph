@@ -567,7 +567,7 @@ MissingLinks(struct node_gra *net, double linC, int nIter, struct prng *gen)
   ---------------------------------------------------------------------
 */
 double
-NetworkReliability(struct node_gra *net, struct prng *gen)
+SBMError(struct node_gra *net, struct prng *gen)
 {
   struct node_gra **nlist;
   int i, j, nnod=CountNodes(net);
@@ -588,6 +588,8 @@ NetworkReliability(struct node_gra *net, struct prng *gen)
   /* Calculate the reliability score */
   for (i=0; i<nnod; i++) {
     for (j=i+1; j<nnod; j++) {
+/*       fprintf(stderr, "%s %s %lf\n", */
+/* 	      nlist[i]->label, nlist[j]->label, pairScore[i][j]); */
       if (IsThereLink(nlist[i], nlist[j]) == 1) {
 	score += (1.0 - pairScore[i][j]) * (1.0 - pairScore[i][j]);
       }
@@ -602,5 +604,6 @@ NetworkReliability(struct node_gra *net, struct prng *gen)
 
   /* Done */
   free(nlist);
+  free_d_mat(pairScore, nnod);
   return score;
 }

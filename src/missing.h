@@ -53,7 +53,7 @@ double **MissingLinks(struct node_gra *net,
 		      double linC,
 		      int nIter,
 		      struct prng *gen);
-double NetworkReliability(struct node_gra *net, struct prng *gen);
+double SBMError(struct node_gra *net, struct prng *gen);
 
 
 
