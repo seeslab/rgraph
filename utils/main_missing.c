@@ -51,7 +51,7 @@ main(int argc, char **argv)
     Missing
     ---------------------------------------------------------------------------
   */
-  newA = MissingLinks(net, rand_gen);
+  newA = MissingLinks(net, 0.0, 10000, rand_gen);
 
   p1 = p2 = net;
   while ((p1 = p1->next) != NULL) {
