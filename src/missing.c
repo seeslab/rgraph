@@ -415,20 +415,20 @@ double **
 MissingLinks(struct node_gra *net, double linC, int nIter, struct prng *gen)
 {
   int nnod=CountNodes(net);
-  struct group *part;
-  struct node_gra *p, *node;
-  struct node_gra **nlist;
-  struct group **glist;
-  struct group *lastg;
+  struct group *part=NULL;
+  struct node_gra *p=NULL, *node=NULL;
+  struct node_gra **nlist=NULL;
+  struct group **glist=NULL;
+  struct group *lastg=NULL;
   double H;
   int iter, decorStep;
-  double **predA, Z=0.0;
+  double **predA=NULL, Z=0.0;
   int i, j;
-  int **G2G;
-  int *n2gList;
+  int **G2G=NULL;
+  int *n2gList=NULL;
   int LogChooseListSize = 500;
   double **LogChooseList=InitializeFastLogChoose(LogChooseListSize);
-  struct node_lis *p1, *p2;
+  struct node_lis *p1=NULL, *p2=NULL;
   double weight, contrib;
   int dice;
   int r, l;
@@ -455,6 +455,7 @@ MissingLinks(struct node_gra *net, double linC, int nIter, struct prng *gen)
 
   /* Place nodes in random partitions */
   p = net;
+  ResetNetGroup(net);
   while ((p = p->next) != NULL) {
     dice = floor(prng_get_next(gen) * (double)nnod);
     AddNodeToGroup(glist[dice], p);
@@ -552,6 +553,7 @@ MissingLinks(struct node_gra *net, double linC, int nIter, struct prng *gen)
   }
 
   /* Done */
+  RemovePartition(part);
   free(glist);
   free(nlist);
   free_i_mat(G2G, nnod);
@@ -626,11 +628,10 @@ SBMStructureScore(struct node_gra *net, int nrep, struct prng *gen)
 
   /* Randomizations */
   scoreRan = allocate_d_vec(nrep);
+  randNet = CopyNetwork(net);
   for (rep=0; rep<nrep; rep++) {
-    randNet = CopyNetwork(net);
     RandomizeSymmetricNetwork(randNet, 100, gen);
     scoreRan[rep] = SBMError(randNet, gen);
-    RemoveGraph(randNet);
   }
 
   /* The score */
@@ -638,5 +639,6 @@ SBMStructureScore(struct node_gra *net, int nrep, struct prng *gen)
 
   /* Done */
   free_d_vec(scoreRan);
+  RemoveGraph(randNet);
   return score;
 }
