@@ -1244,7 +1244,7 @@ RandomizeSymmetricNetwork(struct node_gra *net,
 
   /* Build the link lists (one for link origins and one for ends) */
   nlink = TotalNLinks(net, 1);
-  niter =  ceil(times * (double)nlink);
+  niter =  ceil(times * (double)nlink + prng_get_next(gen));
   ori = (struct node_gra **)calloc(nlink, sizeof(struct node_gra *));
   des = (struct node_gra **)calloc(nlink, sizeof(struct node_gra *));
   p = net;
@@ -1263,13 +1263,13 @@ RandomizeSymmetricNetwork(struct node_gra *net,
 
   /* Randomize the links */
   for (i=0; i<niter; i++) {
-    /* select the 4 nodes different nodes */
+    /* select the 4 nodes */
     do {
-      target1 = floor(prng_get_next(gen) * (double)nlink);
-      n1 = ori[target1];
-      n2 = des[target1];
-
       do {
+	target1 = floor(prng_get_next(gen) * (double)nlink);
+	n1 = ori[target1];
+	n2 = des[target1];
+
 	target2 = floor(prng_get_next(gen) * (double)nlink);
 	if (prng_get_next(gen) < 0.5) {
 	  n3 = des[target2];
