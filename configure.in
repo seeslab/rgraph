@@ -1,26 +1,30 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT(rgraph, [0.1])
+AC_INIT(rgraph, [0.1], [rguimera@northwestern.edu])
 AC_REVISION($Revision$)
 AM_INIT_AUTOMAKE
 
 
 # Create the config.h.in
+AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADER(config.h)
 
 # Checks for programs.
 AC_PROG_LIBTOOL
-AC_PROG_INSTALL
-
-AC_LANG_C
-AC_PROG_CC
 AC_PROG_CXX
+AC_PROG_CC
+AC_PROG_CPP
+AC_PROG_INSTALL
+AC_PROG_LN_S
+AC_PROG_MAKE_SET
+AC_PROG_RANLIB
+
 gl_EARLY
 AC_PROG_MAKE_SET
 
 # Checks for libraries.
-AC_CHECK_LIB([m], [exp])
-AC_CHECK_LIB([prng], [prng_new], , AC_MSG_ERROR([prng library not found]))
-AC_CHECK_LIB([gsl], [gsl_vector_alloc], , AC_MSG_ERROR([GSL library not found]))
+#AC_CHECK_LIB([m], [exp])
+#AC_CHECK_LIB([prng], [prng_new], , AC_MSG_ERROR([prng library not found]))
+#AC_CHECK_LIB([gsl], [gsl_vector_alloc], , AC_MSG_ERROR([GSL library not found]))
 
 # For gnulib
 gl_INIT
