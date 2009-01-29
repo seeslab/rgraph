@@ -2,11 +2,12 @@
 AC_INIT(rgraph, [0.1], [rguimera@northwestern.edu])
 AC_REVISION($Revision$)
 AM_INIT_AUTOMAKE
-
+LT_INIT
 
 # Create the config.h.in
 AC_CONFIG_SRCDIR([config.h.in])
 AC_CONFIG_HEADER(config.h)
+AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for programs.
 AC_PROG_LIBTOOL
@@ -16,7 +17,6 @@ AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
-AC_PROG_RANLIB
 
 gl_EARLY
 AC_PROG_MAKE_SET
