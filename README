@@ -232,7 +232,7 @@ the executable). Additionally, netcarto_cl allows you to fix the
 initial temperature. Please read the netcarto documentation to learn
 more about netcarto_cl.
 
-The arguments need to be passed in the following orther:
+The arguments need to be passed in the following order:
 
 > netcarto_cl net_file_name seed T_ini iteration_factor cooling_factor
   #_randomizations
