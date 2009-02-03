@@ -14,6 +14,8 @@
 #include "models.h"
 #include "modules.h"
 
+#define EPS 1.e-6
+
 int main()
 {
   struct node_gra *net = NULL;
@@ -33,17 +35,65 @@ int main()
     Build the network
     ------------------------------------------------------------
   */
-  net = ERGraph(50, 0.06, randGen);
+  net = ERGraph(10, 0.2, randGen);
+  FPrintPajekFile("graph1.net", net, 0, 0, 1);
 
   /*
     ------------------------------------------------------------
     Network properties
     ------------------------------------------------------------
   */
+  double dtemp;
+  int itemp;
   printf("S = %d\n", CountNodes(net));
-  printf("C = %g\n", ClusteringCoefficient(net));
+
+  dtemp = ClusteringCoefficient(net);
+  if (fabs(dtemp - 0.1875) > EPS)
+    return 1;
+  else
+    printf("C = %g\tOK\n", dtemp);
+
   printf("A = %g\n", Assortativity(net));
-  printf("P = %g\n", AverageInverseDistance(net));
+
+  dtemp = AverageInverseDistance(net);
+  if (fabs(dtemp - 19. / 45.) > EPS)
+    return 1;
+  else
+    printf("P = %g\tOK\n", dtemp);
+
+  struct node_gra *n1 = net->next;
+  struct node_gra *n2 = n1->next;
+  struct node_gra *n4 = n2->next->next;
+  struct node_gra *n5 = n4->next;
+  struct node_gra *n8 = n5->next->next->next;
+  dtemp = JaccardIndex(n1, n2);
+  if (fabs(dtemp - 0.25) > EPS)
+    return 1;
+  else
+    printf("J[1][2] = %g\tOK\n", dtemp);
+  dtemp = JaccardIndex(n2, n4);
+  if (fabs(dtemp - 0.50) > EPS)
+    return 1;
+  else
+    printf("J[2][4] = %g\tOK\n", dtemp);
+  dtemp = JaccardIndex(n5, n8);
+  if (fabs(dtemp - 0.50) > EPS)
+    return 1;
+  else
+    printf("J[5][8] = %g\tOK\n", dtemp);
+  
+  if ((itemp = CommonNeighbors(n1, n2)) != 1)
+    return 1;
+  else
+    printf("C[1][2] = %d\tOK\n", itemp);
+  if ((itemp = CommonNeighbors(n2, n4)) != 1)
+    return 1;
+  else
+    printf("C[2][4] = %d\tOK\n", itemp);
+  if ((itemp = CommonNeighbors(n5, n8)) != 2)
+    return 1;
+  else
+    printf("C[5][8] = %d\tOK\n", itemp);
       
   /*
     ------------------------------------------------------------

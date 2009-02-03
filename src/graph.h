@@ -303,6 +303,8 @@ struct node_gra *GetLargestWeaklyConnectedSet(struct node_gra *root,
   Node and network comparison
   ---------------------------------------------------------------------
 */
+int CommonNeighbors(struct node_gra *n1, struct node_gra *n2);
+double JaccardIndex(struct node_gra *n1, struct node_gra *n2);
 double TopologicalOverlap(struct node_gra *n1,
 			  struct node_gra *n2);
 void CompareTwoNetworks(struct node_gra *netA, struct node_gra *netB,

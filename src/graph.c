@@ -2751,16 +2751,73 @@ GetLargestWeaklyConnectedSet(struct node_gra *root,int thres)
 }
 
 
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
-// Node and network comparison
-// ---------------------------------------------------------------------
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+  Node and network comparison
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+*/
 
-// ---------------------------------------------------------------------
-// Calculates the topological overlap, as defined by Ravasz et al.,
-// between two nodes.
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Calculates the number of common neighbors between two nodes.
+  ---------------------------------------------------------------------
+*/
+int
+CommonNeighbors(struct node_gra *n1, struct node_gra *n2)
+{
+  int ncom=0;
+  struct node_lis *p;
+
+  p = n1->neig;
+  while ((p = p->next) != NULL)
+    ncom += IsThereLink(p->ref, n2);
+
+  return ncom;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Calculates Jaccard index between two nodes.
+  ---------------------------------------------------------------------
+*/
+double
+JaccardIndex(struct node_gra *n1, struct node_gra *n2)
+{
+  int ncom=0;
+  struct node_lis *p;
+  int k1, k2;
+  double jac=0.0;
+
+  /* Degrees of both nodes */
+  k1 = CountLinks(n1);
+  k2 = CountLinks(n2);
+
+  /* Count the number of common neighbors */
+  p = n1->neig;
+  while ((p = p->next) != NULL) {
+    if (p->ref == n2) {
+      k1--;
+      k2--;
+    }
+    else {
+      ncom += IsThereLink(p->ref, n2);
+    }
+  }
+
+  /* Evaluate Jaccard index */
+  jac = (double)ncom / (double)(k1 + k2 - ncom);
+
+  return jac;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Calculates the topological overlap, as defined by Ravasz et al.,
+  between two nodes.
+  ---------------------------------------------------------------------
+*/
 double
 TopologicalOverlap(struct node_gra *n1, struct node_gra *n2)
 {
@@ -2771,11 +2828,11 @@ TopologicalOverlap(struct node_gra *n1, struct node_gra *n2)
   struct node_lis *p;
   int k1, k2;
 
-  // Degrees of both nodes
+  /* Degrees of both nodes */
   k1 = CountLinks(n1);
   k2 = CountLinks(n2);
 
-  // Determine the node with less neighbors
+  /* Determine the node with less neighbors */
   if (k1 < k2) {
     minim = k1;
     p = n1->neig;
@@ -2787,7 +2844,7 @@ TopologicalOverlap(struct node_gra *n1, struct node_gra *n2)
     node = n1;
   }
 
-  // Count the number of common neighbors
+  /* Count the number of common neighbors */
   while (p->next != NULL) {
     p = p->next;
     if (p->ref == node)
@@ -2796,7 +2853,7 @@ TopologicalOverlap(struct node_gra *n1, struct node_gra *n2)
       ncom += IsThereLinkSoft( node, p->node);
   }
 
-  // Evaluate overlap
+  /* Evaluate overlap */
   overlap = (double)ncom / (double)minim;
 
   return overlap;
