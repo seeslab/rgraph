@@ -17,6 +17,7 @@
 #include "tools.h"
 #include "graph.h"
 #include "modules.h"
+#include "models.h"
 
 /*
   ---------------------------------------------------------------------
@@ -641,4 +642,52 @@ SBMStructureScore(struct node_gra *net, int nrep, struct prng *gen)
   free_d_vec(scoreRan);
   RemoveGraph(randNet);
   return score;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Create a network from the SBM link scores: if the score is q_ij>0.5,
+  then the network has a link between i an j, and vice versa.
+  ---------------------------------------------------------------------
+*/
+struct node_gra *
+NetFromSBMScores(struct node_gra *net, struct prng *gen)
+{
+  struct node_gra **nlist;
+  int n1, n2, nnod=CountNodes(net);
+  struct node_gra *p_new, *p, *net_new;
+  double score=0.0;
+  double **pairScore;
+
+  /* Get the link score */
+  pairScore = MissingLinks(net, 0.0, 10000, gen);
+
+  /* Create an empty network */
+  net_new = EmptyGraph(nnod);
+
+  /* Map nodes in the new network to a list for faster access, and
+     rename them as in the original network */
+  nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
+  p = net;
+  p_new = net_new;
+  while ((p_new = p_new->next) != NULL) {
+    p = p->next;
+    strcpy(p_new->label, p->label);
+    nlist[p_new->num] = p_new;
+  }
+
+  /* Add the links */
+  for (n1=0; n1<nnod; n1++) {
+    for (n2=n1+1; n2<nnod; n2++) {
+      if (pairScore[n1][n2] > 0.5) {
+	AddAdjacency(nlist[n1], nlist[n2], 0, 0, 0, 0);
+	AddAdjacency(nlist[n2], nlist[n1], 0, 0, 0, 0);
+      }
+    }
+  }
+
+  /* Done */
+  free(nlist);
+  free_d_mat(pairScore, nnod);
+  return net_new;
 }

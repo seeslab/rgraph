@@ -55,6 +55,7 @@ double **MissingLinks(struct node_gra *net,
 		      struct prng *gen);
 double SBMError(struct node_gra *net, struct prng *gen);
 double SBMStructureScore(struct node_gra *net, int nrep, struct prng *gen);
+struct node_gra *NetFromSBMScores(struct node_gra *net, struct prng *gen);
 
 
 
