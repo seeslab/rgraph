@@ -679,6 +679,7 @@ NetFromSBMScores(struct node_gra *net, struct prng *gen)
   /* Add the links */
   for (n1=0; n1<nnod; n1++) {
     for (n2=n1+1; n2<nnod; n2++) {
+/*       if (prng_get_next(gen) < pairScore[n1][n2]) { */
       if (pairScore[n1][n2] > 0.5) {
 	AddAdjacency(nlist[n1], nlist[n2], 0, 0, 0, 0);
 	AddAdjacency(nlist[n2], nlist[n1], 0, 0, 0, 0);
