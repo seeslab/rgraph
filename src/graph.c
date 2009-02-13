@@ -2788,7 +2788,6 @@ JaccardIndex(struct node_gra *n1, struct node_gra *n2)
   int ncom=0;
   struct node_lis *p;
   int k1, k2;
-  double jac=0.0;
 
   /* Degrees of both nodes */
   k1 = CountLinks(n1);
@@ -2807,9 +2806,10 @@ JaccardIndex(struct node_gra *n1, struct node_gra *n2)
   }
 
   /* Evaluate Jaccard index */
-  jac = (double)ncom / (double)(k1 + k2 - ncom);
-
-  return jac;
+  if (ncom == 0)
+    return 0.0;
+  else
+    return (double)ncom / (double)(k1 + k2 - ncom);
 }
 
 /*
