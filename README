@@ -318,8 +318,14 @@ Utils
 
 Additionally, a few utility programs are also compiled and installed.
 
+*countlinks netA: count the number of links in a network.
+
 *netcompare netA netA: compares two networks.
 
+*netprop netA: print a number of properties of a network.
+
+*netrandomize netA: randomize an undirected unweighted network and
+		    print result to standard output.
 
 ----------------------------------------------------------------------
 CONTACT
