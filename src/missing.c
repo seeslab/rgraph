@@ -137,18 +137,18 @@ PartitionH(struct group *part, double linC)
   ---------------------------------------------------------------------
 */
 void
-MissingLinksMCStep(int factor,
-		   double *H,
-		   double linC,
-		   struct node_gra **nlist,
-		   struct group **glist,
-		   struct group *part,
-		   int nnod,
-		   int **G2G,
-		   int *n2gList,
-		   double **LogChooseList,
-		   int LogChooseListSize,
-		   struct prng *gen)
+LinkScoreMCStep(int factor,
+		double *H,
+		double linC,
+		struct node_gra **nlist,
+		struct group **glist,
+		struct group *part,
+		int nnod,
+		int **G2G,
+		int *n2gList,
+		double **LogChooseList,
+		int LogChooseListSize,
+		struct prng *gen)
 {
   double dH;
   struct group *g, *oldg, *newg;
@@ -309,7 +309,7 @@ GetDecorrelationStep(double *H,
 	    rep + 1, nrep);
     partRef = CopyPartition(part);
     for (step=0; step<=x2; step++) {
-      MissingLinksMCStep(1, H, linC, nlist, glist, part,
+      LinkScoreMCStep(1, H, linC, nlist, glist, part,
 			 nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
 			 gen);
       if (step == x1)
@@ -353,18 +353,18 @@ GetDecorrelationStep(double *H,
   ---------------------------------------------------------------------
 */
 void
-ThermalizeMissingLinkMC(int decorStep,
-			double *H,
-			double linC,
-			struct node_gra **nlist,
-			struct group **glist,
-			struct group *part,
-			int nnod,
-			int **G2G,
-			int *n2gList,
-			double **LogChooseList,
-			int LogChooseListSize,
-			struct prng *gen)
+ThermalizeLinkScoreMC(int decorStep,
+		      double *H,
+		      double linC,
+		      struct node_gra **nlist,
+		      struct group **glist,
+		      struct group *part,
+		      int nnod,
+		      int **G2G,
+		      int *n2gList,
+		      double **LogChooseList,
+		      int LogChooseListSize,
+		      struct prng *gen)
 {
   double HMean0=1.e10, HStd0=1.e-10, HMean1, HStd1, *Hvalues;
   int rep, nrep=20;
@@ -376,7 +376,7 @@ ThermalizeMissingLinkMC(int decorStep,
     
     /* MC steps */
     for (rep=0; rep<nrep; rep++) {
-      MissingLinksMCStep(decorStep, H, linC, nlist, glist, part,
+      LinkScoreMCStep(decorStep, H, linC, nlist, glist, part,
 			 nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
 			 gen);
       fprintf(stderr, "%lf\n", *H);
@@ -413,7 +413,7 @@ ThermalizeMissingLinkMC(int decorStep,
   ---------------------------------------------------------------------
 */
 double **
-MissingLinks(struct node_gra *net, double linC, int nIter, struct prng *gen)
+LinkScore(struct node_gra *net, double linC, int nIter, struct prng *gen)
 {
   int nnod=CountNodes(net);
   struct group *part=NULL;
@@ -487,19 +487,19 @@ MissingLinks(struct node_gra *net, double linC, int nIter, struct prng *gen)
   /* Thermalization */
   fprintf(stderr, "#\n#\n# THERMALIZING\n");
   fprintf(stderr, "# ------------\n");
-  ThermalizeMissingLinkMC(decorStep, &H, linC, nlist, glist, part,
-			  nnod, G2G, n2gList,
-			  LogChooseList, LogChooseListSize,
-			  gen);
+  ThermalizeLinkScoreMC(decorStep, &H, linC, nlist, glist, part,
+			nnod, G2G, n2gList,
+			LogChooseList, LogChooseListSize,
+			gen);
   
   /*
     SAMPLIN' ALONG
   */
   H = 0; /* Reset the origin of energies to avoid huge exponentials */
   for (iter=0; iter<nIter; iter++) {
-    MissingLinksMCStep(decorStep, &H, linC, nlist, glist, part,
-		       nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
-		       gen);
+    LinkScoreMCStep(decorStep, &H, linC, nlist, glist, part,
+		    nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
+		    gen);
     fprintf(stderr, "%d %lf\n", iter, H);
 /*     fprintf(stderr, "%d %lf %lf\n", iter, H, PartitionH(part, linC)); */
 
@@ -579,7 +579,7 @@ SBMError(struct node_gra *net, struct prng *gen)
   double **pairScore;
 
   /* Get the link score */
-  pairScore = MissingLinks(net, 0.0, 10000, gen);
+  pairScore = LinkScore(net, 0.0, 10000, gen);
 
   /* Map nodes to a list for faster access */
   nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
@@ -660,7 +660,7 @@ NetFromSBMScores(struct node_gra *net, struct prng *gen)
   double **pairScore;
 
   /* Get the link score */
-  pairScore = MissingLinks(net, 0.0, 10000, gen);
+  pairScore = LinkScore(net, 0.0, 10000, gen);
 
   /* Create an empty network */
   net_new = EmptyGraph(nnod);
@@ -692,3 +692,164 @@ NetFromSBMScores(struct node_gra *net, struct prng *gen)
   free_d_mat(pairScore, nnod);
   return net_new;
 }
+
+/*
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+*/
+void
+NetworkScore(struct node_gra *netTar,
+	     struct node_gra *netObs,
+	     double linC,
+	     int nIter,
+	     struct prng *gen,
+	     double *scoreTar,
+	     double *scoreObs)
+{
+  int nnod=CountNodes(netObs);
+  struct group *part=NULL, *partCopy=NULL;
+  struct node_gra *p=NULL, *node=NULL;
+  struct node_gra **nlist=NULL;
+  struct group **glist=NULL;
+  struct group *g1Obs=NULL, *g2Obs=NULL, *g1Tar=NULL, *g2Tar=NULL;
+  struct group *lastg=NULL;
+  double H;
+  int iter, decorStep;
+  double Z=0.0;
+  int **G2G=NULL;
+  int *n2gList=NULL;
+  int LogChooseListSize = 500;
+  double **LogChooseList=InitializeFastLogChoose(LogChooseListSize);
+  struct node_lis *p1=NULL, *p2=NULL;
+  double weight, contribObs, contribTar;
+  int i, j, dice;
+  int r, lObs, lTar;
+  double mutualInfo;
+
+  /*
+    PRELIMINARIES
+  */
+  /* Initialize the scores */
+  *scoreObs = 0.0;
+  *scoreTar = 0.0;
+
+  /* Map nodes and groups to a list for faster access */
+  nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
+  glist = (struct group **) calloc(nnod, sizeof(struct group *));
+  lastg = part = CreateHeaderGroup();
+  p = netObs;
+  while ((p = p->next) != NULL) {
+    nlist[p->num] = p;
+    lastg = glist[p->num] = CreateGroup(lastg, p->num);
+  }
+
+  /* Place nodes in random partitions */
+  p = netObs;
+  ResetNetGroup(netObs);
+  while ((p = p->next) != NULL) {
+    dice = floor(prng_get_next(gen) * (double)nnod);
+    AddNodeToGroup(glist[dice], p);
+  }
+
+  /* Get the initial group-to-group links matrix */
+  G2G = allocate_i_mat(nnod, nnod);
+  n2gList = allocate_i_vec(nnod);
+  for (i=0; i<nnod; i++) {
+    G2G[i][i] = glist[i]->inlinks;
+    for (j=i+1; j<nnod; j++) {
+      G2G[i][j] = G2G[j][i] = NG2GLinks(glist[i], glist[j]);
+    }
+  }
+
+  /*
+    GET READY FOR THE SAMPLING
+  */
+  /* Get the decorrelation time */
+  H = PartitionH(part, linC);
+  fprintf(stderr, "# CALCULATING DECORRELATION TIME\n");
+  fprintf(stderr, "# ------------------------------\n");
+  decorStep = GetDecorrelationStep(&H, linC, nlist, glist, part,
+				   nnod, G2G, n2gList,
+				   LogChooseList, LogChooseListSize,
+				   gen);
+
+  /* Thermalization */
+  fprintf(stderr, "#\n#\n# THERMALIZING\n");
+  fprintf(stderr, "# ------------\n");
+  ThermalizeLinkScoreMC(decorStep, &H, linC, nlist, glist, part,
+			nnod, G2G, n2gList,
+			LogChooseList, LogChooseListSize,
+			gen);
+  
+  /*
+    SAMPLIN' ALONG
+  */
+  H = 0; /* Reset the origin of energies to avoid huge exponentials */
+  for (iter=0; iter<nIter; iter++) {
+    LinkScoreMCStep(decorStep, &H, linC, nlist, glist, part,
+		    nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
+		    gen);
+    fprintf(stderr, "%d %lf\n", iter, H);
+/*     fprintf(stderr, "%d %lf %lf\n", iter, H, PartitionH(part, linC)); */
+
+    /* Update partition function */
+    weight = exp(-H);
+    Z += weight;
+
+    /* Copy the partition and map it to the target network */
+    partCopy = CopyPartition(part);
+    MapPartToNet(partCopy, netTar);
+    MapPartToNet(part, netObs);
+
+    /* Update the score */
+    g1Obs = part;
+    g1Tar = partCopy;
+    while ((g1Obs = g1Obs->next) != NULL) {
+      g1Tar = g1Tar->next;
+      if (g1Obs->size > 0) {
+	/* update the within-group pairs */
+	r = g1Obs->size * (g1Obs->size - 1) / 2;
+	lObs = g1Obs->inlinks;
+	lTar = g1Tar->inlinks;
+	contribTar = exp(+log(r + 1) + LogChoose(r, lObs)
+			 -log(2 * r + 1) - LogChoose(2 * r, lObs + lTar));
+	contribObs = exp(+log(r + 1) + LogChoose(r, lObs)
+			 -log(2 * r + 1) - LogChoose(2 * r, 2 * lObs));
+	*scoreTar += weight * contribTar;
+	*scoreObs += weight * contribObs;
+     
+	/* update the between-group pairs */
+	g2Obs = g1Obs;
+	g2Tar = g1Tar;
+	while ((g2Obs = g2Obs->next) != NULL) {
+	  g2Tar = g2Tar->next;
+	  if (g2Obs->size > 0) {
+	    r = g1Obs->size * g2Obs->size;
+	    lObs = G2G[g1Obs->label][g2Obs->label];
+	    lTar = NG2GLinks(g1Tar, g2Tar);
+	    contribTar = exp(+log(r + 1) + LogChoose(r, lObs)
+			     -log(2 * r + 1) - LogChoose(2 * r, lObs + lTar));
+	    contribObs = exp(+log(r + 1) + LogChoose(r, lObs)
+			     -log(2 * r + 1) - LogChoose(2 * r, 2 * lObs));
+	    *scoreTar += weight * contribTar;
+	    *scoreObs += weight * contribObs;
+	  }
+	}
+      }
+    } /* Done updating adjacency matrix */
+    RemovePartition(partCopy);
+
+  }  /* End of iter loop */
+
+
+  /* Done */
+  RemovePartition(part);
+  free(glist);
+  free(nlist);
+  free_i_mat(G2G, nnod);
+  free_i_vec(n2gList);
+  FreeFastLogChoose(LogChooseList, LogChooseListSize);
+  
+  return;
+}
+

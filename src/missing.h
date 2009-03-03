@@ -15,17 +15,17 @@
   ---------------------------------------------------------------------
 */
 double PartitionH(struct group *part, double linC);
-void MissingLinksMCStep(double *H,
-			double linC,
-			struct node_gra **nlist,
-			struct group **glist,
-			struct group *part,
-			int nnod,
-			int **G2G,
-			int *n2gList,
-			double **LogChooseList,
-			int LogChooseListSize,
-			struct prng *gen);
+void LinkScoreMCStep(double *H,
+		     double linC,
+		     struct node_gra **nlist,
+		     struct group **glist,
+		     struct group *part,
+		     int nnod,
+		     int **G2G,
+		     int *n2gList,
+		     double **LogChooseList,
+		     int LogChooseListSize,
+		     struct prng *gen);
 int GetDecorrelationStep(double *H,
 			 double linC,
 			 struct node_gra **nlist,
@@ -37,25 +37,32 @@ int GetDecorrelationStep(double *H,
 			 double **LogChooseList,
 			 int LogChooseListSize,
 			 struct prng *gen);
-void ThermalizeMissingLinkMC(int decorStep,
-			     double *H,
-			     double linC,
-			     struct node_gra **nlist,
-			     struct group **glist,
-			     struct group *part,
-			     int nnod,
-			     int **G2G,
-			     int *n2gList,
-			     double **LogChooseList,
-			     int LogChooseListSize,
-			     struct prng *gen);
-double **MissingLinks(struct node_gra *net,
-		      double linC,
-		      int nIter,
-		      struct prng *gen);
+void ThermalizeLinkScoreMC(int decorStep,
+			   double *H,
+			   double linC,
+			   struct node_gra **nlist,
+			   struct group **glist,
+			   struct group *part,
+			   int nnod,
+			   int **G2G,
+			   int *n2gList,
+			   double **LogChooseList,
+			   int LogChooseListSize,
+			   struct prng *gen);
+double **LinkScore(struct node_gra *net,
+		   double linC,
+		   int nIter,
+		   struct prng *gen);
 double SBMError(struct node_gra *net, struct prng *gen);
 double SBMStructureScore(struct node_gra *net, int nrep, struct prng *gen);
 struct node_gra *NetFromSBMScores(struct node_gra *net, struct prng *gen);
+void NetworkScore(struct node_gra *netTar,
+		  struct node_gra *netObs,
+		  double linC,
+		  int nIter,
+		  struct prng *gen,
+		  double *scoreTar,
+		  double *scoreObs);
 
 
 
