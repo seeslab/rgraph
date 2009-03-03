@@ -56,13 +56,11 @@ double **LinkScore(struct node_gra *net,
 double SBMError(struct node_gra *net, struct prng *gen);
 double SBMStructureScore(struct node_gra *net, int nrep, struct prng *gen);
 struct node_gra *NetFromSBMScores(struct node_gra *net, struct prng *gen);
-void NetworkScore(struct node_gra *netTar,
-		  struct node_gra *netObs,
-		  double linC,
-		  int nIter,
-		  struct prng *gen,
-		  double *scoreTar,
-		  double *scoreObs);
+double NetworkScore(struct node_gra *netTar,
+		    struct node_gra *netObs,
+		    double linC,
+		    int nIter,
+		    struct prng *gen);
 
 
 

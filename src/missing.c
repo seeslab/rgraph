@@ -697,14 +697,12 @@ NetFromSBMScores(struct node_gra *net, struct prng *gen)
   ---------------------------------------------------------------------
   ---------------------------------------------------------------------
 */
-void
+double
 NetworkScore(struct node_gra *netTar,
 	     struct node_gra *netObs,
 	     double linC,
 	     int nIter,
-	     struct prng *gen,
-	     double *scoreTar,
-	     double *scoreObs)
+	     struct prng *gen)
 {
   int nnod=CountNodes(netObs);
   struct group *part=NULL, *partCopy=NULL;
@@ -721,7 +719,9 @@ NetworkScore(struct node_gra *netTar,
   int LogChooseListSize = 500;
   double **LogChooseList=InitializeFastLogChoose(LogChooseListSize);
   struct node_lis *p1=NULL, *p2=NULL;
-  double weight, contribObs, contribTar;
+  double scoreTar=0.0, scoreObs=0.0;
+  double weight, contribObs, contribTar, contribBase;
+  int contribBase_sw=0;
   int i, j, dice;
   int r, lObs, lTar;
   double mutualInfo;
@@ -729,10 +729,6 @@ NetworkScore(struct node_gra *netTar,
   /*
     PRELIMINARIES
   */
-  /* Initialize the scores */
-  *scoreObs = 0.0;
-  *scoreTar = 0.0;
-
   /* Map nodes and groups to a list for faster access */
   nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
   glist = (struct group **) calloc(nnod, sizeof(struct group *));
@@ -792,7 +788,7 @@ NetworkScore(struct node_gra *netTar,
     fprintf(stderr, "%d %lf\n", iter, H);
 /*     fprintf(stderr, "%d %lf %lf\n", iter, H, PartitionH(part, linC)); */
 
-    /* Update partition function */
+    /* Update the partition function */
     weight = exp(-H);
     Z += weight;
 
@@ -804,6 +800,7 @@ NetworkScore(struct node_gra *netTar,
     /* Update the score */
     g1Obs = part;
     g1Tar = partCopy;
+    contribTar = contribObs = 0.0;
     while ((g1Obs = g1Obs->next) != NULL) {
       g1Tar = g1Tar->next;
       if (g1Obs->size > 0) {
@@ -811,12 +808,10 @@ NetworkScore(struct node_gra *netTar,
 	r = g1Obs->size * (g1Obs->size - 1) / 2;
 	lObs = g1Obs->inlinks;
 	lTar = g1Tar->inlinks;
-	contribTar = exp(+log(r + 1) + LogChoose(r, lObs)
-			 -log(2 * r + 1) - LogChoose(2 * r, lObs + lTar));
-	contribObs = exp(+log(r + 1) + LogChoose(r, lObs)
-			 -log(2 * r + 1) - LogChoose(2 * r, 2 * lObs));
-	*scoreTar += weight * contribTar;
-	*scoreObs += weight * contribObs;
+	contribTar += (+log(r + 1) + LogChoose(r, lObs)
+		       -log(2 * r + 1) - LogChoose(2 * r, lObs + lTar));
+	contribObs += (+log(r + 1) + LogChoose(r, lObs)
+		       -log(2 * r + 1) - LogChoose(2 * r, 2 * lObs));
      
 	/* update the between-group pairs */
 	g2Obs = g1Obs;
@@ -827,20 +822,27 @@ NetworkScore(struct node_gra *netTar,
 	    r = g1Obs->size * g2Obs->size;
 	    lObs = G2G[g1Obs->label][g2Obs->label];
 	    lTar = NG2GLinks(g1Tar, g2Tar);
-	    contribTar = exp(+log(r + 1) + LogChoose(r, lObs)
-			     -log(2 * r + 1) - LogChoose(2 * r, lObs + lTar));
-	    contribObs = exp(+log(r + 1) + LogChoose(r, lObs)
-			     -log(2 * r + 1) - LogChoose(2 * r, 2 * lObs));
-	    *scoreTar += weight * contribTar;
-	    *scoreObs += weight * contribObs;
+	    contribTar += (+log(r + 1) + LogChoose(r, lObs)
+			   -log(2 * r + 1) - LogChoose(2 * r, lObs + lTar));
+	    contribObs += (+log(r + 1) + LogChoose(r, lObs)
+			   -log(2 * r + 1) - LogChoose(2 * r, 2 * lObs));
 	  }
 	}
       }
-    } /* Done updating adjacency matrix */
-    RemovePartition(partCopy);
+    } /* Done calculating the contribution of this partition */
+    if (contribBase_sw == 0) {
+      contribBase = contribObs;
+      contribBase_sw = 1;
+    }      
+    scoreTar += weight * exp(contribTar - contribBase);
+    scoreObs += weight * exp(contribObs - contribBase);
 
+    RemovePartition(partCopy);
   }  /* End of iter loop */
 
+  /* Normalize the scores */
+  scoreTar /= Z;
+  scoreObs /= Z;
 
   /* Done */
   RemovePartition(part);
@@ -850,6 +852,6 @@ NetworkScore(struct node_gra *netTar,
   free_i_vec(n2gList);
   FreeFastLogChoose(LogChooseList, LogChooseListSize);
   
-  return;
+  return scoreTar / scoreObs;
 }
 
