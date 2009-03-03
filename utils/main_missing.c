@@ -51,7 +51,7 @@ main(int argc, char **argv)
     Missing
     ---------------------------------------------------------------------------
   */
-  newA = LinkScore(net, 0.0, 10000, rand_gen);
+  newA = LinkScore(net, 0.0, 10000, rand_gen, 'v');
 
   p1 = p2 = net;
   while ((p1 = p1->next) != NULL) {

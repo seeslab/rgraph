@@ -36,7 +36,8 @@ int GetDecorrelationStep(double *H,
 			 int *n2gList,
 			 double **LogChooseList,
 			 int LogChooseListSize,
-			 struct prng *gen);
+			 struct prng *gen,
+			 char verbose_sw);
 void ThermalizeLinkScoreMC(int decorStep,
 			   double *H,
 			   double linC,
@@ -48,11 +49,13 @@ void ThermalizeLinkScoreMC(int decorStep,
 			   int *n2gList,
 			   double **LogChooseList,
 			   int LogChooseListSize,
-			   struct prng *gen);
+			   struct prng *gen,
+			   char verbose_sw);
 double **LinkScore(struct node_gra *net,
 		   double linC,
 		   int nIter,
-		   struct prng *gen);
+		   struct prng *gen,
+		   char verbose_sw);
 double SBMError(struct node_gra *net, struct prng *gen);
 double SBMStructureScore(struct node_gra *net, int nrep, struct prng *gen);
 struct node_gra *NetFromSBMScores(struct node_gra *net, struct prng *gen);
@@ -60,7 +63,8 @@ double NetworkScore(struct node_gra *netTar,
 		    struct node_gra *netObs,
 		    double linC,
 		    int nIter,
-		    struct prng *gen);
+		    struct prng *gen,
+		    char verbose_sw);
 
 
 

@@ -289,7 +289,8 @@ GetDecorrelationStep(double *H,
 		     int *n2gList,
 		     double **LogChooseList,
 		     int LogChooseListSize,
-		     struct prng *gen)
+		     struct prng *gen,
+		     char verbose_sw)
 {
   struct group *partRef;
   int step, x1, x2;
@@ -305,8 +306,14 @@ GetDecorrelationStep(double *H,
   /* Get the nrep initial estimates */
   decay = allocate_d_vec(nrep);
   for (rep=0; rep<nrep; rep++) {
-    fprintf(stderr, "#\n# Estimating decorrelation time (%d/%d)\n",
-	    rep + 1, nrep);
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    default:
+      fprintf(stderr, "#\n# Estimating decorrelation time (%d/%d)\n",
+	      rep + 1, nrep);
+      break;
+    }
     partRef = CopyPartition(part);
     for (step=0; step<=x2; step++) {
       LinkScoreMCStep(1, H, linC, nlist, glist, part,
@@ -318,11 +325,23 @@ GetDecorrelationStep(double *H,
     y2 = MutualInformation(partRef, part);
     RemovePartition(partRef);
     decay[rep] = 2. * CalculateDecay(nnod, x1, y1, x2, y2);
-    fprintf(stderr, "# Decorrelation time (estimate %d) = %g\n",
-	    rep + 1, decay[rep]);
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    default:
+      fprintf(stderr, "# Decorrelation time (estimate %d) = %g\n",
+	      rep + 1, decay[rep]);
+      break;
+    }
     if (decay[rep] < 0) {
-      fprintf(stderr, "#\tignoring...\n");
       rep--;
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "#\tignoring...\n");
+	break;
+      }
     }
   }
   fprintf(stderr, "#\n");
@@ -334,7 +353,13 @@ GetDecorrelationStep(double *H,
   for (rep=0; rep<nrep; rep++) {
     if (fabs(decay[rep] - meanDecay) / sigmaDecay > 2) {
       result -= decay[rep];
-      fprintf(stderr, "# Disregarding estimate %d\n", rep + 1);
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "# Disregarding estimate %d\n", rep + 1);
+	break;
+      }
     }
     else {
       norm++;
@@ -364,7 +389,8 @@ ThermalizeLinkScoreMC(int decorStep,
 		      int *n2gList,
 		      double **LogChooseList,
 		      int LogChooseListSize,
-		      struct prng *gen)
+		      struct prng *gen,
+		      char verbose_sw)
 {
   double HMean0=1.e10, HStd0=1.e-10, HMean1, HStd1, *Hvalues;
   int rep, nrep=20;
@@ -379,7 +405,13 @@ ThermalizeLinkScoreMC(int decorStep,
       LinkScoreMCStep(decorStep, H, linC, nlist, glist, part,
 			 nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
 			 gen);
-      fprintf(stderr, "%lf\n", *H);
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "%lf\n", *H);
+	break;
+      }
       Hvalues[rep] = *H;
     }
 
@@ -387,12 +419,25 @@ ThermalizeLinkScoreMC(int decorStep,
     HMean1 = mean(Hvalues, nrep);
     HStd1 = stddev(Hvalues, nrep);
     if (HMean0 - HStd0 / sqrt(nrep) < HMean1 + HStd1 / sqrt(nrep)) {
-      fprintf(stderr, "#\tequilibrated (%d/5) H=%lf\n",
-	      ++equilibrated, HMean1);
+      equilibrated++;
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "#\tequilibrated (%d/5) H=%lf\n",
+		equilibrated, HMean1);
+	break;
+      }
     }
     else {
-      fprintf(stderr, "#\tnot equilibrated yet H0=%g+-%g H1=%g+-%g\n",
-	      HMean0, HStd0 / sqrt(nrep), HMean1, HStd1 / sqrt(nrep));
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "#\tnot equilibrated yet H0=%g+-%g H1=%g+-%g\n",
+		HMean0, HStd0 / sqrt(nrep), HMean1, HStd1 / sqrt(nrep));
+	break;
+      }
       HMean0 = HMean1;
       HStd0 = HStd1;
       equilibrated = 0;
@@ -413,7 +458,11 @@ ThermalizeLinkScoreMC(int decorStep,
   ---------------------------------------------------------------------
 */
 double **
-LinkScore(struct node_gra *net, double linC, int nIter, struct prng *gen)
+LinkScore(struct node_gra *net,
+	  double linC,
+	  int nIter,
+	  struct prng *gen,
+	  char verbose_sw)
 {
   int nnod=CountNodes(net);
   struct group *part=NULL;
@@ -482,7 +531,7 @@ LinkScore(struct node_gra *net, double linC, int nIter, struct prng *gen)
   decorStep = GetDecorrelationStep(&H, linC, nlist, glist, part,
 				   nnod, G2G, n2gList,
 				   LogChooseList, LogChooseListSize,
-				   gen);
+				   gen, 'v');
 
   /* Thermalization */
   fprintf(stderr, "#\n#\n# THERMALIZING\n");
@@ -490,7 +539,7 @@ LinkScore(struct node_gra *net, double linC, int nIter, struct prng *gen)
   ThermalizeLinkScoreMC(decorStep, &H, linC, nlist, glist, part,
 			nnod, G2G, n2gList,
 			LogChooseList, LogChooseListSize,
-			gen);
+			gen, 'v');
   
   /*
     SAMPLIN' ALONG
@@ -579,7 +628,7 @@ SBMError(struct node_gra *net, struct prng *gen)
   double **pairScore;
 
   /* Get the link score */
-  pairScore = LinkScore(net, 0.0, 10000, gen);
+  pairScore = LinkScore(net, 0.0, 10000, gen, 'q');
 
   /* Map nodes to a list for faster access */
   nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
@@ -660,7 +709,7 @@ NetFromSBMScores(struct node_gra *net, struct prng *gen)
   double **pairScore;
 
   /* Get the link score */
-  pairScore = LinkScore(net, 0.0, 10000, gen);
+  pairScore = LinkScore(net, 0.0, 10000, gen, 'q');
 
   /* Create an empty network */
   net_new = EmptyGraph(nnod);
@@ -702,7 +751,8 @@ NetworkScore(struct node_gra *netTar,
 	     struct node_gra *netObs,
 	     double linC,
 	     int nIter,
-	     struct prng *gen)
+	     struct prng *gen,
+	     char verbose_sw)
 {
   int nnod=CountNodes(netObs);
   struct group *part=NULL, *partCopy=NULL;
@@ -762,31 +812,56 @@ NetworkScore(struct node_gra *netTar,
   */
   /* Get the decorrelation time */
   H = PartitionH(part, linC);
-  fprintf(stderr, "# CALCULATING DECORRELATION TIME\n");
-  fprintf(stderr, "# ------------------------------\n");
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "# CALCULATING DECORRELATION TIME\n");
+    fprintf(stderr, "# ------------------------------\n");
+    break;
+  }
   decorStep = GetDecorrelationStep(&H, linC, nlist, glist, part,
 				   nnod, G2G, n2gList,
 				   LogChooseList, LogChooseListSize,
-				   gen);
+				   gen, verbose_sw);
 
   /* Thermalization */
-  fprintf(stderr, "#\n#\n# THERMALIZING\n");
-  fprintf(stderr, "# ------------\n");
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "#\n#\n# THERMALIZING\n");
+    fprintf(stderr, "# ------------\n");
+  }
   ThermalizeLinkScoreMC(decorStep, &H, linC, nlist, glist, part,
 			nnod, G2G, n2gList,
 			LogChooseList, LogChooseListSize,
-			gen);
+			gen, verbose_sw);
   
   /*
     SAMPLIN' ALONG
   */
-  H = 0; /* Reset the origin of energies to avoid huge exponentials */
+  /* Unless we are in debug mode, reset the origin of energies to
+     avoid huge exponentials */
+  switch (verbose_sw) {
+  case 'd':
+    break;
+  default:
+    H = 0;
+    break;
+  }
   for (iter=0; iter<nIter; iter++) {
     LinkScoreMCStep(decorStep, &H, linC, nlist, glist, part,
 		    nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
 		    gen);
-    fprintf(stderr, "%d %lf\n", iter, H);
-/*     fprintf(stderr, "%d %lf %lf\n", iter, H, PartitionH(part, linC)); */
+    switch (verbose_sw) {
+    case 'v':
+      fprintf(stderr, "%d %lf\n", iter, H);
+      break;
+    case 'd':
+      fprintf(stderr, "%d %lf %lf\n", iter, H, PartitionH(part, linC));
+      break;
+    }
 
     /* Update the partition function */
     weight = exp(-H);
