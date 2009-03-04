@@ -525,20 +525,32 @@ LinkScore(struct node_gra *net,
   */
   /* Get the decorrelation time */
   H = PartitionH(part, linC);
-  fprintf(stderr, "# CALCULATING DECORRELATION TIME\n");
-  fprintf(stderr, "# ------------------------------\n");
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "# CALCULATING DECORRELATION TIME\n");
+    fprintf(stderr, "# ------------------------------\n");
+    break;
+  }
   decorStep = GetDecorrelationStep(&H, linC, nlist, glist, part,
 				   nnod, G2G, n2gList,
 				   LogChooseList, LogChooseListSize,
-				   gen, 'v');
+				   gen, verbose_sw);
 
   /* Thermalization */
-  fprintf(stderr, "#\n#\n# THERMALIZING\n");
-  fprintf(stderr, "# ------------\n");
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "#\n#\n# THERMALIZING\n");
+    fprintf(stderr, "# ------------\n");
+    break;
+  }
   ThermalizeLinkScoreMC(decorStep, &H, linC, nlist, glist, part,
 			nnod, G2G, n2gList,
 			LogChooseList, LogChooseListSize,
-			gen, 'v');
+			gen, verbose_sw);
   
   /*
     SAMPLIN' ALONG
@@ -548,8 +560,16 @@ LinkScore(struct node_gra *net,
     LinkScoreMCStep(decorStep, &H, linC, nlist, glist, part,
 		    nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
 		    gen);
-    fprintf(stderr, "%d %lf\n", iter, H);
-/*     fprintf(stderr, "%d %lf %lf\n", iter, H, PartitionH(part, linC)); */
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    case 'v':
+      fprintf(stderr, "%d %lf\n", iter, H);
+      break;
+    case 'd':
+      fprintf(stderr, "%d %lf %lf\n", iter, H, PartitionH(part, linC));
+      break;
+    }
 
     /* Update partition function */
     weight = exp(-H);
@@ -940,29 +960,76 @@ struct node_gra *
 NetReconstruct(struct node_gra *netObs,
 	       struct prng *gen)
 {
-  struct node_gra *net = CopyNetwork(netObs), *netTemp = NULL;
-  int i;
-  double scoreNew, scoreOld;
+  struct node_gra *net, **nlist, *p, *n1Add, *n2Add, *n1Remove, *n2Remove;
+  int i, n1, n2;
+  double **linkScores;
+  double scoreNew, scoreOld, maxLinkScore, minLinkScore;
+  int nnod=CountNodes(netObs);
+  int someChanged, someRejected;
 
+  /* Map nodes to list for fast access */
+  net = CopyNetwork(netObs);
+  nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
+  p = net;
+  while ((p = p->next) != NULL)
+    nlist[p->num] = p;
+
+  /* Get the initial network score */
   scoreOld = NetworkScore(net, netObs, 0.0, 100, gen, 'q');
-  netTemp = CopyNetwork(net);
-  for (i=0; i<1000; i++) {
-    RemoveRandomLinks(netTemp, 1, 1, gen);
-    AddRandomLinks(netTemp, 1, 1, gen);
-    scoreNew = NetworkScore(netTemp, netObs, 0.0, 100, gen, 'q');
-    if (scoreNew > scoreOld) {
-      fprintf(stderr, "Accepting %g > %g\n", scoreNew, scoreOld);
-      RemoveGraph(net);
-      net = CopyNetwork(netTemp);
-      scoreOld = scoreNew;
-    }
-    else {
-      fprintf(stderr, "Rejecting %g < %g\n", scoreNew, scoreOld);
-      RemoveGraph(netTemp);
-      netTemp = CopyNetwork(net);
-    }
-  }
 
-  RemoveGraph(netTemp);
+  /* ITERATIVE PROCEDURE */
+  do {   /* Keep going until no changes occur */
+
+    /* Get the (quick'n'dirty) link scores */
+    linkScores = LinkScore(net, 0.0, 1000, gen, 'q');
+
+    someChanged = 0;
+    someRejected = 0;
+    do {   /* Keep going until a change is rejected */
+
+      /* Get the largest missing link score and the smallest link
+	 score */
+      maxLinkScore = 0.0;
+      minLinkScore = 1.0;
+      for (n1=0; n1<nnod; n1++) {
+	for (n2=n1+1; n2<nnod; n2++) {
+	  if ((linkScores[n1][n2] > maxLinkScore) &&
+	      (IsThereLink(nlist[n1], nlist[n2]) == 0)) {
+	    n1Add = nlist[n1];
+	    n2Add = nlist[n2];
+	    maxLinkScore = linkScores[n1][n2];
+	  }
+	  if ((linkScores[n1][n2] < minLinkScore) &&
+	      (IsThereLink(nlist[n1], nlist[n2]) == 1)) {
+	    n1Remove = nlist[n1];
+	    n2Remove = nlist[n2];
+	    minLinkScore = linkScores[n1][n2];
+	  }
+	}
+      }
+
+      /* Add and remove links */
+      AddAdjacency(n1Add, n2Add, 0, 0, 1.0, 2);
+      AddAdjacency(n2Add, n1Add, 0, 0, 1.0, 2);
+      RemoveLink(n1Remove, n2Remove, 1);
+
+      /* Calculate new score and do the comparison */
+      scoreNew = NetworkScore(net, netObs, 0.0, 100, gen, 'q');
+      if (scoreNew > scoreOld) {
+/* 	fprintf(stderr, "Accepting %g %g\n", scoreOld, scoreNew); */
+	scoreOld = scoreNew;
+	someChanged = 1;
+      }
+      else {
+/* 	fprintf(stderr, "Rejecting %g %g\n", scoreOld, scoreNew); */
+	someRejected = 1;
+	/* undo the change */
+	AddAdjacency(n1Remove, n2Remove, 0, 0, 1.0, 3);
+	AddAdjacency(n2Remove, n1Remove, 0, 0, 1.0, 3);
+	RemoveLink(n1Add, n2Add, 1);
+      }
+    } while(someRejected == 0);
+  } while (someChanged == 1);
+
   return net;
 }
