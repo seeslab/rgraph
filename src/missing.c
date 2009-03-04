@@ -86,7 +86,7 @@ CalculateDecay(int nnod, double x1, double y1, double x2, double y2)
     }
   while (status == GSL_CONTINUE && iter < 1000);
   
-  fprintf(stderr, "# GSL status = %s\n", gsl_strerror(status));
+/*   fprintf(stderr, "# GSL status = %s\n", gsl_strerror(status)); */
   if (strcmp(gsl_strerror(status), "success") != 0)
     result = -1;
   else
@@ -344,7 +344,6 @@ GetDecorrelationStep(double *H,
       }
     }
   }
-  fprintf(stderr, "#\n");
   
   /* Get rid of bad estimates (Chauvenet criterion)  */
   meanDecay = mean(decay, nrep);
@@ -930,3 +929,40 @@ NetworkScore(struct node_gra *netTar,
   return scoreTar / scoreObs;
 }
 
+
+/*
+  ---------------------------------------------------------------------
+  Reconstruct a network using a up-hill search in the NetworkScore
+  space
+  ---------------------------------------------------------------------
+*/
+struct node_gra *
+NetReconstruct(struct node_gra *netObs,
+	       struct prng *gen)
+{
+  struct node_gra *net = CopyNetwork(netObs), *netTemp = NULL;
+  int i;
+  double scoreNew, scoreOld;
+
+  scoreOld = NetworkScore(net, netObs, 0.0, 100, gen, 'q');
+  netTemp = CopyNetwork(net);
+  for (i=0; i<1000; i++) {
+    RemoveRandomLinks(netTemp, 1, 1, gen);
+    AddRandomLinks(netTemp, 1, 1, gen);
+    scoreNew = NetworkScore(netTemp, netObs, 0.0, 100, gen, 'q');
+    if (scoreNew > scoreOld) {
+      fprintf(stderr, "Accepting %g > %g\n", scoreNew, scoreOld);
+      RemoveGraph(net);
+      net = CopyNetwork(netTemp);
+      scoreOld = scoreNew;
+    }
+    else {
+      fprintf(stderr, "Rejecting %g < %g\n", scoreNew, scoreOld);
+      RemoveGraph(netTemp);
+      netTemp = CopyNetwork(net);
+    }
+  }
+
+  RemoveGraph(netTemp);
+  return net;
+}

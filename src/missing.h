@@ -65,6 +65,8 @@ double NetworkScore(struct node_gra *netTar,
 		    int nIter,
 		    struct prng *gen,
 		    char verbose_sw);
+struct node_gra *NetReconstruct(struct node_gra *netObs,
+				struct prng *gen);
 
 
 
