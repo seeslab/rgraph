@@ -6,7 +6,7 @@ INCLUDES = -I$(top_builddir) -I$(top_srcdir) \
 AM_LDFLAGS = -static
 
 bin_PROGRAMS = netcompare netprop betweenness countlinks missing netrandomize \
-	modularbipart
+	modularbipart lapspec
 
 netcompare_SOURCES = main_netcompare.c
 netcompare_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
@@ -28,3 +28,6 @@ netrandomize_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
 
 modularbipart_SOURCES = main_modularbipart.c
 modularbipart_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
+
+lapspec_SOURCES = main_lapspec.c
+lapspec_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la

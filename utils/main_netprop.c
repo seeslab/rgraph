@@ -11,7 +11,7 @@
 int
 main(int argc, char **argv)
 {
-  char *netF, adr_sw;
+  char *netF;
   FILE *infile=NULL;
   struct node_gra *net=NULL;
 /*   struct prng *rand_gen; */
