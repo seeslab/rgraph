@@ -110,3 +110,22 @@ LaplacianSpectrum(struct node_gra *net)
 
   return eval;
 }
+
+/*
+  Get the "synchronizability", that is the ratio between the largest
+  and the smallest (non-zero) eigenvalues of the Laplacian.
+*/
+double
+Synchronizability(struct node_gra *net)
+{
+  gsl_vector *spec=LaplacianSpectrum(net);
+  int count=0, nnod=CountNodes(net);
+  double l2=-1.0, lN=-1.0;
+  
+  lN = gsl_vector_get(spec, nnod - 1);
+  while (l2 < 1e-10)
+    l2 = gsl_vector_get(spec, count++);
+  
+  gsl_vector_free(spec);
+  return lN / l2;
+}

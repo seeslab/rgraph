@@ -47,6 +47,7 @@ main()
     else
       return 1;
   }
+  fprintf(stdout, "Synchronizability = %g\n", Synchronizability(net));
 
   /* Free memory */
   RemoveGraph(net);

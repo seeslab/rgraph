@@ -18,5 +18,6 @@
 int **AdjacencyMat(struct node_gra *net);
 int **LaplacianMat(struct node_gra *net);
 gsl_vector *LaplacianSpectrum(struct node_gra *net);
+double Synchronizability(struct node_gra *net);
 
 #endif /* !RGRAPH_MISSING_H */
