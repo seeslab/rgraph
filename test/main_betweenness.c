@@ -31,6 +31,14 @@ main()
   /* Calculate betweenness */
   CalculateNodeBetweenness(net);
 
+  /* Some statistics */
+  double betMean, betStddev, betMin, betMax;
+  NodeBetweennessStatistics(net, &betMean, &betStddev, &betMin, &betMax);
+  printf("b_mean\t= %g\n", betMean);
+  printf("b_stdd\t= %g\n", betStddev);
+  printf("b_min\t= %g\n", betMin);
+  printf("b_max\t= %g\n", betMax);
+
   /* Check results */
   p = net;
   while ((p = p->next) != NULL) {

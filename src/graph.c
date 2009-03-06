@@ -1336,14 +1336,45 @@ CountLinks(struct node_gra *node)
   return count;
 }
 
-// ---------------------------------------------------------------------
-// Computes the average degree of the network
-// ---------------------------------------------------------------------
+/*
+  ---------------------------------------------------------------------
+  Computes the average degree of the network, if symmetric_sw == 1, it
+  will return the average in/out degree (NOT the average total
+  degree!)
+  ---------------------------------------------------------------------
+*/
 double
 AverageDegree(struct node_gra *root, int symmetric_sw)
 {
-  return (double)TotalNLinks(root, symmetric_sw) /
-    (double)CountNodes(root);
+  if (symmetric_sw == 0)
+    return (double)TotalNLinks(root, symmetric_sw) /
+      (double)CountNodes(root);
+  else
+    return (double)(2 * TotalNLinks(root, symmetric_sw)) /
+      (double)CountNodes(root);
+}
+
+/*
+  ---------------------------------------------------------------------
+  Computes the average of the squared degrees. If the network is
+  directed, it will return the average of the square of the in/out
+  degree (NOT the average total degree!)
+  ---------------------------------------------------------------------
+*/
+double
+AverageSquaredDegree(struct node_gra *root)
+{
+  struct node_gra *p=root;
+  int k, nnod=0, k2sum=0;
+
+  while ((p = p->next) != NULL) {
+    nnod++;
+    k = CountLinks(p);
+    k2sum += k * k;
+  }
+
+  return k2sum / nnod;
+
 }
 
 // ---------------------------------------------------------------------

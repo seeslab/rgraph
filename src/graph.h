@@ -243,6 +243,7 @@ int CountNodes(struct node_gra *p);
 int CountLinks(struct node_gra *node);
 double AverageDegree(struct node_gra *root,
 		     int symmetric_sw);
+double AverageSquaredDegree(struct node_gra *root);
 int TotalNLinks(struct node_gra *p,
 		int symmetric_sw);
 double NodeStrength(struct node_gra *node);
