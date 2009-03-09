@@ -966,6 +966,7 @@ NetReconstruct(struct node_gra *netObs,
   double scoreNew, scoreOld, maxLinkScore, minLinkScore;
   int nnod=CountNodes(netObs);
   int someChanged, someRejected;
+  int thresReject = 5;
 
   /* Map nodes to list for fast access */
   net = CopyNetwork(netObs);
@@ -985,7 +986,8 @@ NetReconstruct(struct node_gra *netObs,
 
     someChanged = 0;
     someRejected = 0;
-    do {   /* Keep going until a change is rejected */
+    do {   /* Keep going until thresReject consecutive changes are
+	      rejected */
 
       /* Get the largest missing link score and the smallest link
 	 score */
@@ -1018,17 +1020,18 @@ NetReconstruct(struct node_gra *netObs,
       if (scoreNew > scoreOld) {
 /* 	fprintf(stderr, "Accepting %g %g\n", scoreOld, scoreNew); */
 	scoreOld = scoreNew;
+	someRejected = 0;
 	someChanged = 1;
       }
       else {
 /* 	fprintf(stderr, "Rejecting %g %g\n", scoreOld, scoreNew); */
-	someRejected = 1;
+	someRejected += 1;
 	/* undo the change */
 	AddAdjacency(n1Remove, n2Remove, 0, 0, 1.0, 3);
 	AddAdjacency(n2Remove, n1Remove, 0, 0, 1.0, 3);
 	RemoveLink(n1Add, n2Add, 1);
       }
-    } while(someRejected == 0);
+    } while(someRejected < thresReject);
   } while (someChanged == 1);
 
   return net;
