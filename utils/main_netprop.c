@@ -7,6 +7,7 @@
 #include "graph.h"
 #include "modules.h"
 #include "missing.h"
+#include "matrix.h"
 
 int
 main(int argc, char **argv)
@@ -14,6 +15,8 @@ main(int argc, char **argv)
   char *netF;
   FILE *infile=NULL;
   struct node_gra *net=NULL;
+  struct node_gra *components[1000];
+  int i,ncomponents,sizeGC=0,sizeothers=0;
 /*   struct prng *rand_gen; */
 /*   int seed; */
 
@@ -35,6 +38,19 @@ main(int argc, char **argv)
   /*
     Calculate and print a variety of network properties
   */
+  /* Calculate the size of the giant component and the number of components */
+  ncomponents = GetAllConnectedSets(net,components);
+  for(i=0;i<ncomponents;i++)
+  {
+    if (CountNodes(components[i])>sizeGC) sizeGC = CountNodes(components[i]);
+    sizeothers += CountNodes(components[i]);
+  }
+
+  printf("Num_components %d\n", ncomponents);
+  printf("Size_GC %d\n", sizeGC);
+  if (ncomponents>1) printf("Av_size_other %g\n", (sizeothers-sizeGC)/(ncomponents-1.0));
+  else printf("Av_size_other 0.0");
+
   /* Number of nodes, links, and so on */
   printf("Nodes %d\n", CountNodes(net));
   printf("Links %d\n", TotalNLinks(net, 1));
@@ -52,6 +68,11 @@ main(int argc, char **argv)
   printf("Betweenness_std %lf\n", betStddev);
   printf("Betweenness_min %lf\n", betMin);
   printf("Betweenness_max %lf\n", betMax);
+
+  /* Synchronizability */
+  printf("Synchronizability %lf\n", Synchronizability(net));
+  
+  printf("K_K2 %lf\n",  AverageDegree(net, 1)/ AverageSquaredDegree(net));
 
 /*   /\* Modularity *\/ */
 /*   struct group *part; */

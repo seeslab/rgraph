@@ -2781,6 +2781,134 @@ GetLargestWeaklyConnectedSet(struct node_gra *root,int thres)
   return giant;
 }
 
+//Function to remove those links that go to other components
+////It is necessary for the next function
+void ClearAdjacencies(struct node_gra *p,int *net)
+{
+  struct node_lis *nei,*temp;
+
+  while(p->next!=NULL){
+    p=p->next;
+    nei=p->neig;
+    while(nei->next!=NULL){
+      if(net[(nei->next)->node]==0){
+        temp=nei->next;
+        if(temp->next==NULL)  nei->next=NULL;
+        else  nei->next=temp->next;
+        free(temp);
+      }else{
+        nei=nei->next;
+      }
+    }
+  }
+}
+
+
+// Returns the number of connected components found. 
+// net_list must have been initialized, eg. struct node_gra *llista[1000];
+int GetAllConnectedSets(struct node_gra *network,struct node_gra **net_list)
+{
+  struct node_gra *network_cop=NULL;
+  struct node_gra *network_loc=NULL;
+  struct node_gra *p;
+  struct node_gra *temp, *temp2;  
+  struct node_bfs *list,*lp,*lp2;
+  int numNodes=0;
+  int anod=0;
+  int *size,res1;
+  int *selected;
+  int *thisNet;
+  int i;
+  int sizeAnt;
+  int d;
+
+  int numComponents=0;
+  int MAX_SIZE_NET=10001;
+
+  selected=(int *)malloc(sizeof(int)*MAX_SIZE_NET);
+  thisNet=(int *)malloc(sizeof(int)*MAX_SIZE_NET);
+
+  for(i=0;i<MAX_SIZE_NET;i++)
+    selected[i]=0;
+
+  network_cop=CopyNetwork(network);
+
+  res1=0;
+  size=&res1;
+
+  numNodes=CountNodes(network);
+  //printf("Network has %i nodes\nDetecting connected components\n",numNodes);
+  list=CreateHeaderList();
+
+
+
+  do{
+    network_loc=CreateHeaderGraph();
+    p=network->next;
+    while(selected[p->num]!=0)  //Busquem 1 node no tractat encara
+      p=p->next;
+    selected[p->num]=1;
+
+
+    for(i=0;i<MAX_SIZE_NET;i++)
+      thisNet[i]=0;
+    d=0;
+
+    ResetNodesState(network);
+    Enqueue(p,list,list,size,d);
+    anod++;
+    //printf("Starting network with node %d    Total: %d/%d\n",p->num,anod,numNodes);
+
+    lp=list;
+    temp=CreateNodeGraph(network_loc,p->label);
+    temp->num=p->num;
+    temp->state=p->state;
+    CopyAdjacencyList(p,temp);
+    thisNet[p->num]=1;
+
+    do{
+
+      sizeAnt=*size;
+      lp=RenewQueue(list,lp,size,d);
+
+      lp2=lp;
+      while(lp2->next!=NULL){
+        if(AreConnectedList(network_cop,GetNode(((lp2->next)->ref)->num,network_cop),thisNet)==0){
+          DequeueOne(list,lp2,size);
+        }else{
+          temp=CreateNodeGraph(network_loc,((lp2->next)->ref)->label);
+          temp2=GetNode(((lp2->next)->ref)->num,network);
+          temp->num=temp2->num;
+          temp->state=temp2->state;
+          CopyAdjacencyList(temp2,temp);
+          thisNet[temp->num]=1;
+          selected[temp->num]=1;
+          anod++;
+          //printf("   adding %d    Total: %d/%d\n",temp->num,anod,numNodes);
+          lp2=lp2->next;
+        }
+      }
+      d++;
+    }while(*size!=sizeAnt);
+
+    ClearAdjacencies(network_loc,thisNet);
+    RewireAdjacencyByLabel(network_loc);
+
+    net_list[numComponents]=network_loc;
+
+    //printf("Component %3i: Size %i\n",numComponents+1,CountNodes(net_list[numComponents]));
+    numComponents++;
+    ClearList(list,size);
+  }while(anod<numNodes);
+
+  free(list);
+  RemoveGraph(network_cop);
+
+  return numComponents;
+
+}
+
+
 
 /*
   ---------------------------------------------------------------------

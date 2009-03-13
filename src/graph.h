@@ -298,7 +298,8 @@ struct node_gra *GetLargestStronglyConnectedSet(struct node_gra *root,
 						int thres);
 struct node_gra *GetLargestWeaklyConnectedSet(struct node_gra *root,
 					      int thres);
-
+int GetAllConnectedSets(struct node_gra *network,
+                        struct node_gra **net_list); //JORDI
 /*
   ---------------------------------------------------------------------
   Node and network comparison
