@@ -49,7 +49,7 @@ main(int argc, char **argv)
   printf("Num_components %d\n", ncomponents);
   printf("Size_GC %d\n", sizeGC);
   if (ncomponents>1) printf("Av_size_other %g\n", (sizeothers-sizeGC)/(ncomponents-1.0));
-  else printf("Av_size_other 0.0");
+  else printf("Av_size_other 0.0\n");
 
   /* Number of nodes, links, and so on */
   printf("Nodes %d\n", CountNodes(net));
