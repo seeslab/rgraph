@@ -630,13 +630,13 @@ BlockModel(struct group *part, char type_sw, int list_sw)
 	  switch (type_sw) {
 	  case 'n':
 	    if (g1 == g2)
-	      bij + (double)g1->inlinks;
+	      bij = (double)g1->inlinks;
 	    else
 	      bij = (double)NG2GLinks(g1, g2);
 	    break;
 	  case 'f':
 	    if (g1 == g2)
-	      bij + (double)g1->inlinks / (double)links;
+	      bij = (double)g1->inlinks / (double)links;
 	    else
 	      bij = (double)NG2GLinks(g1, g2) / (double)links;
 	    break;
@@ -672,7 +672,9 @@ BlockModel(struct group *part, char type_sw, int list_sw)
 	      sig = sqrt((double)(g1->size * g2->size) * prob * (1.0 - prob));
 	      bij = ((double)NG2GLinks(g1, g2) - av) / sig;
 	    }
+	    break;
 	  }
+	  printf("%d %d %lf\n", g1->label+1, g2->label+1, bij);
 	}
       }
     }
