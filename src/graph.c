@@ -1336,6 +1336,21 @@ CountLinks(struct node_gra *node)
   return count;
 }
 
+// ---------------------------------------------------------------------
+// Sums the weights of the connections of a node
+// (returns the strength)
+// ---------------------------------------------------------------------
+double
+SumWeights(struct node_gra *node)
+{
+  struct node_lis *p=node->neig;
+  int strength = 0;
+
+  while ((p = p->next) != NULL)
+    strength += p->weight;
+  return strength;
+}
+
 /*
   ---------------------------------------------------------------------
   Computes the average degree of the network, if symmetric_sw == 1, it

@@ -48,7 +48,7 @@ void RemoveBipart(struct binet *net);
   ---------------------------------------------------------------------
 */
 int NCommonLinksBipart(struct node_gra *n1, struct node_gra *n2);
-
+double SumProductsOfCommonWeightsBipart(struct node_gra *n1, struct node_gra *n2);
 
 /*
   ---------------------------------------------------------------------
@@ -79,12 +79,26 @@ void FPrintPajekFileBipart(char *fname,
   ---------------------------------------------------------------------
 */
 double ModularityBipart(struct binet *binet, struct group *part);
+double ModularityBipartWeighted(struct binet *binet, struct group *part);
 void SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 			double Ti, double Tf, double Ts,
 			double cluster_prob, 
 			double **cmat, double msfac,
 			struct prng *gen);
+void SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
+			double Ti, double Tf, double Ts,
+			double cluster_prob, 
+			double **swwmat, double Wafac,
+			struct prng *gen);
 struct group *SACommunityIdentBipart(struct binet *binet,
+				     double Ti, double Tf, double Ts,
+				     double fac,
+				     int ngroup,
+				     char initial_sw,
+				     int collective_sw,
+				     char output_sw,
+				     struct prng *gen);
+struct group *SACommunityIdentBipartWeighted(struct binet *binet,
 				     double Ti, double Tf, double Ts,
 				     double fac,
 				     int ngroup,

@@ -330,6 +330,34 @@ NCommonLinksBipart(struct node_gra *n1, struct node_gra *n2)
   return ncom;
 }
 
+/*
+  ---------------------------------------------------------------------
+  Calculates Sum_a(w_ia*w_ja) for two nodes i and j. a is a node of the
+  opposite subnetwork. The sum is over all nodes of that opposite subnetwork.
+  The two nodes have to be in the same subnetwork; otherwise the subroutine
+  returns 0.
+  ---------------------------------------------------------------------
+*/
+double
+SumProductsOfCommonWeightsBipart(struct node_gra *n1, struct node_gra *n2)
+{
+  double w_ia = 0.0, w_ja = 0.0, sww = 0.0;
+  struct node_lis *l1 = n1->neig;
+  struct node_lis *l2;
+
+  while ((l1 = l1->next) != NULL) {
+    w_ia = l1->weight;
+    l2 = n2->neig;
+    while ((l2 = l2->next) != NULL) {
+      if (l1->ref == l2->ref) {
+	w_ja = l2->weight;
+	sww += w_ia * w_ja;
+      }
+    }
+  }
+	
+  return sww;
+}
 
 /*
   ---------------------------------------------------------------------
@@ -717,6 +745,48 @@ ModularityBipart(struct binet *binet, struct group *part)
 
 /*
   ---------------------------------------------------------------------
+  Calculate the modularity of a partition of a weighted bipartite network
+  ---------------------------------------------------------------------
+*/
+double
+ModularityBipartWeighted(struct binet *binet, struct group *part)
+{
+  struct node_gra *p = binet->net2;
+  struct node_lis *n1, *n2;
+  double bimod = 0.0;
+  double sww12;
+  double s1, s2;
+  double sWa = 0.0, s2Wa = 0.0, sWa2 = 0.0;
+
+  /* Calculate s2Wa=(sum W_a)^2 and sWa2=sum(W_a^2) */
+  while ((p = p->next) != NULL) {
+    sWa += (double)SumWeights(p);
+    sWa2 += (double)(SumWeights(p) * SumWeights(p));
+  }
+  s2Wa = sWa * sWa;
+
+  /* Calculate the modularity */
+  while ((part = part->next) != NULL){
+
+    n1 = part->nodeList;
+    while ((n2 = n1 = n1->next) != NULL) {
+      while ((n2 = n2->next) != NULL) {
+  	sww12 = SumProductsOfCommonWeightsBipart(n1->ref, n2->ref);
+	s1 = SumWeights(n1->ref);
+	s2 = SumWeights(n2->ref);
+
+	bimod += sww12 / sWa2  -  (s1 * s2) / s2Wa;
+      }
+    }
+  }
+  bimod *= 2.;
+
+  /* Done */
+  return bimod;
+}
+
+/*
+  ---------------------------------------------------------------------
   Splits one group into two new groups (thermalized with the outer
   SA), checking first if the network contains disconnected clusters.
   ---------------------------------------------------------------------
@@ -844,6 +914,182 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 	  n2 = p->node;
 	  t2 = CountLinks(p->ref);
 	  dE += 2. * (cmat[n1][n2] - t1 * t2 * msfac);
+	}
+	
+	/* Accept the change according to the Boltzman factor */
+	if (prng_get_next(gen) < exp(dE/T)) {
+	  MoveNode(nlist[target], glist[oldg], glist[newg]);
+	  energy += dE;
+	}
+      }
+      
+      /* Update the no-change counter */
+      if (fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B ||
+	  fabs(energyant) < EPSILON_MOD_B)
+	count++;
+      else
+	count = 0;
+
+      /* Update the last energy */
+      energyant = energy;
+
+      /* Update the temperature */
+      T = T * Ts;
+
+    } /* End of temperature loop */
+
+  } /* End of else (network is connected) */
+  
+  if (cluster_sw == 1) {
+    RemovePartition(split);
+    RemoveGraph(net);
+    RemoveBipart(binet);
+    tdestroy(dict, FreeNodeTree);
+  }
+  else {
+    free(nlist);
+  }
+
+  /* Done */
+  return;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Splits one group into two new groups (thermalized with the outer
+  SA), checking first if the network contains disconnected clusters.
+  For Weighted Bipartite Networks.
+  ---------------------------------------------------------------------
+*/
+void
+SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
+		   double Ti, double Tf, double Ts,
+		   double cluster_prob, 
+		   double **swwmat, double Wafac,
+		   struct prng *gen)
+{
+  struct group *glist[2], *g = NULL, *split = NULL;
+  struct node_gra **nlist;
+  struct node_lis *p = NULL;
+  int nnod = 0;
+  int i;
+  int n1, n2, s1, s2;
+  int target, oldg, newg;
+  double dE = 0.0;
+  double T;
+  double dice;
+  struct node_gra *net;
+  struct binet *binet;
+  int SZ1 = target_g->size;
+  int cluster_sw;
+  void *dict=NULL;
+  double energy, energyant;
+  int count = 0, limit = 5;
+
+  /* Initialize */
+  glist[0] = target_g;
+  glist[1] = empty_g;
+
+  /* Are we going to use clusters? */
+  if (prng_get_next(gen) < cluster_prob)
+    cluster_sw = 1;
+
+  /*
+    If cluster_sw, check if the network is disconnected
+  */
+  if (cluster_sw == 1) {
+    /* Build a network from the nodes in the target group and find
+       disconected clusters  */
+    binet = CreateBipart();
+    binet->net1 = BuildNetFromGroup(target_g);
+    binet->net2 = CreateHeaderGraph();
+    net = ProjectBipart(binet); /* This trick to generate the projection
+				  works, although it is not elegant */
+    /*
+    Note: This projection uses NCommonLinksBipart to determine
+    weights in the projected network, and the original, bipartite
+    weights are disregarded. But that's ok, since the projected
+    network is just used to find clusters.
+    */
+    split = ClustersPartition(net);
+  }
+
+  /*
+    If cluster_sw==1 and the network is disconnected, then use the
+    clusters
+  */
+  if (cluster_sw == 1 && NGroups(split) > 1) {
+    /* Build a dictionary for fast access to nodes */
+    dict = MakeLabelDict(binet->net1);
+
+    /* Move the nodes in some (half) of the clusters to empty module */
+    g = split;
+    while ((g = g->next) != NULL) {
+      if (prng_get_next(gen) < 0.500000) { // With prob=0.5 move to empty
+	p = g->nodeList;
+	while ((p = p->next) != NULL) {
+	  MoveNode(GetNodeDict(p->nodeLabel, dict), target_g, empty_g);
+	}
+      }
+    }
+  }
+
+  /*
+    Else if the network is connected or cluster_sw... go SA!
+  */
+  else {
+    /* Allocate memory for a list of nodes for faster access */
+    nlist = (struct node_gra **) calloc(SZ1, sizeof(struct node_gra *));
+    nnod = 0;
+
+    /* Randomly assign the nodes to the groups */
+    p = target_g->nodeList;
+    while (p->next != NULL) {
+      nlist[nnod++] = p->next->ref;
+      dice = prng_get_next(gen);
+      if (dice < 0.500000) {
+	MoveNode(p->next->ref, target_g, empty_g);
+      }
+      else {
+	p = p->next;
+      }
+    }
+    
+    /* Do SA to "optimize" the splitting */
+    T = Ti;
+    energy = energyant = 0.0;
+    while ((T >= Tf) && (count < limit)) {
+
+      /* Do nnod moves */
+      for (i=0; i<nnod; i++) {
+
+	/* Determine target node */
+	target = floor(prng_get_next(gen) * (double)nnod);
+	if (nlist[target]->inGroup == target_g->label)
+	  oldg = 0;
+	else
+	  oldg = 1;
+	newg = 1 - oldg;
+	
+	/* Calculate the change of energy */
+	dE = 0.0;
+	n1 = nlist[target]->num;
+	s1 = SumWeights(nlist[target]);
+	/* 1-Old group */
+	p = glist[oldg]->nodeList;
+	while ((p = p->next) != NULL) {
+	  n2 = p->node;
+	  if (n2 != n1) {
+	    s2 = SumWeights(p->ref);
+	    dE -= 2. * (swwmat[n1][n2] - s1 * s2 * Wafac);
+	  }
+	}
+	/* 2-New group */
+	p = glist[newg]->nodeList;
+	while ((p = p->next) != NULL) {
+	  n2 = p->node;
+	  s2 = SumWeights(p->ref);
+	  dE += 2. * (swwmat[n1][n2] - s1 * s2 * Wafac);
 	}
 	
 	/* Accept the change according to the Boltzman factor */
@@ -1257,6 +1503,391 @@ SACommunityIdentBipart(struct binet *binet,
   /* Free memory */
   free_d_mat(cmat, nnod);
   free_i_vec(nlink);
+  RemovePartition(best_part);
+  FreeLabelDict(nodeDict);
+  free(glist);
+  free(nlist);
+
+  /* Done */
+  return CompressPart(part);
+}
+
+/*
+  ---------------------------------------------------------------------
+  Identify modules in the net1 network of a WEIGHTED bipartite network
+  using simulated annealing.
+
+  Ti: Initial temperature for the SA
+
+  Tf: Final temperature for the SA
+
+  Ts: Cooling factor
+
+  fac: Iteration factor
+
+  merge: implement collective moves (merge=1) or not (merge=0)
+
+  prob: only used if merge==1. Use percolation split with probability
+  prob (prob>0) or do not use percolation (prob<0)
+  ---------------------------------------------------------------------
+*/
+struct group *
+SACommunityIdentBipartWeighted(struct binet *binet,
+		      double Ti, double Tf, double Ts,
+		      double fac,
+		      int ngroup,
+		      char initial_sw,
+		      int collective_sw,
+		      char output_sw,
+		      struct prng *gen)
+{
+  int i;
+  struct node_gra *net1 = binet->net1;
+  struct node_gra *net2 = binet->net2;
+  double sWa = 0.0, s2Wa = 0.0, sWa2 = 0.0, Wafac;
+  struct node_gra *p, *p2;
+  int nnod;
+  struct group *part = NULL, *g = NULL, *split = NULL;
+  struct node_gra **nlist;
+  struct group **glist, *lastg;
+  int cicle1, cicle2;
+  int count = 0, limit = 25;
+  double energy, energyant, dE, e;
+  double T;
+  int target, oldg, newg;
+  double **swwmat;
+  int g1, g2, empty;
+  struct node_lis *nod, *nod2;
+  double s1, s2;
+  struct group *best_part = NULL;
+  double best_E = -100.0;
+  double cluster_prob = 0.500000;
+  int dice;
+  void *nodeDict;
+  double *strength=NULL;
+  FILE *outf;
+
+  /*
+    Preliminaries: Initialize, allocate memory, and place nodes in
+    initial groups
+    -------------------------------------------------------------------
+  */
+  /* Create the groups and assign each node to one group */
+  nnod = CountNodes(net1);
+  ResetNetGroup(net1);
+  part = CreateHeaderGroup();
+  p = net1;
+
+  /* Create a node dictionary for fast access to nodes by label */
+  nodeDict = MakeLabelDict(net1);
+
+  /* Allocate memory for the node list */
+  nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
+
+  /* Create the groups and assign nodes to the initial group according
+     to initial_sw. Additionally, map nodes and groups to lists for
+     faster access. */
+  switch (initial_sw) {
+
+  case 'o':         /*  One node in each group */
+    ngroup = nnod;
+    glist = (struct group **) calloc(ngroup, sizeof(struct group *));
+    while ((p = p->next) != NULL) {
+      glist[p->num] = CreateGroup(part, p->num);
+      nlist[p->num] = p;
+      AddNodeToGroup(glist[p->num], p);
+    }
+    break;
+
+  case 'r':        /*  Random placement of nodes in groups */
+    if (ngroup < 1)
+      ngroup = nnod;
+    glist = (struct group **) calloc(ngroup, sizeof(struct group *));
+    lastg = part;
+    for (i=0; i<ngroup; i++)
+      glist[i] = lastg = CreateGroup(lastg, i);
+    while ((p = p->next) != NULL) {
+      nlist[p->num] = p;
+      dice = floor(prng_get_next(gen)* (double)ngroup);
+      AddNodeToGroup(glist[dice], p);
+    }
+    break;
+  }
+
+
+  /* Calculate s2Wa=(sum W_a)^2 and sWa2=sum(W_a^2) */
+  p = net2;
+  while ((p = p->next) != NULL) {
+    sWa += (double)SumWeights(p);
+    sWa2 += (double)(SumWeights(p) * SumWeights(p));
+  }
+  s2Wa = sWa * sWa;
+  Wafac = 1. / s2Wa;
+
+
+  /* Calculate the sww matrix of Sum_a(w_ia*w_ja), and the strengths
+     of each node */
+  swwmat = allocate_d_mat(nnod, nnod);
+  strength = allocate_d_vec(nnod);
+  p = net1;
+  while ((p = p->next) != NULL) {
+    strength[p->num] = SumWeights(p);
+    p2 = net1;
+    while ((p2 = p2->next) != NULL) {
+      swwmat[p->num][p2->num] = SumProductsOfCommonWeightsBipart(p, p2) /
+	(sWa2);            // Note that swwmat includes the 1/sWa2 factor
+    }
+  }
+
+  /*
+    Determine the number of iterations at each temperature
+    -------------------------------------------------------------------
+  */
+  if (fac * (double)(nnod * nnod) < 10)
+    cicle1 = 10;
+  else
+    cicle1 = floor(fac * (double)(nnod * nnod));
+
+  if (fac * (double)nnod < 2)
+    cicle2 = 2;
+  else
+    cicle2 = floor(fac * (double)nnod);
+
+  /*
+    Do the simulated annealing
+    -------------------------------------------------------------------
+  */
+  /* Determine initial values */
+  T = Ti;
+  energy = ModularityBipartWeighted(binet, part);
+
+  /* Temperature loop */
+  while ((T >= Tf) && (count < limit)) {
+
+    /* Output */
+    switch (output_sw) {
+    case 'n':
+      break;
+    case 'b':
+      break;
+    case 's':
+      fprintf(stderr, "%g %lf %g\n",1.0/T, energy, T);
+      break;
+    case 'm':
+      fprintf(stderr, "%g %lf %g\n",1.0/T, energy, T);
+      break;
+    case 'v':
+      fprintf(stderr, "%g %lf %lf %g\n",
+	      1.0/T, energy, ModularityBipart(binet, part), T);
+      break;
+    case 'd':
+      FPrintPartition(stderr, part, 0);
+      fprintf(stderr, "%g %lf %lf %g\n",
+	      1.0/T, energy, ModularityBipart(binet, part), T);
+    }
+    
+
+    /*
+      Do cicle1 individual change iterations
+    */
+    for (i=0; i<cicle1; i++) {
+
+      /* Propose an individual change */
+      target = floor(prng_get_next(gen) * (double)nnod);
+      oldg = nlist[target]->inGroup;
+      do {
+	newg = floor(prng_get_next(gen) * ngroup);
+      } while (newg == oldg);
+
+      /* Calculate the change of energy */
+      dE = 0.0;
+      s1 = strength[target];
+
+      /* Old group contribution */
+      nod = glist[oldg]->nodeList;
+      while ((nod = nod->next) != NULL) {
+	s2 = strength[nod->ref->num];
+	dE -= 2. * (swwmat[nlist[target]->num][nod->node] -
+		    s1 * s2 * Wafac);
+      }
+
+      /* New group contribution */
+      nod = glist[newg]->nodeList;
+      while ((nod = nod->next) != NULL) {
+	s2 = strength[nod->ref->num];
+	dE += 2. * (swwmat[nlist[target]->num][nod->node] -
+		    s1 * s2 * Wafac);
+      }
+      dE += 2. * (swwmat[nlist[target]->num][nlist[target]->num] -
+		  s1 * s1 * Wafac);
+
+      /* Accept or reject movement according to Metropolis */ 
+      if (prng_get_next(gen) < exp(dE/T)) {
+	energy += dE;
+	MoveNode(nlist[target],glist[oldg],glist[newg]);
+      }
+    }
+
+    /*
+      Do cicle2 collective change iterations
+    */
+    if (collective_sw == 1) {
+      for (i=0; i<cicle2; i++){
+	
+	/* MERGE */
+	target = floor(prng_get_next(gen) * nnod);
+	g1 = nlist[target]->inGroup;
+
+	if (glist[g1]->size < nnod) {
+	  do {
+	    target = floor(prng_get_next(gen) * nnod);
+	    g2 = nlist[target]->inGroup;
+	  } while (g1 == g2);
+	  
+	  /* Calculate dE */
+	  dE = 0.0;
+	  nod = glist[g1]->nodeList;
+	  while ((nod = nod->next) != NULL) {
+	    nod2 = glist[g2]->nodeList;
+	    while ((nod2 = nod2->next) != NULL) {
+	      s1 = strength[nod->ref->num];
+	      s2 = strength[nod2->ref->num];
+	      dE += 2. * (swwmat[nod->node][nod2->node] -
+			  s1 * s2 * Wafac);
+	    }
+	  }
+
+	  /* Accept or reject change */
+	  if (prng_get_next(gen) < exp(dE/T)) {
+	    MergeGroups(glist[g1], glist[g2]);
+	    energy += dE;
+	  }
+	} /* End of merge move */
+	
+	/* SPLIT */
+	/* Look for an empty group */
+	g = part;
+	empty = -1;
+	while (((g = g->next) != NULL) && (empty < 0)) {
+	  if (g->size == 0) {
+	    empty = g->label;
+	    break;
+	  }
+	}
+
+	if (empty >= 0 ) { /* if there are no empty groups, do nothing */
+	  /* Select group to split */
+	  do {
+	    target = floor(prng_get_next(gen) * (double)nnod); /* node */
+	    target = nlist[target]->inGroup;    /* target group */
+	  } while (glist[target]->size == 1);
+	  
+	  /* Split the group */
+	  SAGroupSplitBipartWeighted(glist[target], glist[empty],
+			     Ti, T, 0.95,
+			     cluster_prob,
+			     swwmat, Wafac, gen);
+
+	  /* Calculate dE for remerging the groups */
+	  dE = 0.0;
+	  nod = glist[target]->nodeList;
+	  while ((nod = nod->next) != NULL) {
+	    nod2 = glist[empty]->nodeList;
+	    while ((nod2 = nod2->next) != NULL) {
+	      s1 = strength[nod->ref->num];
+	      s2 = strength[nod2->ref->num];
+	      dE += 2. * (swwmat[nod->node][nod2->node] -
+			  s1 * s2 * Wafac);
+	    }
+	  }
+
+	  /* Accept the change according to "inverse" Metroppolis.
+	     Inverse means that the algor is applied to the split and
+	     NOT to the merge! */
+	  if ((dE > EPSILON_MOD_B) && (prng_get_next(gen) > exp(-dE/T))) {
+	    /* Undo the split */
+	    MergeGroups(glist[target],glist[empty]);
+	  }
+	  else{
+	    /* Update energy */
+	    energy -= dE;
+	  }
+	} /* End of split move */
+      } /* End of cicle2 loop */
+    } /* End of 'if collective_sw==1' loop */
+      
+    /* Update the no-change counter */
+    if ((T < Ti / 1000.) &&
+	(fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B ||
+	fabs(energyant) < EPSILON_MOD_B)) {
+      count++;
+      
+      /* If the SA is ready to stop (count==limit) but the current
+	 partition is not the best one so far, replace the current
+	 partition by the best one and continue from there. */
+      if ((count == limit) && (energy + EPSILON_MOD_B < best_E)) {
+	switch (output_sw) {
+	case 'n':
+	  break;
+	case 'b':
+	  break;
+	default:
+	  fprintf(stderr, "# Resetting partition\n");
+	  break;
+	}
+
+	/* Remap the partition to the best partition */
+	RemovePartition(part);
+	g = part = CopyPartition(best_part);
+	while ((g = g->next) != NULL)
+	  glist[g->label] = g;
+	MapPartToNet(part, binet->net1);
+
+	/* Reset energy and counter */
+	energy = best_E;
+	count = 0;
+      }
+    }
+
+    else {
+      count = 0;
+    }
+    /* Update the last energy */
+    energyant = energy;
+
+    /* Compare the current partition to the best partition so far and
+       save the current if it is better than the best so far. */
+    if ( energy > best_E ) {
+      if ( best_part != NULL )
+	RemovePartition(best_part);
+      best_part = CopyPartition(part);
+      MapPartToNet(part, binet->net1); /* MUST DO this after copying a
+					  part! */
+      best_E = energy;
+    }
+
+    /* Save the partition to a file if necessary */
+    switch (output_sw) {
+    case 'b':
+      outf = fopen("part.tmp", "w");
+      FPrintPartition(outf, best_part, 1);
+      fclose(outf);
+    case 's':
+      outf = fopen("part.tmp", "w");
+      FPrintPartition(outf, best_part, 1);
+      fclose(outf);
+    default:
+      break;
+    }
+
+    /* Update the temperature */
+    T = T * Ts;
+
+  } /* End of simulated annealing */
+
+  /* Free memory */
+  free_d_mat(swwmat, nnod);
+  free_d_vec(strength);
   RemovePartition(best_part);
   FreeLabelDict(nodeDict);
   free(glist);
