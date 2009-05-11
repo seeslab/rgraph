@@ -764,8 +764,8 @@ NetFromSBMScores(struct node_gra *net, struct prng *gen)
 /*
   ---------------------------------------------------------------------
   Given a "target" network A and an observed network A^O, returns the
-  link reliability R_A of A divided by the link reliability of the
-  observation A^O. The normalization is done to avoid as much as
+  network reliability R_A of A divided by the network reliability of
+  the observation A^O. The normalization is done to avoid as much as
   possible huge numbers.
   ---------------------------------------------------------------------
 */

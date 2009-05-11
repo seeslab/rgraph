@@ -52,5 +52,6 @@ AC_CONFIG_FILES(lib/Makefile
 		netcarto/Makefile
 		bipartmod/Makefile
 		utils/Makefile
+		reliability/Makefile
 		Makefile)
 AC_OUTPUT()
