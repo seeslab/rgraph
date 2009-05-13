@@ -5,9 +5,12 @@ INCLUDES = -I$(top_builddir) -I$(top_srcdir) \
 	-I$(top_srcdir)/lib -I$(top_srcdir)/src
 AM_LDFLAGS = -static
 
-bin_PROGRAMS = reconstruct
+bin_PROGRAMS = reconstruct links
 
 reconstruct_SOURCES = main_reconstruct.c
 reconstruct_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
 
-CLEANFILES = net_reconstructed.dat
+links_SOURCES = main_links.c
+links_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
+
+CLEANFILES = net_reconstructed.dat bogus.dat missing.dat
