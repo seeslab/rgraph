@@ -6,7 +6,7 @@
 #include "graph.h"
 #include "tools.h"
 #include "modules.h"
-#include "visual.h"
+#include "layout.h"
 
 /*
   Create a pointer to a node inside a simulation box
