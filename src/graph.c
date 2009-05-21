@@ -698,8 +698,9 @@ GetNode(int num, struct node_gra *p)
 }
 
 // ---------------------------------------------------------------------
-// Find and return a given node by label. The search is logarithmic
-// because a search tree is used.
+// Find and return a given node by label. Returns NULL if no node with
+// that label is found. The search is logarithmic because a search
+// tree is used.
 // ---------------------------------------------------------------------
 struct node_gra *
 GetNodeDict(char *label, void *dict)
@@ -3148,4 +3149,45 @@ CompareTwoNetworks(struct node_gra *netA, struct node_gra *netB,
   FreeLabelDict(node_dictA);
   FreeLabelDict(node_dictB);
   return;
+}
+
+/*
+  -----------------------------------------------------------------------------
+  Given two networks, the subroutine returns the "sum" of the
+  networks. The sum network contains all nodes and links that appear
+  in netA and/or netB.
+  -----------------------------------------------------------------------------
+*/
+struct node_gra *
+AddTwoNetworks(struct node_gra *netA, struct node_gra *netB)
+{
+  struct node_gra *netSum = CopyNetwork(netA);
+  void *nodeDictA, *nodeDictSum;
+  struct node_gra *p;
+  struct node_lis *n;
+
+  /* Add nodes in B missing from A */
+  nodeDictA = MakeLabelDict(netA);
+  p = netB;
+  while((p = p->next) != NULL)
+    if (GetNodeDict(p->label, nodeDictA) == NULL)
+      CreateNodeGraph(netSum, p->label);
+  FreeLabelDict(nodeDictA);
+
+  /* Add all links in B (repetitions are taken care of by
+     AddAdjacency) */
+  nodeDictSum = MakeLabelDict(netSum);
+  p = netB;
+  while ((p = p->next) != NULL) {
+    n = p->neig;
+    while ((n = n->next) != NULL) {
+      AddAdjacency(GetNodeDict(p->label, nodeDictSum),
+		   GetNodeDict(n->ref->label, nodeDictSum),
+		   1, 0, 1, 0);
+    }
+  }
+  FreeLabelDict(nodeDictSum);
+
+  /* Done */
+  return netSum;
 }

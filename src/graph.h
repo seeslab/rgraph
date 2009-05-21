@@ -318,5 +318,12 @@ void CompareTwoNetworks(struct node_gra *netA, struct node_gra *netB,
 			int *nA_lin, int *nB_lin, int *ncom_lin, 
 			double *p_lAB, double *p_lBA);
 
+/*
+  ---------------------------------------------------------------------
+  Network operations
+  ---------------------------------------------------------------------
+*/
+struct node_gra * AddTwoNetworks(struct node_gra *netA, struct node_gra *netB);
+
 
 #endif /* !RGRAPH_GRAPH_H */
