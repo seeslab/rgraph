@@ -63,7 +63,7 @@ void MDGraphLayout2Dp(struct node_gra *net, double drag, double dt,
   Output
   -----------------------------------------------------------------------------
 */
-void PrintNodeCoordinates(struct node_gra *net);
+void PrintNodeCoordinates(FILE *outFile, struct node_gra *net);
 
 
 int CopyCoords(struct node_gra *net_src, struct node_gra *net_des);

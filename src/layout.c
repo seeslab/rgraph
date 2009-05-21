@@ -66,12 +66,11 @@ void FreeBox(struct node_box *box)
 /*
   Print the coordinates of a node
 */
-void PrintNodeCoordinates(struct node_gra *net)
+void
+PrintNodeCoordinates(FILE *outFile, struct node_gra *net)
 {
-  while (net->next != NULL) {
-    net = net->next;
-    printf("\t%d %g %g\n", net->num+1, net->coorX, net->coorY);
-  }
+  while ((net = net->next) != NULL)
+    fprintf(outFile, "%s %g %g\n", net->label, net->coorX, net->coorY);
 
   return;
 }
@@ -132,7 +131,7 @@ void ArrangeComponents(struct node_gra *net, struct prng *gen)
 			     // inGroup fields of the nodes are not
 			     // overwritten
     part = ClustersPartition(cnet);
-    ngroup = CountGroups(part);
+    ngroup = NNonEmptyGroups(part);
     
     // Allocate memory
     rad = allocate_d_vec(ngroup);
@@ -604,7 +603,7 @@ MDGraphLayout(struct node_gra *net, double drag, double dt,
   // Determine the number of boxes
   if (nbox <= 0) {
     nbox = floor(sqrt((double)(nnod*nnod) / 
-		      (10.*(double)TotalLinks(net))));
+		      (10.*(double)TotalNLinks(net, 1))));
     if (nbox < 1)
       nbox = 1;
   }
@@ -1072,7 +1071,7 @@ MDGraphLayout3D(struct node_gra *net, double drag, double dt,
   // Determine the number of boxes
   if (nbox <= 0) {
     nbox = floor(pow((double)(nnod*nnod) / 
-		     (10.*(double)TotalLinks(net)), 1./3.));
+		     (10.*(double)TotalNLinks(net, 1)), 1./3.));
     if (nbox < 1)
       nbox = 1;
   }
@@ -1244,7 +1243,7 @@ MDGraphLayout2Dp(struct node_gra *net, double drag, double dt,
   // Determine the number of boxes
   if (nbox <= 0) {
     nbox = floor(pow((double)(nnod*nnod) / 
-		     (10.*(double)TotalLinks(net)), 1./3.));
+		     (10.*(double)TotalNLinks(net, 1)), 1./3.));
     if (nbox < 1)
       nbox = 1;
   }
