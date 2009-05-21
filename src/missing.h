@@ -8,6 +8,8 @@
 #define RGRAPH_MISSING_H 1
 
 #include "prng.h"
+#include "graph.h"
+#include "modules.h"
 
 /*
   ---------------------------------------------------------------------

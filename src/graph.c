@@ -36,6 +36,7 @@ CreateHeaderGraph()
   temp->inGroup = -1;
   temp->ivar1 = -1;
   temp->dvar1 = -1.;
+  temp->trans = -1;
 
   return temp;
 }
@@ -72,6 +73,7 @@ CreateNodeGraph(struct node_gra *p, char *label)
   (p->next)->coorY = -1.0;
   (p->next)->coorZ = -1.0;
   (p->next)->dvar1 = -1.0;
+  (p->next)->trans = -1;
 
   return p->next;
 }
@@ -2387,12 +2389,13 @@ CalculateKnn(struct node_gra *node)
 // than one component.
 // ---------------------------------------------------------------------
 int
-IsGraphConnected(struct node_gra *p, int N)
+IsGraphConnected(struct node_gra *p)
 {
   struct node_bfs *list,*lp;
   int *size,r1;
   int size_ant;
   int d;
+  int N = CountNodes(p);
 
   r1 = 0;
   size = &r1;

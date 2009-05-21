@@ -30,6 +30,8 @@ struct node_gra{
   int inGroup;             // group to which the node belongs
   int ivar1;               // number of packets currently at the node
   double dvar1;            // rush variable to store doubles
+  int trans;               // translation of the node (for
+			   // visualization)
 };
 
 /*
@@ -290,7 +292,7 @@ double CalculateKnn(struct node_gra *node);
 double CalculateGroupConCor(struct node_gra *net);
 
 /* Components */
-int IsGraphConnected(struct node_gra *p, int N);
+int IsGraphConnected(struct node_gra *p);
 int AreConnectedList(struct node_gra *root,
 		     struct node_gra *n1,
 		     int cluslis[]);
