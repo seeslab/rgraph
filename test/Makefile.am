@@ -1,9 +1,10 @@
-TESTS = graph1 giant coclas bipart1 bipart2 tools betweenness lapspec
+TESTS = graph1 giant coclas bipart1 bipart2 tools betweenness lapspec netsum
 
 INCLUDES = -I$(top_builddir) -I$(top_srcdir) \
 	-I$(top_srcdir)/lib -I$(top_srcdir)/src
 
-check_PROGRAMS = graph1 giant coclas bipart1 bipart2 tools betweenness lapspec
+check_PROGRAMS = graph1 giant coclas bipart1 bipart2 tools betweenness \
+		 lapspec netsum
 
 graph1_SOURCES = main_graph1.c
 graph1_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
@@ -28,6 +29,9 @@ betweenness_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
 
 lapspec_SOURCES = main_lapspec.c
 lapspec_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
+
+netsum_SOURCES = main_netsum.c
+netsum_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
 
 EXTRA_DIST = test.dat testbinet.dat testbinetpart.dat test_betw.dat
 CLEANFILES = *.net
