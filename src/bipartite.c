@@ -1555,6 +1555,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
   double energy, energyant, dE, e;
   double T;
   int target, oldg, newg;
+  char* accepted;
   double **swwmat;
   int g1, g2, empty;
   struct node_lis *nod, *nod2;
@@ -1678,12 +1679,12 @@ SACommunityIdentBipartWeighted(struct binet *binet,
       break;
     case 'v':
       fprintf(stderr, "%g %lf %lf %g\n",
-	      1.0/T, energy, ModularityBipart(binet, part), T);
+	      1.0/T, energy, ModularityBipartWeighted(binet, part), T);
       break;
     case 'd':
       FPrintPartition(stderr, part, 0);
       fprintf(stderr, "%g %lf %lf %g\n",
-	      1.0/T, energy, ModularityBipart(binet, part), T);
+	      1.0/T, energy, ModularityBipartWeighted(binet, part), T);
     }
     
 
@@ -1691,6 +1692,8 @@ SACommunityIdentBipartWeighted(struct binet *binet,
       Do cicle1 individual change iterations
     */
     for (i=0; i<cicle1; i++) {
+      
+      accepted = "rejected";
 
       /* Propose an individual change */
       target = floor(prng_get_next(gen) * (double)nnod);
@@ -1723,18 +1726,31 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 
       /* Accept or reject movement according to Metropolis */ 
       if (prng_get_next(gen) < exp(dE/T)) {
+	accepted = "ACCEPTED";
 	energy += dE;
 	MoveNode(nlist[target],glist[oldg],glist[newg]);
       }
+      
+      switch(output_sw) {
+      case 'd':
+	if (dE < 0 && accepted == "ACCEPTED" && (T < Ti/1.0e6)) {  
+	  fprintf(stderr, "Cicle 1 move %s: %i move %i -> %i dE=%g prob=%g T=%g\n",
+		  accepted,target, oldg, newg, dE, exp(dE/T),T);
+	}
+	accepted = "rejected";
+      }
     }
+
 
     /*
       Do cicle2 collective change iterations
     */
     if (collective_sw == 1) {
       for (i=0; i<cicle2; i++){
-	
+
 	/* MERGE */
+	accepted = "rejected";
+
 	target = floor(prng_get_next(gen) * nnod);
 	g1 = nlist[target]->inGroup;
 
@@ -1759,12 +1775,24 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 
 	  /* Accept or reject change */
 	  if (prng_get_next(gen) < exp(dE/T)) {
+	    accepted = "ACCEPTED";
 	    MergeGroups(glist[g1], glist[g2]);
 	    energy += dE;
+	  }
+	  
+	  switch(output_sw) {
+	  case 'd':
+	    if (dE < 0 && accepted == "ACCEPTED" && (T < Ti/1.0e6)) {  
+	      fprintf(stderr, "Cicle 2 Merge %s: %i (sz %i) with %i (sz %i) dE=%g prob=%g T=%g\n",
+		      accepted, g1, glist[g1]->size, g2, glist[g2]->size, dE, exp(dE/T),T);
+	    }
+	    accepted = "rejected";
 	  }
 	} /* End of merge move */
 	
 	/* SPLIT */
+	accepted = "rejected";
+
 	/* Look for an empty group */
 	g = part;
 	empty = -1;
@@ -1804,27 +1832,43 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 	  /* Accept the change according to "inverse" Metroppolis.
 	     Inverse means that the algor is applied to the split and
 	     NOT to the merge! */
-	  if ((dE > EPSILON_MOD_B) && (prng_get_next(gen) > exp(-dE/T))) {
+	  if (prng_get_next(gen) > exp(-dE/T)) {
 	    /* Undo the split */
 	    MergeGroups(glist[target],glist[empty]);
 	  }
 	  else{
+	    accepted = "ACCEPTED";
 	    /* Update energy */
 	    energy -= dE;
+	  }
+	  switch(output_sw) {
+	  case 'd':
+	    if (-dE < 0 && accepted == "ACCEPTED"  && (T < Ti/1.0e6)) {  	    
+	      fprintf(stderr, "Cicle 2 Split %s: %i -> %i (sz %i) and %i (sz %i) dE=%g dE>-en*Epsilon/10=%i prob=%g T=%g\n",
+		      accepted, target, target, glist[target]->size, empty, glist[empty]->size, -dE, -dE>-fabs(energyant)*EPSILON_MOD_B/10, exp(-dE/T), T);
+	    }
+	    accepted = "rejected";
 	  }
 	} /* End of split move */
       } /* End of cicle2 loop */
     } /* End of 'if collective_sw==1' loop */
       
+
+
     /* Update the no-change counter */
     if ((T < Ti / 1000.) &&
 	(fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B ||
 	fabs(energyant) < EPSILON_MOD_B)) {
       count++;
       
+
       /* If the SA is ready to stop (count==limit) but the current
 	 partition is not the best one so far, replace the current
 	 partition by the best one and continue from there. */
+      if ((count == limit) && (output_sw == 'd')) {
+	  fprintf(stderr, "# Limit reached.\n");
+      }
+
       if ((count == limit) && (energy + EPSILON_MOD_B < best_E)) {
 	switch (output_sw) {
 	case 'n':
@@ -1852,8 +1896,16 @@ SACommunityIdentBipartWeighted(struct binet *binet,
     else {
       count = 0;
     }
+
+	  if ((T < Ti / 1.0e6) && (output_sw == 'd')) {
+	fprintf(stderr, "En Change %: %g (Last En: %g), count: %i",
+		(fabs(energy - energyant)/fabs(energyant)),
+		fabs(energyant), count);
+      }
+
     /* Update the last energy */
     energyant = energy;
+
 
     /* Compare the current partition to the best partition so far and
        save the current if it is better than the best so far. */
