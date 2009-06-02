@@ -1856,8 +1856,8 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 
 
     /* Update the no-change counter */
-    if ((T < Ti / 1000.) &&
-	(fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B ||
+    // condition (T < Ti / 1000.) && removed (stpdescent)
+    if ((fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B ||
 	fabs(energyant) < EPSILON_MOD_B)) {
       count++;
       
