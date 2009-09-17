@@ -1432,7 +1432,7 @@ SACommunityIdentBipart(struct binet *binet,
     } /* End of 'if collective_sw==1' loop */
       
     /* Update the no-change counter */
-    if ((T < Ti / 1000.) &&
+    if (((T < Ti / 1000.) || (Ti < EPSILON_MOD_B)) &&
 	(fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B ||
 	fabs(energyant) < EPSILON_MOD_B)) {
       count++;
