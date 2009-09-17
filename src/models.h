@@ -11,5 +11,6 @@
 
 struct node_gra *EmptyGraph(int S);
 struct node_gra *ERGraph(int S, double p, struct prng *gen);
+struct node_gra *PAGraph(int S, int m, struct prng *gen);
 
 #endif /* !RGRAPH_MODELS_H */
