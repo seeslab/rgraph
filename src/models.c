@@ -129,3 +129,91 @@ PAGraph(int S, int m, struct prng *gen)
   free(paList);
   return root;
 }
+
+/*
+  ---------------------------------------------------------------------
+  Create an undirected block graph. Arguments:
+
+  - ngroup: number of groups
+  - gsize: a list with the group sizes
+  - q: matrix of block-to-block connectivity probability
+  - gen: random number generator
+
+  ---------------------------------------------------------------------
+*/
+struct node_gra *
+UndirectedBlockGraph(int ngroup, int *gsize, double **q,
+		     struct prng *gen)
+{
+  int node1, node2;
+  struct node_gra **nodeList = NULL;
+  struct node_gra *root = NULL, *last = NULL;
+  char label[MAX_LABEL_LENGTH];
+  int i, S=0;
+
+  /* Create header */
+  last = root = CreateHeaderGraph();
+  
+  /* Create nodes */
+  for (i=0; i<ngroup; i++)
+    S += gsize[i];
+  nodeList = (struct node_gra **)calloc(S, sizeof(struct node_gra *));
+  S = 0;
+  for (i=0; i<ngroup; i++) {
+    for (node1=S; node1<S+gsize[i]; node1++) {
+      sprintf(&label[0], "%d", node1+1);
+      last = nodeList[node1] = CreateNodeGraph(last, &label[0]);
+      last->inGroup = i;
+    }
+    S += gsize[i];
+  }
+
+  /* Create the links */
+  for (node1=0; node1<S; node1++) {
+    for (node2=node1+1; node2<S; node2++) {
+      if (prng_get_next(gen) <
+	  q[(nodeList[node1])->inGroup][(nodeList[node2])->inGroup]) {
+	AddAdjacency(nodeList[node1], nodeList[node2], 0, 0, 0, 0);
+	AddAdjacency(nodeList[node2], nodeList[node1], 0, 0, 0, 0);
+      }
+    }
+  }
+
+  /* Done */
+  free(nodeList);
+  return root;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Create a Girvan-Newman graph (PNAS, 2002) with community structure
+  ---------------------------------------------------------------------
+*/
+struct node_gra *
+GirvanNewmanGraph(int ngroup, int gsize, double kin, double kout,
+		  struct prng *gen)
+{
+  double **q;
+  int *gsizes;
+  int g1, g2;
+  struct node_gra *net=NULL;
+
+  /* Prepare arrays necessary for UndirectedBlockGraph */
+  q = allocate_d_mat(ngroup, ngroup);
+  gsizes = allocate_i_vec(ngroup);
+  for (g1=0; g1<ngroup; g1++) {
+    gsizes[g1] = gsize;
+    q[g1][g1] = (double)(kin) / (double)(gsize - 1);
+    for (g2=g1+1; g2<ngroup; g2++) {
+      q[g1][g2] = (double)(kout) / (double)(gsize * (ngroup - 1));
+    }
+  }
+
+  /* Do it */
+  net = UndirectedBlockGraph(ngroup, gsizes, q, gen);
+
+  /* Done */
+  free_d_mat(q, ngroup);
+  free_i_vec(gsizes);
+  return net;
+}
