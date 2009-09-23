@@ -10,6 +10,7 @@
 
 #include "prng.h"
 
+#include "tools.h"
 #include "graph.h"
 #include "models.h"
 
@@ -137,13 +138,14 @@ PAGraph(int S, int m, struct prng *gen)
   - ngroup: number of groups
   - gsize: a list with the group sizes
   - q: matrix of block-to-block connectivity probability
+  - output_sw: 'v' for verbose
   - gen: random number generator
 
   ---------------------------------------------------------------------
 */
 struct node_gra *
 UndirectedBlockGraph(int ngroup, int *gsize, double **q,
-		     struct prng *gen)
+		     char output_sw, struct prng *gen)
 {
   int node1, node2;
   struct node_gra **nodeList = NULL;
@@ -171,6 +173,15 @@ UndirectedBlockGraph(int ngroup, int *gsize, double **q,
   /* Create the links */
   for (node1=0; node1<S; node1++) {
     for (node2=node1+1; node2<S; node2++) {
+      switch (output_sw) {
+      case 'v':
+	fprintf(stderr, "%s %s %g\n",
+		nodeList[node1]->label, nodeList[node2]->label,
+		q[(nodeList[node1])->inGroup][(nodeList[node2])->inGroup]);
+	break;
+      default:
+	break;
+      }
       if (prng_get_next(gen) <
 	  q[(nodeList[node1])->inGroup][(nodeList[node2])->inGroup]) {
 	AddAdjacency(nodeList[node1], nodeList[node2], 0, 0, 0, 0);
@@ -191,7 +202,7 @@ UndirectedBlockGraph(int ngroup, int *gsize, double **q,
 */
 struct node_gra *
 GirvanNewmanGraph(int ngroup, int gsize, double kin, double kout,
-		  struct prng *gen)
+		  char output_sw, struct prng *gen)
 {
   double **q;
   int *gsizes;
@@ -210,7 +221,7 @@ GirvanNewmanGraph(int ngroup, int gsize, double kin, double kout,
   }
 
   /* Do it */
-  net = UndirectedBlockGraph(ngroup, gsizes, q, gen);
+  net = UndirectedBlockGraph(ngroup, gsizes, q, output_sw, gen);
 
   /* Done */
   free_d_mat(q, ngroup);

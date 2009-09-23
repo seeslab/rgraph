@@ -15,11 +15,13 @@ struct node_gra *PAGraph(int S, int m, struct prng *gen);
 struct node_gra *UndirectedBlockGraph(int ngroup,
 				      int *gsize,
 				      double **q,
+				      char output_sw,
 				      struct prng *gen);
 struct node_gra *GirvanNewmanGraph(int ngroup,
 				   int gsize,
 				   double kin,
 				   double kout,
+				      char output_sw,
 				   struct prng *gen);
 
 #endif /* !RGRAPH_MODELS_H */
