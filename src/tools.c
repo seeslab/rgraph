@@ -241,7 +241,10 @@ stddev(double *data, int N)
 
   m /= (double)(N);
   m2 /= (double)(N);
-  s = sqrt(m2 - m * m);
+  if (m2 - m * m > 0.0)
+    s = sqrt(m2 - m * m);
+  else
+    s = 0.0;
 
   return s;
 }

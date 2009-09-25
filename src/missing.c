@@ -19,6 +19,8 @@
 #include "modules.h"
 #include "models.h"
 
+#define EPSILON 1.e-6
+
 /*
   ---------------------------------------------------------------------
   ---------------------------------------------------------------------
@@ -417,7 +419,8 @@ ThermalizeLinkScoreMC(int decorStep,
     /* Check for equilibration */
     HMean1 = mean(Hvalues, nrep);
     HStd1 = stddev(Hvalues, nrep);
-    if (HMean0 - HStd0 / sqrt(nrep) < HMean1 + HStd1 / sqrt(nrep)) {
+    if ((HMean0 - HStd0 / sqrt(nrep)) - (HMean1 + HStd1 / sqrt(nrep))
+	< EPSILON) {
       equilibrated++;
       switch (verbose_sw) {
       case 'q':
