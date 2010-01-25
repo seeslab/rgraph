@@ -5,9 +5,7 @@
 #include "prng.h"
 #include "tools.h"
 #include "graph.h"
-#include "modules.h"
-#include "missing.h"
-#include "matrix.h"
+#include "layout.h"
 
 int
 main(int argc, char **argv)
