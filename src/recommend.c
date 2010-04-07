@@ -25,7 +25,24 @@
 /*
   ---------------------------------------------------------------------
   ---------------------------------------------------------------------
+  Auxiliary functions
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+*/
+struct query *
+CreateQuery(label1, net1, label2, net2)
+{
+  struct query *theQuery; 
+  theQuery = (struct query *)calloc(1, sizeof(struct query));
   
+
+  return theQuery;
+}
+
+/*
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+  Recommender functions
   ---------------------------------------------------------------------
   ---------------------------------------------------------------------
 */
@@ -254,7 +271,7 @@ MCStep2State(int factor,
 	dH += log(r + 1) + LogChoose(r, l);
       }
       else { /* group is empty */
-	n2gList[g->label] = 0.0;
+	n2gList[g->label] = 0;
       }
     }
     
@@ -488,7 +505,7 @@ LinkScore2State(struct binet *binet,
   int r, l;
   double mutualInfo;
   struct query *query_list[1];
-  int nquery;
+  int nquery, query_linked;
 
   /*
     PRELIMINARIES
@@ -496,6 +513,7 @@ LinkScore2State(struct binet *binet,
   /* The query */
   query_list[0] = the_query;
   nquery = 1;
+  query_linked = IsThereLink(the_query->n1, the_query->n2);
 
   /* Map nodes and groups to a list for faster access */
   nlist1 = (struct node_gra **) calloc(nnod1, sizeof(struct node_gra *));
@@ -532,7 +550,10 @@ LinkScore2State(struct binet *binet,
   /* Get the initial group-to-group links matrix */
   G1G2 = allocate_i_mat(nnod1, nnod2);
   G2G1 = allocate_i_mat(nnod2, nnod1);
-  n2gList = allocate_i_vec(max(nnod1, nnod2));
+  n2gList = allocate_i_vec(max(nnod1, nnod2)); /* This is only used in
+						  subroutines, but
+						  allocated here for
+						  convenience */
   for (i=0; i<nnod1; i++) {
     for (j=0; j<nnod2; j++) {
       G1G2[i][j] = G2G1[j][i] = NG2GLinks(glist1[i], glist2[j]);
@@ -597,8 +618,7 @@ LinkScore2State(struct binet *binet,
     Z += weight;
 
     /* Update the score */
-    l = G1G2[the_query->n1->inGroup][the_query->n2->inGroup] -	\
-      IsThereLink(the_query->n1, the_query->n2);
+    l = G1G2[the_query->n1->inGroup][the_query->n2->inGroup] - query_linked;
     r = glist1[the_query->n1->inGroup]->size * \
       glist2[the_query->n2->inGroup]->size - 1;
     contrib = weight * (float)(l + 1) / (float)(r + 2);

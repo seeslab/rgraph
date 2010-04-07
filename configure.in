@@ -53,5 +53,6 @@ AC_CONFIG_FILES(lib/Makefile
 		bipartmod/Makefile
 		utils/Makefile
 		reliability/Makefile
+		recommender/Makefile
 		Makefile)
 AC_OUTPUT()

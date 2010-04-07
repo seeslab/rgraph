@@ -24,12 +24,20 @@ struct query
   struct node_gra *n2;
 };
 
+
 /*
   -----------------------------------------------------------------------------
-  
+  Auxiliary functions
   -----------------------------------------------------------------------------
 */
-  double H2State(struct group *part1, struct group *part2,
+struct query *CreateQuery(label1, net1, label2, net2);
+
+/*
+  -----------------------------------------------------------------------------
+  Recommender functions
+  -----------------------------------------------------------------------------
+*/
+double H2State(struct group *part1, struct group *part2,
 	       struct query **query_list, int nquery);
 void MCStep2State(int factor,
 		  double *H,
