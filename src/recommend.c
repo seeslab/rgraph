@@ -30,13 +30,20 @@
   ---------------------------------------------------------------------
 */
 struct query *
-CreateQuery(label1, net1, label2, net2)
+CreateQuery(struct node_gra *node1, struct node_gra *node2)
 {
   struct query *theQuery; 
   theQuery = (struct query *)calloc(1, sizeof(struct query));
-  
-
+  theQuery->n1 = node1;
+  theQuery->n2 = node2;
   return theQuery;
+}
+
+void
+FreeQuery(struct query *q)
+{
+  free(q);
+  return;
 }
 
 /*
@@ -148,6 +155,7 @@ H2State(struct group *part1, struct group *part2,
 	      l -= IsThereLink(query_list[q]->n1, query_list[q]->n2);
 	    }
 	  }
+/* 	  fprintf(stderr, "%d-%d: %g/%g\n", g1->label+1, g2->label+1, l, r); */
 	  H += log(r + 1) + LogChoose(r, l);
 	}
       }
@@ -177,14 +185,16 @@ MCStep2State(int factor,
 	     struct prng *gen)
 {
   double dH;
-  struct group *oldg, *newg, *g;
+  struct group *oldg, *newg, *g, *g2;
   int ***G2G, ***G2Ginv;
   int move;
   double set_ratio;
   struct node_gra *node=NULL;
   int dice, r, l;
   int oldgnum, newgnum, q;
-  int i, nnod;
+  int i, nnod, ngroup;
+  int j; 
+  int move_in;
 
   /* Ratio of moves in each of the sets */
   set_ratio = (double)(nnod1*nnod1) / (double)(nnod1*nnod1 + nnod2*nnod2);
@@ -192,9 +202,11 @@ MCStep2State(int factor,
   for (move=0; move<(nnod1+nnod2)*factor; move++) {
     /* The move */
     if (prng_get_next(gen) < set_ratio) { /* move in first set */
+      move_in = 1;
       G2G = &G1G2;
       G2Ginv = &G2G1;
       nnod = nnod1;
+      ngroup = nnod2;
       dice = floor(prng_get_next(gen) * (double)nnod1);
       node = nlist1[dice];
       oldgnum = node->inGroup;
@@ -203,12 +215,14 @@ MCStep2State(int factor,
       } while (newgnum == oldgnum);
       oldg = glist1[oldgnum];
       newg = glist1[newgnum];
-      g = part1;
+      g = g2 = part2;
     }
     else {                                /* move in second set */
+      move_in = 2;
       G2G = &G2G1;
       G2Ginv = &G1G2;
       nnod = nnod2;
+      ngroup = nnod1;
       dice = floor(prng_get_next(gen) * (double)nnod2);
       node = nlist2[dice];
       oldgnum = node->inGroup;
@@ -217,10 +231,12 @@ MCStep2State(int factor,
       } while (newgnum == oldgnum);
       oldg = glist2[oldgnum];
       newg = glist2[newgnum];
-      g = part2;
+      g = g2 = part1;
     }
 
     /* The change of energy */
+    /* Old configuration contribution */
+/*     fprintf(stderr, "\nmoving %s: %d->%d\n", node->label, oldg->label+1, newg->label+1); */
     dH = 0.0;
     while ((g=g->next) != NULL) {
       if (g->size > 0) {  /* group is not empty */
@@ -229,63 +245,100 @@ MCStep2State(int factor,
 	r = oldg->size * g->size;
 	l = (*G2G)[oldgnum][g->label];
 	for (q=0; q<nquery; q++) {
-	  if (query_list[q]->n1->inGroup == oldg->label &&
-	      query_list[q]->n2->inGroup == g->label) {
+	  if ((move_in == 1 &&
+	       query_list[q]->n1->inGroup == oldg->label &&
+	       query_list[q]->n2->inGroup == g->label) ||
+	      (move_in == 2 &&
+	       query_list[q]->n1->inGroup == g->label &&
+	       query_list[q]->n2->inGroup == oldg->label)) {
 	    r--;
 	    l -= IsThereLink(query_list[q]->n1, query_list[q]->n2);
 	  }
 	}
+/* 	fprintf(stderr, "old: %d-%d: %d/%d\n", oldg->label+1, g->label+1, l, r); */
 	dH -= log(r + 1) + LogChoose(r, l);
 	/* old configuration, new group */
 	r = newg->size * g->size;
 	l = (*G2G)[newgnum][g->label];
 	for (q=0; q<nquery; q++) {
-	  if (query_list[q]->n1->inGroup == newg->label &&
-	      query_list[q]->n2->inGroup == g->label) {
+	  if ((move_in == 1 &&
+	       query_list[q]->n1->inGroup == newg->label &&
+	       query_list[q]->n2->inGroup == g->label) ||
+	      (move_in == 2 &&
+	       query_list[q]->n1->inGroup == g->label &&
+	       query_list[q]->n2->inGroup == newg->label)) {
 	    r--;
 	    l -= IsThereLink(query_list[q]->n1, query_list[q]->n2);
 	  }
 	}
+/* 	fprintf(stderr, "old: %d-%d: %d/%d\n", newg->label+1, g->label+1, l, r); */
 	dH -= log(r + 1) + LogChoose(r, l);
-	/* new configuration, old group */
-	r = (oldg->size - 1) * g->size;
-	l = (*G2G)[oldgnum][g->label] - n2gList[g->label];
-	for (q=0; q<nquery; q++) {
-	  if (query_list[q]->n1->inGroup == oldg->label &&
-	      query_list[q]->n2->inGroup == g->label) {
-	    r--;
-	    l -= IsThereLink(query_list[q]->n1, query_list[q]->n2);
-	  }
-	}
-	dH += log(r + 1) + LogChoose(r, l);
-	/* new configuration, new group */
-	r = (newg->size + 1) * g->size;
-	l = (*G2G)[newgnum][g->label] + n2gList[g->label];
-	for (q=0; q<nquery; q++) {
-	  if (query_list[q]->n1->inGroup == newg->label &&
-	      query_list[q]->n2->inGroup == g->label) {
-	    r--;
-	    l -= IsThereLink(query_list[q]->n1, query_list[q]->n2);
-	  }
-	}
-	dH += log(r + 1) + LogChoose(r, l);
       }
       else { /* group is empty */
 	n2gList[g->label] = 0;
       }
     }
+
+    /* Tentatively move the node to the new group and update G2G matrices */
+    MoveNode(node, oldg, newg);
+    for (i=0; i<ngroup; i++) {
+      (*G2G)[oldgnum][i] -= n2gList[i];
+      (*G2G)[newgnum][i] += n2gList[i];
+      (*G2Ginv)[i][oldgnum] -= n2gList[i];
+      (*G2Ginv)[i][newgnum] += n2gList[i];
+    }
+
+    /* New configuration contribution */
+    while ((g2=g2->next) != NULL) {
+      if (g2->size > 0) {  /* group is not empty */
+	/* new configuration, old group */
+	r = oldg->size * g2->size;
+	l = (*G2G)[oldgnum][g2->label];
+	for (q=0; q<nquery; q++) {
+	  if ((move_in == 1 &&
+	       query_list[q]->n1->inGroup == oldg->label &&
+	       query_list[q]->n2->inGroup == g2->label) ||
+	      (move_in == 2 &&
+	       query_list[q]->n1->inGroup == g2->label &&
+	       query_list[q]->n2->inGroup == oldg->label)) {
+	    r--;
+	    l -= IsThereLink(query_list[q]->n1, query_list[q]->n2);
+	  }
+	}
+/* 	fprintf(stderr, "new: %d-%d: %d/%d\n", oldg->label+1, g2->label+1, l, r); */
+	dH += log(r + 1) + LogChoose(r, l);
+	/* new configuration, new group */
+	r = newg->size * g2->size;
+	l = (*G2G)[newgnum][g2->label];
+	for (q=0; q<nquery; q++) {
+	  if ((move_in == 1 &&
+	       query_list[q]->n1->inGroup == newg->label &&
+	       query_list[q]->n2->inGroup == g2->label) ||
+	      (move_in == 2 &&
+	       query_list[q]->n1->inGroup == g2->label &&
+	       query_list[q]->n2->inGroup == newg->label)) {
+	    r--;
+	    l -= IsThereLink(query_list[q]->n1, query_list[q]->n2);
+	  }
+	}
+/* 	fprintf(stderr, "new: %d-%d: %d/%d\n", newg->label+1, g2->label+1, l, r); */
+	dH += log(r + 1) + LogChoose(r, l);
+      }
+    }
     
     /* Metropolis acceptance */
     if ((dH <= 0.0) || (prng_get_next(gen) < exp(-dH))) {
-      /* accept move */
-      MoveNode(node, oldg, newg);
+      /* accept move: update energy */
       *H += dH;
-      /* update G2G and G2Ginv*/
-      for (i=0; i<nnod; i++) {
-	(*G2G)[i][oldgnum] -= n2gList[i];
-	(*G2G)[i][newgnum] += n2gList[i];
-	(*G2Ginv)[oldgnum][i] -= n2gList[i];
-	(*G2Ginv)[newgnum][i] += n2gList[i];
+    }
+    else { 
+      /* undo the move */
+      MoveNode(node, newg, oldg);
+      for (i=0; i<ngroup; i++) {
+	(*G2G)[oldgnum][i] += n2gList[i];
+	(*G2G)[newgnum][i] -= n2gList[i];
+	(*G2Ginv)[i][oldgnum] += n2gList[i];
+	(*G2Ginv)[i][newgnum] -= n2gList[i];
       }
     }
   } /* Moves completed: done! */
@@ -492,7 +545,7 @@ LinkScore2State(struct binet *binet,
   struct group **glist1=NULL, **glist2=NULL;
   struct group *lastg=NULL;
   double H;
-  int iter, decorStep;
+  int iter, decorStep=1;
   double score=0.0, Z=0.0;
   int i, j;
   int **G1G2=NULL, **G2G1=NULL;
@@ -557,14 +610,15 @@ LinkScore2State(struct binet *binet,
   for (i=0; i<nnod1; i++) {
     for (j=0; j<nnod2; j++) {
       G1G2[i][j] = G2G1[j][i] = NG2GLinks(glist1[i], glist2[j]);
+/*       fprintf(stderr, "G1G2[%d][%d]=%d\n", i+1, j+1, G1G2[i][j]); */
     }
   }
 
   /*
     GET READY FOR THE SAMPLING
   */
+  H = H2State(part1, part2, query_list, nquery);
 /*   /\* Get the decorrelation time *\/ */
-/*   H = PartitionH(part); */
 /*   switch (verbose_sw) { */
 /*   case 'q': */
 /*     break; */
@@ -595,7 +649,13 @@ LinkScore2State(struct binet *binet,
   /*
     SAMPLIN' ALONG
   */
-  H = 0; /* Reset the origin of energies to avoid huge exponentials */
+  switch (verbose_sw) {
+  case 'd':
+    break;
+  default:
+    H = 0; /* Reset the origin of energies to avoid huge exponentials */
+    break;
+  }
   for (iter=0; iter<nIter; iter++) {
     MCStep2State(decorStep, &H, query_list, nquery, nlist1, nlist2,
 		 glist1, glist2, part1, part2, nnod1, nnod2,
@@ -610,6 +670,8 @@ LinkScore2State(struct binet *binet,
     case 'd':
       fprintf(stderr, "%d %lf %lf\n", iter, H, H2State(part1, part2,
 						       query_list, nquery));
+/*       FPrintPartition(stderr, part1, 0); */
+/*       FPrintPartition(stderr, part2, 0); */
       break;
     }
 
@@ -640,7 +702,6 @@ LinkScore2State(struct binet *binet,
   free_i_mat(G2G1, nnod2);
   free_i_vec(n2gList);
   FreeFastLogChoose(LogChooseList, LogChooseListSize);
-  free(query_list);
   
   return score;
 }

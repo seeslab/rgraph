@@ -30,7 +30,8 @@ struct query
   Auxiliary functions
   -----------------------------------------------------------------------------
 */
-struct query *CreateQuery(label1, net1, label2, net2);
+struct query *CreateQuery(struct node_gra *node1, struct node_gra *node2);
+void FreeQuery(struct query *q);
 
 /*
   -----------------------------------------------------------------------------
