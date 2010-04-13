@@ -39,7 +39,7 @@ struct pair
 int
 ExponentialRootF(const gsl_vector *params,
 		 void *points,
-		 gsl_vector * f)
+		 gsl_vector *f)
 {
   const double a = gsl_vector_get(params, 0);
   const double b = gsl_vector_get(params, 1);

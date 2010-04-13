@@ -415,84 +415,85 @@ GetDecorrelationStep2State(double *H,
   return (int)(result / norm + 0.5);
 }
 
-/* /\* */
-/*   --------------------------------------------------------------------- */
+/*
+  ---------------------------------------------------------------------
   
-/*   --------------------------------------------------------------------- */
-/* *\/ */
-/* void */
-/* ThermalizeLinkScoreMC(int decorStep, */
-/* 		      double *H, */
-/* 		      double linC, */
-/* 		      struct node_gra **nlist, */
-/* 		      struct group **glist, */
-/* 		      struct group *part, */
-/* 		      int nnod, */
-/* 		      int **G2G, */
-/* 		      int *n2gList, */
-/* 		      double **LogChooseList, */
-/* 		      int LogChooseListSize, */
-/* 		      struct prng *gen, */
-/* 		      char verbose_sw) */
-/* { */
-/*   double HMean0=1.e10, HStd0=1.e-10, HMean1, HStd1, *Hvalues; */
-/*   int rep, nrep=20; */
-/*   int equilibrated=0; */
+  ---------------------------------------------------------------------
+*/
+void
+ThermalizeMC2State(int decorStep,
+		   double *H,
+		   struct query **query_list, int nquery, 
+		   struct node_gra **nlist1, struct node_gra **nlist2,
+		   struct group **glist1, struct group **glist2,
+		   struct group *part1, struct group *part2,
+		   int nnod1, int nnod2,
+		   int **G1G2, int **G2G1,
+		   int *n2gList,
+		   double **LogChooseList,
+		   int LogChooseListSize,
+		   struct prng *gen,
+		   char verbose_sw)
+{
+  double HMean0=1.e10, HStd0=1.e-10, HMean1, HStd1, *Hvalues;
+  int rep, nrep=20;
+  int equilibrated=0;
 
-/*   Hvalues = allocate_d_vec(nrep); */
+  Hvalues = allocate_d_vec(nrep);
 
-/*   do { */
+  do {
     
-/*     /\* MC steps *\/ */
-/*     for (rep=0; rep<nrep; rep++) { */
-/*       LinkScoreMCStep(decorStep, H, linC, nlist, glist, part, */
-/* 			 nnod, G2G, n2gList, LogChooseList, LogChooseListSize, */
-/* 			 gen); */
-/*       switch (verbose_sw) { */
-/*       case 'q': */
-/* 	break; */
-/*       default: */
-/* 	fprintf(stderr, "%lf\n", *H); */
-/* 	break; */
-/*       } */
-/*       Hvalues[rep] = *H; */
-/*     } */
+    /* MC steps */
+    for (rep=0; rep<nrep; rep++) {
+      MCStep2State(decorStep, H, query_list, nquery, nlist1, nlist2,
+		   glist1, glist2, part1, part2, nnod1, nnod2,
+		   G1G2, G2G1, n2gList, LogChooseList, LogChooseListSize,
+		   gen);
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "%lf\n", *H);
+	break;
+      }
+      Hvalues[rep] = *H;
+    }
 
-/*     /\* Check for equilibration *\/ */
-/*     HMean1 = mean(Hvalues, nrep); */
-/*     HStd1 = stddev(Hvalues, nrep); */
-/*     if (HMean0 - HStd0 / sqrt(nrep) < HMean1 + HStd1 / sqrt(nrep)) { */
-/*       equilibrated++; */
-/*       switch (verbose_sw) { */
-/*       case 'q': */
-/* 	break; */
-/*       default: */
-/* 	fprintf(stderr, "#\tequilibrated (%d/5) H=%lf\n", */
-/* 		equilibrated, HMean1); */
-/* 	break; */
-/*       } */
-/*     } */
-/*     else { */
-/*       switch (verbose_sw) { */
-/*       case 'q': */
-/* 	break; */
-/*       default: */
-/* 	fprintf(stderr, "#\tnot equilibrated yet H0=%g+-%g H1=%g+-%g\n", */
-/* 		HMean0, HStd0 / sqrt(nrep), HMean1, HStd1 / sqrt(nrep)); */
-/* 	break; */
-/*       } */
-/*       HMean0 = HMean1; */
-/*       HStd0 = HStd1; */
-/*       equilibrated = 0; */
-/*     } */
+    /* Check for equilibration */
+    HMean1 = mean(Hvalues, nrep);
+    HStd1 = stddev(Hvalues, nrep);
+    if (HMean0 - HStd0 / sqrt(nrep) < HMean1 + HStd1 / sqrt(nrep)) {
+      equilibrated++;
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "#\tequilibrated (%d/5) H=%lf\n",
+		equilibrated, HMean1);
+	break;
+      }
+    }
+    else {
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "#\tnot equilibrated yet H0=%g+-%g H1=%g+-%g\n",
+		HMean0, HStd0 / sqrt(nrep), HMean1, HStd1 / sqrt(nrep));
+	break;
+      }
+      HMean0 = HMean1;
+      HStd0 = HStd1;
+      equilibrated = 0;
+    }
 
-/*   } while (equilibrated < 5); */
+  } while (equilibrated < 5);
   
-/*   /\* Clean up *\/ */
-/*   free_d_vec(Hvalues); */
+  /* Clean up */
+  free_d_vec(Hvalues);
 
-/*   return; */
-/* } */
+  return;
+}
 
 /*
   -----------------------------------------------------------------------------
@@ -605,19 +606,21 @@ LinkScore2State(struct binet *binet,
 					 LogChooseList, LogChooseListSize,
 					 gen, verbose_sw);
 
-/*   /\* Thermalization *\/ */
-/*   switch (verbose_sw) { */
-/*   case 'q': */
-/*     break; */
-/*   default: */
-/*     fprintf(stderr, "#\n#\n# THERMALIZING\n"); */
-/*     fprintf(stderr, "# ------------\n"); */
-/*     break; */
-/*   } */
-/*   ThermalizeLinkScoreMC(decorStep, &H, nlist, glist, part, */
-/* 			nnod, G2G, n2gList, */
-/* 			LogChooseList, LogChooseListSize, */
-/* 			gen, verbose_sw); */
+  /* Thermalization */
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "#\n#\n# THERMALIZING\n");
+    fprintf(stderr, "# ------------\n");
+    break;
+  }
+  ThermalizeMC2State(decorStep, &H,
+		     query_list, nquery, 
+		     nlist1, nlist2, glist1, glist2,
+		     part1, part2, nnod1, nnod2,
+		     G1G2, G2G1, n2gList,
+		     LogChooseList, LogChooseListSize, gen, verbose_sw);
   
   /*
     SAMPLIN' ALONG
