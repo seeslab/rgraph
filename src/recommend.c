@@ -332,8 +332,14 @@ GetDecorrelationStep2State(double *H,
     }
     y21 = MutualInformation(part1Ref, part1);
     y22 = MutualInformation(part2Ref, part2);
-    decay1[rep] = 2. * CalculateDecay(nnod1, x1, y11, x2, y21);
-    decay2[rep] = 2. * CalculateDecay(nnod2, x1, y12, x2, y22);
+    if (nnod1 > 1)
+      decay1[rep] = 2. * CalculateDecay(nnod1, x1, y11, x2, y21);
+    else
+      decay1[rep] = 1.e-6;
+    if (nnod2 > 1)
+      decay2[rep] = 2. * CalculateDecay(nnod2, x1, y12, x2, y22);
+    else
+      decay2[rep] = 1.e-6;
     switch (verbose_sw) {
     case 'q':
       break;
