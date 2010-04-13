@@ -18,6 +18,7 @@
 #include "graph.h"
 #include "modules.h"
 #include "models.h"
+#include "missing.h"
 #include "recommend.h"
 
 #define max(A, B) ((A > B)? A : B)
@@ -53,77 +54,6 @@ FreeQuery(struct query *q)
   ---------------------------------------------------------------------
   ---------------------------------------------------------------------
 */
-/* struct pair */
-/* { */
-/*   double x0; */
-/*   double y0; */
-/*   double x1; */
-/*   double y1; */
-/* }; */
-
-/* int */
-/* ExponentialRootF(const gsl_vector *params, */
-/* 		 void *points, */
-/* 		 gsl_vector * f) */
-/* { */
-/*   const double a = gsl_vector_get(params, 0); */
-/*   const double b = gsl_vector_get(params, 1); */
-
-/*   double x0 = ((struct pair *)points)->x0; */
-/*   double y0 = ((struct pair *)points)->y0; */
-/*   double x1 = ((struct pair *)points)->x1; */
-/*   double y1 = ((struct pair *)points)->y1; */
-  
-/*   const double r0 = y0 - a - (1. - a) * exp(-x0 / b); */
-/*   const double r1 = y1 - a - (1. - a) * exp(-x1 / b); */
-  
-/*   gsl_vector_set (f, 0, r0); */
-/*   gsl_vector_set (f, 1, r1); */
-  
-/*   return GSL_SUCCESS; */
-/* } */
-
-/* double */
-/* CalculateDecay(int nnod, double x1, double y1, double x2, double y2) */
-/* { */
-/*   const gsl_multiroot_fsolver_type *T; */
-/*   gsl_multiroot_fsolver *s; */
-/*   int status; */
-/*   size_t i, iter = 0; */
-/*   const size_t n = 2; */
-/*   struct pair p = {x1, y1, x2, y2}; */
-/*   gsl_multiroot_function f = {&ExponentialRootF, n, &p}; */
-/*   double x_init[2] = {y2, sqrt(nnod)}; */
-/*   gsl_vector *x = gsl_vector_alloc(n); */
-/*   double result; */
-  
-/*   for (i=0; i<n; i++) */
-/*     gsl_vector_set(x, i, x_init[i]); */
-  
-/*   T = gsl_multiroot_fsolver_hybrids; */
-/*   s = gsl_multiroot_fsolver_alloc (T, n); */
-/*   gsl_multiroot_fsolver_set (s, &f, x); */
-/*   do */
-/*     { */
-/*       iter++; */
-/*       status = gsl_multiroot_fsolver_iterate (s); */
-/*       if (status)   /\* check if solver is stuck *\/ */
-/* 	break; */
-/*       status =gsl_multiroot_test_residual(s->f, 1e-7); */
-/*     } */
-/*   while (status == GSL_CONTINUE && iter < 1000); */
-  
-/* /\*   fprintf(stderr, "# GSL status = %s\n", gsl_strerror(status)); *\/ */
-/*   if (strcmp(gsl_strerror(status), "success") != 0) */
-/*     result = -1; */
-/*   else */
-/*     result = gsl_vector_get(s->x, 1); */
-
-/*   gsl_multiroot_fsolver_free(s); */
-/*   gsl_vector_free(x); */
-
-/*   return result; */
-/* } */
 
 /*
   -----------------------------------------------------------------------------
@@ -197,7 +127,7 @@ MCStep2State(int factor,
   int move_in;
 
   /* Ratio of moves in each of the sets */
-  set_ratio = (double)(nnod1*nnod1) / (double)(nnod1*nnod1 + nnod2*nnod2);
+  set_ratio = (double)(nnod1*nnod1-1) / (double)(nnod1*nnod1+nnod2*nnod2-2);
 
   for (move=0; move<(nnod1+nnod2)*factor; move++) {
     /* The move */
@@ -236,7 +166,6 @@ MCStep2State(int factor,
 
     /* The change of energy */
     /* Old configuration contribution */
-/*     fprintf(stderr, "\nmoving %s: %d->%d\n", node->label, oldg->label+1, newg->label+1); */
     dH = 0.0;
     while ((g=g->next) != NULL) {
       if (g->size > 0) {  /* group is not empty */
@@ -255,7 +184,6 @@ MCStep2State(int factor,
 	    l -= IsThereLink(query_list[q]->n1, query_list[q]->n2);
 	  }
 	}
-/* 	fprintf(stderr, "old: %d-%d: %d/%d\n", oldg->label+1, g->label+1, l, r); */
 	dH -= log(r + 1) + LogChoose(r, l);
 	/* old configuration, new group */
 	r = newg->size * g->size;
@@ -271,7 +199,6 @@ MCStep2State(int factor,
 	    l -= IsThereLink(query_list[q]->n1, query_list[q]->n2);
 	  }
 	}
-/* 	fprintf(stderr, "old: %d-%d: %d/%d\n", newg->label+1, g->label+1, l, r); */
 	dH -= log(r + 1) + LogChoose(r, l);
       }
       else { /* group is empty */
@@ -305,7 +232,6 @@ MCStep2State(int factor,
 	    l -= IsThereLink(query_list[q]->n1, query_list[q]->n2);
 	  }
 	}
-/* 	fprintf(stderr, "new: %d-%d: %d/%d\n", oldg->label+1, g2->label+1, l, r); */
 	dH += log(r + 1) + LogChoose(r, l);
 	/* new configuration, new group */
 	r = newg->size * g2->size;
@@ -321,7 +247,6 @@ MCStep2State(int factor,
 	    l -= IsThereLink(query_list[q]->n1, query_list[q]->n2);
 	  }
 	}
-/* 	fprintf(stderr, "new: %d-%d: %d/%d\n", newg->label+1, g2->label+1, l, r); */
 	dH += log(r + 1) + LogChoose(r, l);
       }
     }
@@ -347,103 +272,148 @@ MCStep2State(int factor,
 }
 
 
-/* /\* */
-/*   --------------------------------------------------------------------- */
-  
-/*   --------------------------------------------------------------------- */
-/* *\/ */
-/* int */
-/* GetDecorrelationStep(double *H, */
-/* 		     double linC, */
-/* 		     struct node_gra **nlist, */
-/* 		     struct group **glist, */
-/* 		     struct group *part, */
-/* 		     int nnod, */
-/* 		     int **G2G, */
-/* 		     int *n2gList, */
-/* 		     double **LogChooseList, */
-/* 		     int LogChooseListSize, */
-/* 		     struct prng *gen, */
-/* 		     char verbose_sw) */
-/* { */
-/*   struct group *partRef; */
-/*   int step, x1, x2; */
-/*   double y1, y2; */
-/*   double mutualInfo; */
-/*   int rep, nrep=10; */
-/*   double *decay, meanDecay, sigmaDecay, result; */
-/*   int norm=0; */
+/*
+  ---------------------------------------------------------------------
+  Get the decorrelation step necessary to sample decorrelated
+  partitions. From part1 and part2, the longest decorrelation step is
+  chosen.
+  ---------------------------------------------------------------------
+*/
+int
+GetDecorrelationStep2State(double *H,
+			   struct query **query_list, int nquery, 
+			   struct node_gra **nlist1, struct node_gra **nlist2,
+			   struct group **glist1, struct group **glist2,
+			   struct group *part1, struct group *part2,
+			   int nnod1, int nnod2,
+			   int **G1G2, int **G2G1,
+			   int *n2gList,
+			   double **LogChooseList,
+			   int LogChooseListSize,
+			   struct prng *gen,
+			   char verbose_sw)
+{
+  struct group *part1Ref, *part2Ref;
+  int step, x1, x2;
+  double y11, y12, y21, y22;
+  double mutualInfo;
+  int rep, nrep=10;
+  double *decay1, meanDecay1, *decay2, meanDecay2;
+  double **decay, meanDecay, sigmaDecay, result;
+  int norm=0;
 
-/*   x2 = nnod / 5; */
-/*   x1 = x2 / 4; */
+  x2 = (nnod1 + nnod2) / 5;
+  if (x2 < 10)
+    x2 = 10;
+  x1 = x2 / 4;
 
-/*   /\* Get the nrep initial estimates *\/ */
-/*   decay = allocate_d_vec(nrep); */
-/*   for (rep=0; rep<nrep; rep++) { */
-/*     switch (verbose_sw) { */
-/*     case 'q': */
-/*       break; */
-/*     default: */
-/*       fprintf(stderr, "#\n# Estimating decorrelation time (%d/%d)\n", */
-/* 	      rep + 1, nrep); */
-/*       break; */
-/*     } */
-/*     partRef = CopyPartition(part); */
-/*     for (step=0; step<=x2; step++) { */
-/*       LinkScoreMCStep(1, H, linC, nlist, glist, part, */
-/* 			 nnod, G2G, n2gList, LogChooseList, LogChooseListSize, */
-/* 			 gen); */
-/*       if (step == x1) */
-/* 	y1 = MutualInformation(partRef, part); */
-/*     } */
-/*     y2 = MutualInformation(partRef, part); */
-/*     RemovePartition(partRef); */
-/*     decay[rep] = 2. * CalculateDecay(nnod, x1, y1, x2, y2); */
-/*     switch (verbose_sw) { */
-/*     case 'q': */
-/*       break; */
-/*     default: */
-/*       fprintf(stderr, "# Decorrelation time (estimate %d) = %g\n", */
-/* 	      rep + 1, decay[rep]); */
-/*       break; */
-/*     } */
-/*     if (decay[rep] < 0) { */
-/*       rep--; */
-/*       switch (verbose_sw) { */
-/*       case 'q': */
-/* 	break; */
-/*       default: */
-/* 	fprintf(stderr, "#\tignoring...\n"); */
-/* 	break; */
-/*       } */
-/*     } */
-/*   } */
+  /* Get the nrep initial estimates */
+  decay1 = allocate_d_vec(nrep);
+  decay2 = allocate_d_vec(nrep);
+  for (rep=0; rep<nrep; rep++) {
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    default:
+      fprintf(stderr, "#\n# Estimating decorrelation time (%d/%d)\n",
+	      rep + 1, nrep);
+      break;
+    }
+    part1Ref = CopyPartition(part1);
+    part2Ref = CopyPartition(part2);
+    for (step=0; step<=x2; step++) {
+      MCStep2State(1, H, query_list, nquery, nlist1, nlist2,
+		   glist1, glist2, part1, part2, nnod1, nnod2,
+		   G1G2, G2G1, n2gList, LogChooseList, LogChooseListSize,
+		   gen);
+      if (step == x1)
+	y11 = MutualInformation(part1Ref, part1);
+	y12 = MutualInformation(part2Ref, part2);
+    }
+    y21 = MutualInformation(part1Ref, part1);
+    y22 = MutualInformation(part2Ref, part2);
+    decay1[rep] = 2. * CalculateDecay(nnod1, x1, y11, x2, y21);
+    decay2[rep] = 2. * CalculateDecay(nnod2, x1, y12, x2, y22);
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    default:
+      fprintf(stderr, "# Decorrelation times (estimate %d) = %g %g\n",
+	      rep + 1, decay1[rep], decay2[rep]);
+      break;
+    }
+    if (decay1[rep] < 0. || decay2[rep] < 0.) {
+      rep--;
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "#\tignoring...\n");
+	break;
+      }
+    }
+  }
   
-/*   /\* Get rid of bad estimates (Chauvenet criterion)  *\/ */
-/*   meanDecay = mean(decay, nrep); */
-/*   sigmaDecay = stddev(decay, nrep); */
-/*   result = meanDecay * nrep; */
-/*   for (rep=0; rep<nrep; rep++) { */
-/*     if (fabs(decay[rep] - meanDecay) / sigmaDecay > 2) { */
-/*       result -= decay[rep]; */
-/*       switch (verbose_sw) { */
-/*       case 'q': */
-/* 	break; */
-/*       default: */
-/* 	fprintf(stderr, "# Disregarding estimate %d\n", rep + 1); */
-/* 	break; */
-/*       } */
-/*     } */
-/*     else { */
-/*       norm++; */
-/*     } */
-/*   } */
+  /* Get rid of bad estimates (Chauvenet criterion)  */
+  meanDecay1 = mean(decay1, nrep);
+  meanDecay2 = mean(decay2, nrep);
+  if (meanDecay1 > meanDecay2) {
+    meanDecay = meanDecay1;
+    sigmaDecay = stddev(decay1, nrep);
+    decay = &decay1;
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    default:
+      fprintf(stderr, "# Considering decorrelation from partition 1\n");
+      break;
+    }
+  }
+  else {
+    meanDecay = meanDecay2;
+    sigmaDecay = stddev(decay2, nrep);
+    decay = &decay2;
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    default:
+      fprintf(stderr, "# Considering decorrelation from partition 2\n");
+      break;
+    }
+  }
+  result = meanDecay * nrep;
+  for (rep=0; rep<nrep; rep++) {
+    if (fabs((*decay)[rep] - meanDecay) / sigmaDecay > 2) {
+      result -= (*decay)[rep];
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "# Disregarding estimate %d\n", rep + 1);
+	break;
+      }
+    }
+    else {
+      norm++;
+    }
+  }
   
-/*   /\* Clean up *\/ */
-/*   free_d_vec(decay); */
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "# Decorrelation step: %d\n", (int)(result / norm + 0.5));
+    break;
+  }
 
-/*   return result / norm; */
-/* } */
+  /* Clean up */
+  RemovePartition(part1Ref);
+  RemovePartition(part2Ref);
+  free_d_vec(decay1);
+  free_d_vec(decay2);
+
+  return (int)(result / norm + 0.5);
+}
 
 /* /\* */
 /*   --------------------------------------------------------------------- */
@@ -618,19 +588,22 @@ LinkScore2State(struct binet *binet,
     GET READY FOR THE SAMPLING
   */
   H = H2State(part1, part2, query_list, nquery);
-/*   /\* Get the decorrelation time *\/ */
-/*   switch (verbose_sw) { */
-/*   case 'q': */
-/*     break; */
-/*   default: */
-/*     fprintf(stderr, "# CALCULATING DECORRELATION TIME\n"); */
-/*     fprintf(stderr, "# ------------------------------\n"); */
-/*     break; */
-/*   } */
-/*   decorStep = GetDecorrelationStep(&H, nlist, glist, part, */
-/* 				   nnod, G2G, n2gList, */
-/* 				   LogChooseList, LogChooseListSize, */
-/* 				   gen, verbose_sw); */
+
+  /* Get the decorrelation time */
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "# CALCULATING DECORRELATION TIME\n");
+    fprintf(stderr, "# ------------------------------\n");
+    break;
+  }
+  decorStep = GetDecorrelationStep2State(&H, query_list, nquery, 
+					 nlist1, nlist2, glist1, glist2,
+					 part1, part2, nnod1, nnod2,
+					 G1G2, G2G1, n2gList,
+					 LogChooseList, LogChooseListSize,
+					 gen, verbose_sw);
 
 /*   /\* Thermalization *\/ */
 /*   switch (verbose_sw) { */

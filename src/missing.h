@@ -16,6 +16,10 @@
   Missing links
   ---------------------------------------------------------------------
 */
+int ExponentialRootF(const gsl_vector *params,
+		     void *points,
+		     gsl_vector *f);
+double CalculateDecay(int nnod, double x1, double y1, double x2, double y2);
 double PartitionH(struct group *part, double linC);
 void LinkScoreMCStep(double *H,
 		     double linC,

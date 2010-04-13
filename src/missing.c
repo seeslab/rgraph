@@ -52,8 +52,8 @@ ExponentialRootF(const gsl_vector *params,
   const double r0 = y0 - a - (1. - a) * exp(-x0 / b);
   const double r1 = y1 - a - (1. - a) * exp(-x1 / b);
   
-  gsl_vector_set (f, 0, r0);
-  gsl_vector_set (f, 1, r1);
+  gsl_vector_set(f, 0, r0);
+  gsl_vector_set(f, 1, r1);
   
   return GSL_SUCCESS;
 }
