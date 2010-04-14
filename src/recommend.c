@@ -358,6 +358,9 @@ GetDecorrelationStep2State(double *H,
 	break;
       }
     }
+    /* Free memory */
+    RemovePartition(part1Ref);
+    RemovePartition(part2Ref);
   }
   
   /* Get rid of bad estimates (Chauvenet criterion)  */
@@ -413,8 +416,6 @@ GetDecorrelationStep2State(double *H,
   }
 
   /* Clean up */
-  RemovePartition(part1Ref);
-  RemovePartition(part2Ref);
   free_d_vec(decay1);
   free_d_vec(decay2);
 
@@ -605,7 +606,7 @@ LinkScore2State(struct binet *binet,
     fprintf(stderr, "# ------------------------------\n");
     break;
   }
-  decorStep = GetDecorrelationStep2State(&H, query_list, nquery, 
+  decorStep = GetDecorrelationStep2State(&H, query_list, nquery,
 					 nlist1, nlist2, glist1, glist2,
 					 part1, part2, nnod1, nnod2,
 					 G1G2, G2G1, n2gList,

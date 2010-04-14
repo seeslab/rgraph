@@ -361,6 +361,40 @@ SumProductsOfCommonWeightsBipart(struct node_gra *n1, struct node_gra *n2)
 
 /*
   ---------------------------------------------------------------------
+  Removes a node from the bipartite network. Variable set (1 or 2)
+  indicates if the node lives in binet->net1 or binet->net2.
+  ---------------------------------------------------------------------
+*/
+void
+RemoveNodeBipart(struct binet *binet, char *label, int set)
+{
+  struct node_gra *p;
+  struct node_gra *node;
+  struct node_lis *nei;
+
+  /* Get to the target node */
+  if (set == 1)
+    p = binet->net1;
+  else
+    p = binet->net2;
+  while (strcmp(p->next->label, label) != 0)
+    p = p->next;
+  node = p->next;
+
+  /* Remove all links from/to the node */
+  nei = node->neig;
+  while (nei->next != NULL)
+    RemoveLink(node, nei->next->ref, 1);
+
+  /* Remove the node */
+  p->next = node->next;
+  FreeNode(node);
+
+  return;
+}
+
+/*
+  ---------------------------------------------------------------------
   ---------------------------------------------------------------------
   Network operations
   ---------------------------------------------------------------------

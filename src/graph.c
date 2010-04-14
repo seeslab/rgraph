@@ -750,7 +750,7 @@ IsThereNode(char *label, struct node_gra *p)
 
 /*
   -----------------------------------------------------------------------------
-  Returns 1 if there is a link between two nodes a and b
+  Returns 1 if there is a link from node n1 to node n2
   -----------------------------------------------------------------------------
 */
 int

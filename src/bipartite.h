@@ -49,6 +49,7 @@ void RemoveBipart(struct binet *net);
 */
 int NCommonLinksBipart(struct node_gra *n1, struct node_gra *n2);
 double SumProductsOfCommonWeightsBipart(struct node_gra *n1, struct node_gra *n2);
+void RemoveNodeBipart(struct binet *binet, char *label, int set);
 
 /*
   ---------------------------------------------------------------------
