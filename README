@@ -12,9 +12,13 @@ This package includes the RGraph libraries, the C libraries for
 complex network analysis developed by Roger Guimera. Some executables,
 build from the libraries, are also included.
 
-For the libraries to compile, you will NEED TO INSTALL, first, the
-PRNG library for pseudo-random number generation, available from
-http://statmath.wu-wien.ac.at/prng/.
+For the libraries to compile, you will NEED TO INSTALL, first:
+
+1) The PRNG library for pseudo-random number generation, available
+from http://statmath.wu-wien.ac.at/prng/
+
+2) The GNU Scientific Libraries (GSL), available from
+http://www.gnu.org/software/gsl/
 
 In a Unix-like system, you can install the RGraph libraries and the
 executables by uncompressing the tarball (tar -xzvf
@@ -37,7 +41,7 @@ This will install the libraries in your_default_lib_directory/rgraph
 and the executables in your_default_bin_directory. To install in a
 different directory run
 
-./configure --prefix=path_to_install_direcotory
+./configure --prefix=path_to_install_directory
 
 instead of just "./configure". For other configure options run:
 
