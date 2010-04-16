@@ -556,18 +556,14 @@ LinkScore2State(struct binet *binet,
     nlist1[p1->num] = p1;
     lastg = glist1[p1->num] = CreateGroup(lastg, p1->num);
   }
-  fprintf(stderr, "HERE %d %d\n", nnod1, nnod2);
   nlist2 = (struct node_gra **) calloc(nnod2, sizeof(struct node_gra *));
-  fprintf(stderr, "HERE %d %d\n", nnod1, nnod2);
   glist2 = (struct group **) calloc(nnod2, sizeof(struct group *));
-  fprintf(stderr, "HERE %d %d\n", nnod1, nnod2);
   lastg = part2 = CreateHeaderGroup();
   p2 = net2 = binet->net2;
   while ((p2 = p2->next) != NULL) {
     nlist2[p2->num] = p2;
     lastg = glist2[p2->num] = CreateGroup(lastg, p2->num);
   }
-  fprintf(stderr, "HERE %d %d\n", nnod1, nnod2);
 
  /* Place nodes in random partitions */
   p1 = net1;

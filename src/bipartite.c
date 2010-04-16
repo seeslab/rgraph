@@ -371,6 +371,7 @@ RemoveNodeBipart(struct binet *binet, char *label, int set)
   struct node_gra *p;
   struct node_gra *node;
   struct node_lis *nei;
+  int count=0;
 
   /* Get to the target node */
   if (set == 1)
@@ -391,6 +392,27 @@ RemoveNodeBipart(struct binet *binet, char *label, int set)
   /* Remove the node */
   p->next = node->next;
   FreeNode(node);
+
+  /* Renumber the nodes */
+  if (set == 1)
+    p = binet->net1;
+  else
+    p = binet->net2;
+  while ((p = p->next) !=  NULL) {
+    p->num = count++;
+  }
+
+  /* Renumber the node_lis nodes (adjacencies) */
+  if (set == 1)
+    p = binet->net2;
+  else
+    p = binet->net1;
+  while ((p = p->next) !=  NULL) {
+    nei = p->neig;
+    while ((nei = nei->next) !=  NULL) {
+      nei->node = nei->ref->num;
+    }
+  }
 
   return;
 }
