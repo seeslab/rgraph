@@ -513,7 +513,8 @@ LinkScore2State(struct binet *binet,
 		struct query *the_query,
 		int nIter,
 		struct prng *gen,
-		char verbose_sw)
+		char verbose_sw,
+		int decorStep)
 {
   int nnod1=CountNodes(binet->net1), nnod2=CountNodes(binet->net2);
   struct node_gra *net1=NULL, *net2=NULL;
@@ -523,7 +524,7 @@ LinkScore2State(struct binet *binet,
   struct group **glist1=NULL, **glist2=NULL;
   struct group *lastg=NULL;
   double H;
-  int iter, decorStep=1;
+  int iter;
   double score=0.0, Z=0.0;
   int i, j;
   int **G1G2=NULL, **G2G1=NULL;
@@ -555,16 +556,20 @@ LinkScore2State(struct binet *binet,
     nlist1[p1->num] = p1;
     lastg = glist1[p1->num] = CreateGroup(lastg, p1->num);
   }
+  fprintf(stderr, "HERE %d %d\n", nnod1, nnod2);
   nlist2 = (struct node_gra **) calloc(nnod2, sizeof(struct node_gra *));
+  fprintf(stderr, "HERE %d %d\n", nnod1, nnod2);
   glist2 = (struct group **) calloc(nnod2, sizeof(struct group *));
+  fprintf(stderr, "HERE %d %d\n", nnod1, nnod2);
   lastg = part2 = CreateHeaderGroup();
   p2 = net2 = binet->net2;
   while ((p2 = p2->next) != NULL) {
     nlist2[p2->num] = p2;
     lastg = glist2[p2->num] = CreateGroup(lastg, p2->num);
   }
+  fprintf(stderr, "HERE %d %d\n", nnod1, nnod2);
 
-  /* Place nodes in random partitions */
+ /* Place nodes in random partitions */
   p1 = net1;
   ResetNetGroup(net1);
   while ((p1 = p1->next) != NULL) {
@@ -606,12 +611,14 @@ LinkScore2State(struct binet *binet,
     fprintf(stderr, "# ------------------------------\n");
     break;
   }
-  decorStep = GetDecorrelationStep2State(&H, query_list, nquery,
-					 nlist1, nlist2, glist1, glist2,
-					 part1, part2, nnod1, nnod2,
-					 G1G2, G2G1, n2gList,
-					 LogChooseList, LogChooseListSize,
-					 gen, verbose_sw);
+  if (decorStep <= 0) {
+    decorStep = GetDecorrelationStep2State(&H, query_list, nquery,
+					   nlist1, nlist2, glist1, glist2,
+					   part1, part2, nnod1, nnod2,
+					   G1G2, G2G1, n2gList,
+					   LogChooseList, LogChooseListSize,
+					   gen, verbose_sw);
+  }
 
   /* Thermalization */
   switch (verbose_sw) {

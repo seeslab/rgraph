@@ -383,8 +383,10 @@ RemoveNodeBipart(struct binet *binet, char *label, int set)
 
   /* Remove all links from/to the node */
   nei = node->neig;
-  while (nei->next != NULL)
+  while (nei->next != NULL) {
     RemoveLink(node, nei->next->ref, 1);
+    fprintf(stderr, "degree: %d\n", CountLinks(node));
+  }
 
   /* Remove the node */
   p->next = node->next;

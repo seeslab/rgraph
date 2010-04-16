@@ -82,7 +82,8 @@ double LinkScore2State(struct binet *binet,
 		       struct query *the_query,
 		       int nIter,
 		       struct prng *gen,
-		       char verbose_sw);
+		       char verbose_sw,
+		       int decorStep);
 
 
 #endif /* !RGRAPH_RECOMMEND_H */

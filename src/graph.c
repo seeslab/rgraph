@@ -207,7 +207,7 @@ AddAdjacencySoft(struct node_gra *node1,
     adja->next = (struct node_lis *) calloc(1, sizeof(struct node_lis));
     (adja->next)->nodeLabel = (char *) calloc(MAX_LABEL_LENGTH,
 					      sizeof(char));
-    (adja->next)->nodeLabel = strcpy((adja->next)->nodeLabel, node2Label);
+    strcpy((adja->next)->nodeLabel, node2Label);
     (adja->next)->status = status;
     (adja->next)->next = NULL;
     (adja->next)->ref = NULL;
@@ -446,8 +446,7 @@ RemoveLink(struct node_gra *n1, struct node_gra *n2,
   }
   temp1 = nn1->next;
   nn1->next = temp1->next;
-  free(temp1->nodeLabel);
-  free(temp1);
+  FreeNodeLis(temp1);
 
   // Link n2-n1
   if (symmetric_sw != 0 && n1 != n2) {
@@ -457,8 +456,7 @@ RemoveLink(struct node_gra *n1, struct node_gra *n2,
     }
     temp2 = nn2->next;
     nn2->next = temp2->next;
-    free(temp2->nodeLabel);
-    free(temp2);
+    FreeNodeLis(temp2);
   }
 }
 
