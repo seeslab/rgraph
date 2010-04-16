@@ -54,7 +54,7 @@ main(int argc, char **argv)
 			  GetNodeDict(node2, dict2));
 
   /* Get the score of the query */
-  score = LinkScore2State(binet, the_query, 10000, rand_gen, 'v');
+  score = LinkScore2State(binet, the_query, 10000, rand_gen, 'v', -1);
   fprintf(stdout, ">>> SCORE: %g\n", score);
 
   /* Finish */
