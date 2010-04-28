@@ -12,7 +12,7 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_multiroots.h>
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 
 #include "tools.h"
 #include "graph.h"
@@ -150,7 +150,7 @@ LinkScoreMCStep(int factor,
 		int *n2gList,
 		double **LogChooseList,
 		int LogChooseListSize,
-		struct prng *gen)
+		gsl_rng *gen)
 {
   double dH;
   struct group *g, *oldg, *newg;
@@ -164,11 +164,11 @@ LinkScoreMCStep(int factor,
   for (move=0; move<nnod*factor; move++) {
 
     /* Choose node and destination group */
-    dice = floor(prng_get_next(gen) * (double)nnod);
+    dice = floor(gsl_rng_uniform(gen) * (double)nnod);
     node = nlist[dice];
     oldgnum = node->inGroup;
     do {
-      newgnum = floor(prng_get_next(gen) * (double)nnod);
+      newgnum = floor(gsl_rng_uniform(gen) * (double)nnod);
     } while (newgnum == oldgnum);
     oldg = glist[oldgnum];
     newg = glist[newgnum];
@@ -257,7 +257,7 @@ LinkScoreMCStep(int factor,
     }
 
     /* Metropolis rule */
-    if ((dH <= 0.0) || (prng_get_next(gen) < exp(-dH))) {
+    if ((dH <= 0.0) || (gsl_rng_uniform(gen) < exp(-dH))) {
       
       /* accept move */
       MoveNode(node, oldg, newg);
@@ -291,7 +291,7 @@ GetDecorrelationStep(double *H,
 		     int *n2gList,
 		     double **LogChooseList,
 		     int LogChooseListSize,
-		     struct prng *gen,
+		     gsl_rng *gen,
 		     char verbose_sw)
 {
   struct group *partRef;
@@ -390,7 +390,7 @@ ThermalizeLinkScoreMC(int decorStep,
 		      int *n2gList,
 		      double **LogChooseList,
 		      int LogChooseListSize,
-		      struct prng *gen,
+		      gsl_rng *gen,
 		      char verbose_sw)
 {
   double HMean0=1.e10, HStd0=1.e-10, HMean1, HStd1, *Hvalues;
@@ -463,7 +463,7 @@ double **
 LinkScore(struct node_gra *net,
 	  double linC,
 	  int nIter,
-	  struct prng *gen,
+	  gsl_rng *gen,
 	  char verbose_sw)
 {
   int nnod=CountNodes(net);
@@ -509,7 +509,7 @@ LinkScore(struct node_gra *net,
   p = net;
   ResetNetGroup(net);
   while ((p = p->next) != NULL) {
-    dice = floor(prng_get_next(gen) * (double)nnod);
+    dice = floor(gsl_rng_uniform(gen) * (double)nnod);
     AddNodeToGroup(glist[dice], p);
   }
 
@@ -641,7 +641,7 @@ LinkScore(struct node_gra *net,
   ---------------------------------------------------------------------
 */
 double
-SBMError(struct node_gra *net, struct prng *gen)
+SBMError(struct node_gra *net, gsl_rng *gen)
 {
   struct node_gra **nlist;
   int i, j, nnod=CountNodes(net);
@@ -689,7 +689,7 @@ SBMError(struct node_gra *net, struct prng *gen)
   ---------------------------------------------------------------------
 */
 double
-SBMStructureScore(struct node_gra *net, int nrep, struct prng *gen)
+SBMStructureScore(struct node_gra *net, int nrep, gsl_rng *gen)
 {
   int rep;
   double scoreOri, *scoreRan, score;
@@ -722,7 +722,7 @@ SBMStructureScore(struct node_gra *net, int nrep, struct prng *gen)
   ---------------------------------------------------------------------
 */
 struct node_gra *
-NetFromSBMScores(struct node_gra *net, struct prng *gen)
+NetFromSBMScores(struct node_gra *net, gsl_rng *gen)
 {
   struct node_gra **nlist;
   int n1, n2, nnod=CountNodes(net);
@@ -750,7 +750,7 @@ NetFromSBMScores(struct node_gra *net, struct prng *gen)
   /* Add the links */
   for (n1=0; n1<nnod; n1++) {
     for (n2=n1+1; n2<nnod; n2++) {
-/*       if (prng_get_next(gen) < pairScore[n1][n2]) { */
+/*       if (gsl_rng_uniform(gen) < pairScore[n1][n2]) { */
       if (pairScore[n1][n2] > 0.5) {
 	AddAdjacency(nlist[n1], nlist[n2], 0, 0, 0, 0);
 	AddAdjacency(nlist[n2], nlist[n1], 0, 0, 0, 0);
@@ -777,7 +777,7 @@ NetworkScore(struct node_gra *netTar,
 	     struct node_gra *netObs,
 	     double linC,
 	     int nIter,
-	     struct prng *gen,
+	     gsl_rng *gen,
 	     char verbose_sw)
 {
   int nnod=CountNodes(netObs);
@@ -819,7 +819,7 @@ NetworkScore(struct node_gra *netTar,
   p = netObs;
   ResetNetGroup(netObs);
   while ((p = p->next) != NULL) {
-    dice = floor(prng_get_next(gen) * (double)nnod);
+    dice = floor(gsl_rng_uniform(gen) * (double)nnod);
     AddNodeToGroup(glist[dice], p);
   }
 
@@ -965,7 +965,7 @@ NetworkScore(struct node_gra *netTar,
 */
 struct node_gra *
 NetReconstruct(struct node_gra *netObs,
-	       struct prng *gen)
+	       gsl_rng *gen)
 {
   struct node_gra *net, **nlist, *p, *n1Add, *n2Add, *n1Remove, *n2Remove;
   int i, n1, n2;

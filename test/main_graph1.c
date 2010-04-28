@@ -8,7 +8,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 
 #include "graph.h"
 #include "models.h"
@@ -18,25 +18,28 @@
 
 int main()
 {
+  FILE *infile=NULL;
   struct node_gra *net = NULL;
-  struct prng *randGen;
   int repeat = 1;
-
-  /*
-    --------------------------------------------------------------
-    Initialize the random number generator
-    --------------------------------------------------------------
-  */
-  randGen = prng_new("mt19937(1111)");
-  prng_seed(randGen, 3333);
+  gsl_rng *randGen;
 
   /*
     ------------------------------------------------------------
     Build the network
     ------------------------------------------------------------
   */
-  net = ERGraph(10, 0.2, randGen);
+  infile = fopen("test_graph1.dat", "r");
+  net = FBuildNetwork(infile, 0, 0, 0, 1);
+  fclose(infile);
   FPrintPajekFile("graph1.net", net, 0, 0, 1);
+
+  /*
+    --------------------------------------------------------------
+    Initialize the random number generator
+    --------------------------------------------------------------
+  */
+  randGen = gsl_rng_alloc(gsl_rng_mt19937);
+  gsl_rng_set(randGen, 3333);
 
   /*
     ------------------------------------------------------------
@@ -56,8 +59,10 @@ int main()
   printf("A = %g\n", Assortativity(net));
 
   dtemp = AverageInverseDistance(net);
-  if (fabs(dtemp - 19. / 45.) > EPS)
+  if (fabs(dtemp - 19. / 45.) > EPS) {
+    printf("P = %g\tWRONG!!\n", dtemp);
     return 1;
+  }
   else
     printf("P = %g\tOK\n", dtemp);
 
@@ -113,7 +118,7 @@ int main()
     ------------------------------------------------------------
   */
   RemoveGraph(net);
-  prng_free(randGen);
+  gsl_rng_free(randGen);
 
   return 0;
 }

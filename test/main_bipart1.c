@@ -8,7 +8,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 
 #include "graph.h"
 #include "bipartite.h"
@@ -16,15 +16,15 @@
 int main()
 {
   struct binet *binet = NULL;
-  struct prng *randGen;
+  gsl_rng *randGen;
 
   /*
     --------------------------------------------------------------
     Initialize the random number generator
     --------------------------------------------------------------
   */
-  randGen = prng_new("mt19937(1111)");
-  prng_seed(randGen, 3333);
+  randGen = gsl_rng_alloc(gsl_rng_mt19937);
+  gsl_rng_set(randGen, 3333);
 
   /*
     ------------------------------------------------------------
@@ -63,7 +63,7 @@ int main()
     ------------------------------------------------------------
   */
   RemoveBipart(binet);
-  prng_free(randGen);
+  gsl_rng_free(randGen);
 
   return 0;
 }

@@ -9,7 +9,7 @@
 #include <string.h>
 #include <search.h>
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 
 #include "tools.h"
 #include "datastruct.h"
@@ -865,7 +865,7 @@ void
 RemoveRandomLinks(struct node_gra *net,
 		  int nLinks,
 		  int symmetric_sw,
-		  struct prng *gen)
+		  gsl_rng *gen)
 {
   struct node_gra *p=net;
   struct node_lis *n=NULL;
@@ -880,7 +880,7 @@ RemoveRandomLinks(struct node_gra *net,
   }
   for (i=0; i<nLinks; i++) {
     do {
-      n1 = (int)(prng_get_next(gen) * totalLinks);
+      n1 = gsl_rng_uniform_int(gen, totalLinks);
     } while (targetList[n1] == 1);
     targetList[n1] = 1;
   }
@@ -920,7 +920,7 @@ void
 AddRandomLinks(struct node_gra *net,
 	       int nLinks,
 	       int symmetric_sw,
-	       struct prng *gen)
+	       gsl_rng *gen)
 {
   int nnod, n;
   struct node_gra *p = net;
@@ -938,8 +938,8 @@ AddRandomLinks(struct node_gra *net,
   /* Add the links */
   for (n=0; n<nLinks; n++) {
     do {
-      n1 = (int)(prng_get_next(gen) * nnod);
-      n2 = (int)(prng_get_next(gen) * nnod);
+      n1 = gsl_rng_uniform_int(gen, nnod);
+      n2 = gsl_rng_uniform_int(gen, nnod);
     } while ((n1 == n2) || IsThereLink(nlist[n1], nlist[n2]) == 1);
     AddAdjacency(nlist[n1], nlist[n2], 0, 0, 1.0, 0);
     AddAdjacency(nlist[n2], nlist[n1], 0, 0, 1.0, 0);
@@ -1231,7 +1231,7 @@ RenumberNodes(struct node_gra *net)
 struct node_gra *
 RandomizeSymmetricNetwork(struct node_gra *net,
 			  double times,
-			  struct prng *gen)
+			  gsl_rng *gen)
 {
   int i;
   int nlink=0;
@@ -1245,7 +1245,7 @@ RandomizeSymmetricNetwork(struct node_gra *net,
 
   /* Build the link lists (one for link origins and one for ends) */
   nlink = TotalNLinks(net, 1);
-  niter =  ceil(times * (double)nlink + prng_get_next(gen));
+  niter =  ceil(times * (double)nlink + gsl_rng_uniform(gen));
   ori = (struct node_gra **)calloc(nlink, sizeof(struct node_gra *));
   des = (struct node_gra **)calloc(nlink, sizeof(struct node_gra *));
   p = net;
@@ -1267,12 +1267,12 @@ RandomizeSymmetricNetwork(struct node_gra *net,
     /* select the 4 nodes */
     do {
       do {
-	target1 = floor(prng_get_next(gen) * (double)nlink);
+	target1 = floor(gsl_rng_uniform(gen) * (double)nlink);
 	n1 = ori[target1];
 	n2 = des[target1];
 
-	target2 = floor(prng_get_next(gen) * (double)nlink);
-	if (prng_get_next(gen) < 0.5) {
+	target2 = floor(gsl_rng_uniform(gen) * (double)nlink);
+	if (gsl_rng_uniform(gen) < 0.5) {
 	  n3 = des[target2];
 	  n4 = ori[target2];
 	}

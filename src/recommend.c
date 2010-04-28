@@ -11,8 +11,7 @@
 
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_multiroots.h>
-
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 
 #include "tools.h"
 #include "graph.h"
@@ -112,7 +111,7 @@ MCStep2State(int factor,
 	     int *n2gList,
 	     double **LogChooseList,
 	     int LogChooseListSize,
-	     struct prng *gen)
+	     gsl_rng *gen)
 {
   double dH;
   struct group *oldg, *newg, *g, *g2;
@@ -131,17 +130,17 @@ MCStep2State(int factor,
 
   for (move=0; move<(nnod1+nnod2)*factor; move++) {
     /* The move */
-    if (prng_get_next(gen) < set_ratio) { /* move in first set */
+    if (gsl_rng_uniform(gen) < set_ratio) { /* move in first set */
       move_in = 1;
       G2G = &G1G2;
       G2Ginv = &G2G1;
       nnod = nnod1;
       ngroup = nnod2;
-      dice = floor(prng_get_next(gen) * (double)nnod1);
+      dice = floor(gsl_rng_uniform(gen) * (double)nnod1);
       node = nlist1[dice];
       oldgnum = node->inGroup;
       do {
-	newgnum = floor(prng_get_next(gen) * (double)nnod1);
+	newgnum = floor(gsl_rng_uniform(gen) * (double)nnod1);
       } while (newgnum == oldgnum);
       oldg = glist1[oldgnum];
       newg = glist1[newgnum];
@@ -153,11 +152,11 @@ MCStep2State(int factor,
       G2Ginv = &G1G2;
       nnod = nnod2;
       ngroup = nnod1;
-      dice = floor(prng_get_next(gen) * (double)nnod2);
+      dice = floor(gsl_rng_uniform(gen) * (double)nnod2);
       node = nlist2[dice];
       oldgnum = node->inGroup;
       do {
-	newgnum = floor(prng_get_next(gen) * (double)nnod2);
+	newgnum = floor(gsl_rng_uniform(gen) * (double)nnod2);
       } while (newgnum == oldgnum);
       oldg = glist2[oldgnum];
       newg = glist2[newgnum];
@@ -252,7 +251,7 @@ MCStep2State(int factor,
     }
     
     /* Metropolis acceptance */
-    if ((dH <= 0.0) || (prng_get_next(gen) < exp(-dH))) {
+    if ((dH <= 0.0) || (gsl_rng_uniform(gen) < exp(-dH))) {
       /* accept move: update energy */
       *H += dH;
     }
@@ -290,7 +289,7 @@ GetDecorrelationStep2State(double *H,
 			   int *n2gList,
 			   double **LogChooseList,
 			   int LogChooseListSize,
-			   struct prng *gen,
+			   gsl_rng *gen,
 			   char verbose_sw)
 {
   struct group *part1Ref, *part2Ref;
@@ -439,7 +438,7 @@ ThermalizeMC2State(int decorStep,
 		   int *n2gList,
 		   double **LogChooseList,
 		   int LogChooseListSize,
-		   struct prng *gen,
+		   gsl_rng *gen,
 		   char verbose_sw)
 {
   double HMean0=1.e10, HStd0=1.e-10, HMean1, HStd1, *Hvalues;
@@ -512,7 +511,7 @@ double
 LinkScore2State(struct binet *binet,
 		struct query *the_query,
 		int nIter,
-		struct prng *gen,
+		gsl_rng *gen,
 		char verbose_sw,
 		int decorStep)
 {
@@ -569,13 +568,13 @@ LinkScore2State(struct binet *binet,
   p1 = net1;
   ResetNetGroup(net1);
   while ((p1 = p1->next) != NULL) {
-    dice = floor(prng_get_next(gen) * (double)nnod1);
+    dice = floor(gsl_rng_uniform(gen) * (double)nnod1);
     AddNodeToGroup(glist1[dice], p1);
   }
   p2 = net2;
   ResetNetGroup(net2);
   while ((p2 = p2->next) != NULL) {
-    dice = floor(prng_get_next(gen) * (double)nnod2);
+    dice = floor(gsl_rng_uniform(gen) * (double)nnod2);
     AddNodeToGroup(glist2[dice], p2);
   }
 

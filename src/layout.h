@@ -1,6 +1,8 @@
 #ifndef RGRAPH_VISUAL_H
 #define RGRAPH_VISUAL_H 1
 
+#include <gsl/gsl_rng.h>
+
 /*
   -----------------------------------------------------------------------------
   Structure for a faster electrostatic force and energy calculation
@@ -33,7 +35,7 @@ void FreeBox(struct node_box *box);
 */
 double CircleDistance(int target, double xtot, double ytot,
 		      double *xce, double *yce, double *rad, int N);
-void ArrangeComponents(struct node_gra *net, struct prng *gen);
+void ArrangeComponents(struct node_gra *net, gsl_rng *gen);
 void NormalizeCoordinates(struct node_gra *net);
 void NormalizeCoordinates3D(struct node_gra *net);
 double PotentialEnergy(struct node_gra *net,
@@ -52,11 +54,11 @@ void CalculateNodeForces3D(struct node_gra *net,
   -----------------------------------------------------------------------------
 */
 void MDGraphLayout(struct node_gra *net, double drag, double dt,
-		   int nsteps, struct prng *gen, int nbox);
+		   int nsteps, gsl_rng *gen, int nbox);
 void MDGraphLayout3D(struct node_gra *net, double drag, double dt,
-		     int nsteps, struct prng *gen, int nbox);
+		     int nsteps, gsl_rng *gen, int nbox);
 void MDGraphLayout2Dp(struct node_gra *net, double drag, double dt,
-		      int nsteps, struct prng *gen, int nbox);
+		      int nsteps, gsl_rng *gen, int nbox);
 
 /*
   -----------------------------------------------------------------------------

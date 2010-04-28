@@ -11,7 +11,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 #include "tools.h"
 #include "graph.h"
 #include "modules.h"
@@ -35,7 +35,7 @@ main(int argc, char **argv)
   double Tsched, Ti, Tf = -1.0;
   double iterfac;
   char *netF;
-  struct prng *rand_gen;
+  gsl_rng *rand_gen;
 
 
   /*
@@ -67,8 +67,8 @@ main(int argc, char **argv)
     Initialize the random number generator and some vectors
     ------------------------------------------------------------
   */
-  rand_gen = prng_new("mt19937(1111)");
-  prng_seed(rand_gen, seed);
+  rand_gen = gsl_rng_alloc(gsl_rng_mt19937);
+  gsl_rng_set(rand_gen, seed);
   ranmodlis = allocate_d_vec(rep);
 
   /*
@@ -177,6 +177,7 @@ main(int argc, char **argv)
     Free memory
     ------------------------------------------------------------
   */
+  gsl_rng_free(rand_gen);
   free_d_vec(ranmodlis);
   RemovePartition(part);
   RemovePartition(roles);

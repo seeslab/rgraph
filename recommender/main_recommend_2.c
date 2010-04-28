@@ -12,7 +12,8 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
+
 #include "graph.h"
 #include "bipartite.h"
 #include "recommend.h"
@@ -23,7 +24,7 @@ main(int argc, char **argv)
   char *netF;
   FILE *infile=NULL, *outfile=NULL;
   struct binet *binet=NULL;
-  struct prng *rand_gen;
+  gsl_rng *rand_gen;
   struct query *the_query=NULL;
   void *dict1, *dict2;
   char *node1, *node2;
@@ -39,8 +40,8 @@ main(int argc, char **argv)
   node1 = argv[2];
   node2 = argv[3];
   seed = atoi(argv[4]);
-  rand_gen = prng_new("mt19937(1111)");
-  prng_seed(rand_gen, seed);
+  rand_gen = gsl_rng_alloc(gsl_rng_mt19937);
+  gsl_rng_set(rand_gen, seed);
 
   /* Build the network */
   infile = fopen(netF, "r");
@@ -60,5 +61,6 @@ main(int argc, char **argv)
   /* Finish */
   RemoveBipart(binet);
   FreeQuery(the_query);
+  gsl_rng_free(rand_gen);
   return 0;
 }

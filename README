@@ -10,14 +10,11 @@ $Revision$
 
 This package includes the RGraph libraries, the C libraries for
 complex network analysis developed by Roger Guimera. Some executables,
-build from the libraries, are also included.
+built from the libraries, are also included.
 
 For the libraries to compile, you will NEED TO INSTALL, first:
 
-1) The PRNG library for pseudo-random number generation, available
-from http://statmath.wu-wien.ac.at/prng/
-
-2) The GNU Scientific Libraries (GSL), available from
+1) The GNU Scientific Libraries (GSL), available from
 http://www.gnu.org/software/gsl/
 
 In a Unix-like system, you can install the RGraph libraries and the
@@ -335,4 +332,4 @@ Additionally, a few utility programs are also compiled and installed.
 CONTACT
 ----------------------------------------------------------------------
 
-rguimera@northwestern.edu
+roger.guimera@urv.cat

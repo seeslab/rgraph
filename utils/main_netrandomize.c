@@ -8,6 +8,8 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include <gsl/gsl_rng.h>
+
 #include "graph.h"
 
 int
@@ -15,7 +17,7 @@ main(int argc, char **argv)
 {
   char *netF;
   FILE *infile=NULL;
-  struct prng *rand_gen;
+  gsl_rng *rand_gen;
   struct node_gra *net=NULL;
   int seed;
 
@@ -30,8 +32,8 @@ main(int argc, char **argv)
   }
   netF = argv[1];
   seed = atoi(argv[2]);
-  rand_gen = prng_new("mt19937(1111)");
-  prng_seed(rand_gen, seed);
+  rand_gen = gsl_rng_alloc(gsl_rng_mt19937);
+  gsl_rng_set(rand_gen, seed);
 
   /*
     ---------------------------------------------------------------------------
@@ -56,5 +58,6 @@ main(int argc, char **argv)
   */
   FPrintNetAdjacencyList(stdout, net, 0, 1);
   RemoveGraph(net);
+  gsl_rng_free(rand_gen);
   return 0;
 }

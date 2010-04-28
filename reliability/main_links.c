@@ -8,7 +8,8 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
+
 #include "tools.h"
 #include "graph.h"
 #include "missing.h"
@@ -20,7 +21,7 @@ main(int argc, char **argv)
   FILE *infile=NULL;
   FILE *outfile1=NULL, *outfile2=NULL;
   struct node_gra *net=NULL;
-  struct prng *rand_gen;
+  gsl_rng *rand_gen;
   double **newA;
   struct node_gra *p1, *p2;
   long int seed;
@@ -36,8 +37,8 @@ main(int argc, char **argv)
   }
   netF = argv[1];
   seed = atoi(argv[2]);
-  rand_gen = prng_new("mt19937(1111)");
-  prng_seed(rand_gen, seed);
+  rand_gen = gsl_rng_alloc(gsl_rng_mt19937);
+  gsl_rng_set(rand_gen, seed);
 
   /*
     ---------------------------------------------------------------------------
@@ -85,5 +86,6 @@ main(int argc, char **argv)
     ---------------------------------------------------------------------------
   */
   RemoveGraph(net);
+  gsl_rng_free(rand_gen);
   return 0;
 }

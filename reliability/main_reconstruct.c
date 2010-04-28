@@ -14,7 +14,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 #include "graph.h"
 #include "missing.h"
 
@@ -24,7 +24,7 @@ main(int argc, char **argv)
   char *netF;
   FILE *infile=NULL, *outfile=NULL;
   struct node_gra *net=NULL, *netRec=NULL;
-  struct prng *rand_gen;
+  gsl_rng *rand_gen;
   int seed;
 
   /* Command line parameters */
@@ -41,8 +41,8 @@ main(int argc, char **argv)
   fclose(infile);
 
   /* Reconstruct the network */
-  rand_gen = prng_new("mt19937(1111)");
-  prng_seed(rand_gen, seed);
+  rand_gen = gsl_rng_alloc(gsl_rng_mt19937);
+  gsl_rng_set(rand_gen, seed);
   netRec = NetReconstruct(net, rand_gen);
 
   /* Print the reconstruction */
@@ -53,6 +53,7 @@ main(int argc, char **argv)
   /* Finish */
   RemoveGraph(net);
   RemoveGraph(netRec);
+  gsl_rng_free(rand_gen);
 
   return 0;
 }

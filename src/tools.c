@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include <gsl/gsl_rng.h>
+
 #include "tools.h"
 
 /*
@@ -187,11 +189,11 @@ free_d_mat(double **data, int nrows)
   ---------------------------------------------------------------------
 */
 int
-geometric_dist_val(double p, struct prng *gen)
+geometric_dist_val(double p, gsl_rng *gen)
 {
   int val = 0;
 
-  while (prng_get_next(gen) > p)
+  while (gsl_rng_uniform(gen) > p)
     val++;
 
   return val;

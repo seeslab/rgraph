@@ -7,7 +7,7 @@
 #ifndef RGRAPH_TOOLS_H
 #define RGRAPH_TOOLS_H 1
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 
 /*
   ---------------------------------------------------------------------
@@ -28,7 +28,7 @@ void free_d_mat(double **data, int nrows);
   Random number generation and distributions
   ---------------------------------------------------------------------
 */
-int geometric_dist_val(double p, struct prng *gen);
+int geometric_dist_val(double p, gsl_rng *gen);
 
 /*
   ---------------------------------------------------------------------

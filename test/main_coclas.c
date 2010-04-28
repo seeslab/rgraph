@@ -4,7 +4,7 @@
 
 long seed=42903;//6010;//42903;//20398;//82579;//9374;//
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 
 #include "tools.h"
 #include "graph.h"
@@ -17,9 +17,9 @@ int main()
   // ----------------------------------------------------------------
   // Initialize the random number generator
   // ----------------------------------------------------------------
-  struct prng *rand_gen;
-  rand_gen = prng_new("mt19937(1111)");
-  prng_seed(rand_gen, seed);
+  gsl_rng *rand_gen;
+  rand_gen = gsl_rng_alloc(gsl_rng_mt19937);
+  gsl_rng_set(rand_gen, seed);
 
   // ----------------------------------------------------------------
   // Build the network---only use giant component
@@ -97,6 +97,7 @@ int main()
   RemoveGraph(total_net);
   RemoveGraph(net);
   free_i_mat(coclas,S);
+  gsl_rng_free(rand_gen);
 
   return 0;
 }

@@ -8,7 +8,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 #include "tools.h"
 #include "graph.h"
 #include "modules.h"
@@ -32,7 +32,7 @@ main()
   double Tsched, Tf = 0.0;
   double iterfac;
   char netF[100];
-  struct prng *rand_gen;
+  gsl_rng *rand_gen;
 
 
   /*
@@ -61,8 +61,8 @@ main()
     Initialize the random number generator
     ------------------------------------------------------------
   */
-  rand_gen = prng_new("mt19937(1111)");
-  prng_seed(rand_gen, seed);
+  rand_gen = gsl_rng_alloc(gsl_rng_mt19937);
+  gsl_rng_set(rand_gen, seed);
 
   /*
     ------------------------------------------------------------
@@ -168,6 +168,7 @@ main()
     Free memory
     ------------------------------------------------------------
   */
+  gsl_rng_free(rand_gen);
   free_d_vec(ranmodlis);
   RemovePartition(part);
   RemovePartition(roles);

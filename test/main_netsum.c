@@ -8,8 +8,6 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "prng.h"
-
 #include "graph.h"
 
 #define EPS 1.e-6

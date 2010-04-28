@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 #include "tools.h"
 #include "graph.h"
 #include "modules.h"
@@ -14,7 +14,7 @@ main(int argc, char **argv)
   int seed = 1111;
   struct binet *binet = NULL;
   struct group *part = NULL;
-  struct prng *randGen;
+  gsl_rng *randGen;
   double Ti, Tf, Ts, fac;
   char file_name[100];
   int invert;
@@ -44,8 +44,8 @@ main(int argc, char **argv)
     Initialize the random number generator
     ------------------------------------------------------------------
   */
-  randGen = prng_new("mt19937(1111)");
-  prng_seed(randGen, seed);
+  randGen = gsl_rng_alloc(gsl_rng_mt19937);
+  gsl_rng_set(randGen, seed);
 
   /*
     ------------------------------------------------------------------
@@ -77,5 +77,6 @@ main(int argc, char **argv)
 
   // Free memory
   // ------------------------------------------------------------
+  gsl_rng_free(randGen);
   RemoveBipart(binet);
 }

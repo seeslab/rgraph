@@ -8,7 +8,7 @@
 #include <math.h>
 #include <string.h>
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 
 #include "tools.h"
 #include "graph.h"
@@ -45,7 +45,7 @@ EmptyGraph(int S)
   ---------------------------------------------------------------------
 */
 struct node_gra *
-ERGraph(int S, double p, struct prng *gen)
+ERGraph(int S, double p, gsl_rng *gen)
 {
   int node1, node2;
   struct node_gra **nodeList = NULL;
@@ -65,7 +65,7 @@ ERGraph(int S, double p, struct prng *gen)
   /* Create the links */
   for (node1=0; node1<S; node1++) {
     for (node2=node1+1; node2<S; node2++) {
-      if (prng_get_next(gen) < p) {
+      if (gsl_rng_uniform(gen) < p) {
 	AddAdjacency(nodeList[node1], nodeList[node2], 0, 0, 0, 0);
 	AddAdjacency(nodeList[node2], nodeList[node1], 0, 0, 0, 0);
       }
@@ -83,7 +83,7 @@ ERGraph(int S, double p, struct prng *gen)
   ---------------------------------------------------------------------
 */
 struct node_gra *
-PAGraph(int S, int m, struct prng *gen)
+PAGraph(int S, int m, gsl_rng *gen)
 {
   int node1, node2, n;
   struct node_gra **nodeList=NULL;
@@ -115,7 +115,7 @@ PAGraph(int S, int m, struct prng *gen)
     for (n=0; n<m; n++) {
       do {
 	/* preferential attachment */
-	node2 = paList[(int)(prng_get_next(gen) * norm)];
+	node2 = paList[(int)(gsl_rng_uniform(gen) * norm)];
       }
       while (IsThereLink(nodeList[node1], nodeList[node2]) == 1);
       AddAdjacency(nodeList[node1], nodeList[node2], 0, 0, 0, 0);
@@ -145,7 +145,7 @@ PAGraph(int S, int m, struct prng *gen)
 */
 struct node_gra *
 UndirectedBlockGraph(int ngroup, int *gsize, double **q,
-		     char output_sw, struct prng *gen)
+		     char output_sw, gsl_rng *gen)
 {
   int node1, node2;
   struct node_gra **nodeList = NULL;
@@ -182,7 +182,7 @@ UndirectedBlockGraph(int ngroup, int *gsize, double **q,
       default:
 	break;
       }
-      if (prng_get_next(gen) <
+      if (gsl_rng_uniform(gen) <
 	  q[(nodeList[node1])->inGroup][(nodeList[node2])->inGroup]) {
 	AddAdjacency(nodeList[node1], nodeList[node2], 0, 0, 0, 0);
 	AddAdjacency(nodeList[node2], nodeList[node1], 0, 0, 0, 0);
@@ -202,7 +202,7 @@ UndirectedBlockGraph(int ngroup, int *gsize, double **q,
 */
 struct node_gra *
 GirvanNewmanGraph(int ngroup, int gsize, double kin, double kout,
-		  char output_sw, struct prng *gen)
+		  char output_sw, gsl_rng *gen)
 {
   double **q;
   int *gsizes;

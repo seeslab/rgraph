@@ -8,7 +8,6 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "prng.h"
 #include "tools.h"
 #include "graph.h"
 #include "modules.h"

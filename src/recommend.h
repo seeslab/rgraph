@@ -7,7 +7,7 @@
 #ifndef RGRAPH_RECOMMEND_H
 #define RGRAPH_RECOMMEND_H 1
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 #include "graph.h"
 #include "modules.h"
 #include "bipartite.h"
@@ -51,7 +51,7 @@ void MCStep2State(int factor,
 		  int *n2gList,
 		  double **LogChooseList,
 		  int LogChooseListSize,
-		  struct prng *gen);
+		  gsl_rng *gen);
 int GetDecorrelationStep2State(double *H,
 			       struct query **query_list, int nquery, 
 			       struct node_gra **nlist1,
@@ -63,7 +63,7 @@ int GetDecorrelationStep2State(double *H,
 			       int *n2gList,
 			       double **LogChooseList,
 			       int LogChooseListSize,
-			       struct prng *gen,
+			       gsl_rng *gen,
 			       char verbose_sw);
 void ThermalizeMC2State(int decorStep,
 			double *H,
@@ -76,12 +76,12 @@ void ThermalizeMC2State(int decorStep,
 			int *n2gList,
 			double **LogChooseList,
 			int LogChooseListSize,
-			struct prng *gen,
+			gsl_rng *gen,
 			char verbose_sw);
 double LinkScore2State(struct binet *binet,
 		       struct query *the_query,
 		       int nIter,
-		       struct prng *gen,
+		       gsl_rng *gen,
 		       char verbose_sw,
 		       int decorStep);
 

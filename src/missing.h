@@ -10,7 +10,7 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_multiroots.h>
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 #include "graph.h"
 #include "modules.h"
 
@@ -32,7 +32,7 @@ void LinkScoreMCStep(double *H,
 		     int *n2gList,
 		     double **LogChooseList,
 		     int LogChooseListSize,
-		     struct prng *gen);
+		     gsl_rng *gen);
 int GetDecorrelationStep(double *H,
 			 double linC,
 			 struct node_gra **nlist,
@@ -43,7 +43,7 @@ int GetDecorrelationStep(double *H,
 			 int *n2gList,
 			 double **LogChooseList,
 			 int LogChooseListSize,
-			 struct prng *gen,
+			 gsl_rng *gen,
 			 char verbose_sw);
 void ThermalizeLinkScoreMC(int decorStep,
 			   double *H,
@@ -56,24 +56,24 @@ void ThermalizeLinkScoreMC(int decorStep,
 			   int *n2gList,
 			   double **LogChooseList,
 			   int LogChooseListSize,
-			   struct prng *gen,
+			   gsl_rng *gen,
 			   char verbose_sw);
 double **LinkScore(struct node_gra *net,
 		   double linC,
 		   int nIter,
-		   struct prng *gen,
+		   gsl_rng *gen,
 		   char verbose_sw);
-double SBMError(struct node_gra *net, struct prng *gen);
-double SBMStructureScore(struct node_gra *net, int nrep, struct prng *gen);
-struct node_gra *NetFromSBMScores(struct node_gra *net, struct prng *gen);
+double SBMError(struct node_gra *net, gsl_rng *gen);
+double SBMStructureScore(struct node_gra *net, int nrep, gsl_rng *gen);
+struct node_gra *NetFromSBMScores(struct node_gra *net, gsl_rng *gen);
 double NetworkScore(struct node_gra *netTar,
 		    struct node_gra *netObs,
 		    double linC,
 		    int nIter,
-		    struct prng *gen,
+		    gsl_rng *gen,
 		    char verbose_sw);
 struct node_gra *NetReconstruct(struct node_gra *netObs,
-				struct prng *gen);
+				gsl_rng *gen);
 
 
 

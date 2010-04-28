@@ -7,7 +7,7 @@
 #ifndef RGRAPH_MODULES_H
 #define RGRAPH_MODULES_H 1
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 
 /*
   ---------------------------------------------------------------------
@@ -142,7 +142,7 @@ double ModularityWeight(struct group *part);
 struct group *SAGroupSplit(struct group *targ,
 			   double Ti, double Tf, double Ts,
 			   int cluster_sw,
-			   struct prng *gen);
+			   gsl_rng *gen);
 struct group *SACommunityIdent(struct node_gra *net,
 			       double Ti, double Tf, double Ts,
 			       double fac,
@@ -150,7 +150,7 @@ struct group *SACommunityIdent(struct node_gra *net,
 			       char initial_sw,
 			       int collective_sw,
 			       char output_sw,
-			       struct prng *gen);
+			       gsl_rng *gen);
 
 /*
   ---------------------------------------------------------------------

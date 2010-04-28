@@ -23,8 +23,7 @@ AC_PROG_MAKE_SET
 
 # Checks for libraries.
 AC_CHECK_LIB([m], [exp])
-AC_CHECK_LIB([prng], [prng_new], , AC_MSG_ERROR([prng library not found]))
-AC_CHECK_LIB([gslcblas], [cblas_zgemm], , AC_MSG_ERROR([GSL library not found]))
+AC_CHECK_LIB([gslcblas], [cblas_zgemm], , AC_MSG_ERROR([GSL CBLAS library not found]))
 AC_CHECK_LIB([gsl], [gsl_vector_set], , AC_MSG_ERROR([GSL library not found]))
 
 # For gnulib
@@ -35,8 +34,8 @@ AC_HEADER_STDC
 AC_HEADER_STDBOOL
 AC_CHECK_HEADER(stdlib.h)
 AC_CHECK_HEADER(string.h)
-AC_CHECK_HEADER(prng.h, , AC_MSG_ERROR([Necessary prng.h header not found]))
 AC_CHECK_HEADER(gsl/gsl_vector.h, , AC_MSG_ERROR([Necessary GSL header not found]))
+AC_CHECK_HEADER(gsl/gsl_rng.h, , AC_MSG_ERROR([Necessary GSL header not found]))
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T

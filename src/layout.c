@@ -3,6 +3,8 @@
 #include <string.h>
 #include <search.h>
 
+#include <gsl/gsl_rng.h>
+
 #include "graph.h"
 #include "tools.h"
 #include "modules.h"
@@ -110,7 +112,7 @@ double CircleDistance(int target, double xtot, double ytot,
 /*
   Arrange isolated components
 */
-void ArrangeComponents(struct node_gra *net, struct prng *gen)
+void ArrangeComponents(struct node_gra *net, gsl_rng *gen)
 {
   struct node_gra *cnet = NULL;
   struct node_gra *p = NULL, *cp = NULL;
@@ -187,15 +189,15 @@ void ArrangeComponents(struct node_gra *net, struct prng *gen)
 
       for (i=0; i<100*ngroup; i++) {
 	// Select a group
-	target = floor((double)ngroup * prng_get_next(gen));
+	target = floor((double)ngroup * gsl_rng_uniform(gen));
 
 	// Calculate the initial distance
 	disi = CircleDistance(target, xtot, ytot,
 			      xce, yce, rad, ngroup);
       
 	// Move the group
-	dx = width * 2. * (prng_get_next(gen) - .5);
-	dy = width * 2. * (prng_get_next(gen) - .5);
+	dx = width * 2. * (gsl_rng_uniform(gen) - .5);
+	dy = width * 2. * (gsl_rng_uniform(gen) - .5);
 
 	xce[target] += dx;
 	yce[target] += dy;
@@ -583,7 +585,7 @@ CalculateNodeForces(struct node_gra *net, double Fx[], double Fy[],
 // Verlet algorithm
 void
 MDGraphLayout(struct node_gra *net, double drag, double dt,
-	      int nsteps, struct prng *gen, int nbox)
+	      int nsteps, gsl_rng *gen, int nbox)
 {
   double *Fx = NULL, *Fy = NULL;
   double *prev_xco = NULL, *prev_yco = NULL;
@@ -627,8 +629,8 @@ MDGraphLayout(struct node_gra *net, double drag, double dt,
   ncoun = 0;
   while (p->next != NULL) {
     p = p->next;
-    p->coorX = prng_get_next(gen);
-    p->coorY = prng_get_next(gen);
+    p->coorX = gsl_rng_uniform(gen);
+    p->coorY = gsl_rng_uniform(gen);
     p->trans = ncoun; // trans stores the translation of the node
     prev_xco[ncoun] = p->coorX; // Zero X velocity
     prev_yco[ncoun] = p->coorY; // Zero Y velocity
@@ -1051,7 +1053,7 @@ CalculateNodeForces3D(struct node_gra *net,
 // the Verlet algorithm
 void
 MDGraphLayout3D(struct node_gra *net, double drag, double dt,
-		int nsteps, struct prng *gen, int nbox)
+		int nsteps, gsl_rng *gen, int nbox)
 {
   double *Fx = NULL, *Fy = NULL, *Fz = NULL;
   double *prev_xco = NULL, *prev_yco = NULL, *prev_zco = NULL;
@@ -1097,9 +1099,9 @@ MDGraphLayout3D(struct node_gra *net, double drag, double dt,
   ncoun = 0;
   while (p->next != NULL) {
     p = p->next;
-    p->coorX = prng_get_next(gen);
-    p->coorY = prng_get_next(gen);
-    p->coorZ = prng_get_next(gen);
+    p->coorX = gsl_rng_uniform(gen);
+    p->coorY = gsl_rng_uniform(gen);
+    p->coorZ = gsl_rng_uniform(gen);
     p->trans = ncoun; // trans stores the translation of the node
     prev_xco[ncoun] = p->coorX; // Zero X velocity
     prev_yco[ncoun] = p->coorY; // Zero Y velocity
@@ -1221,7 +1223,7 @@ MDGraphLayout3D(struct node_gra *net, double drag, double dt,
 // towards the z=0.5 plane.
 void
 MDGraphLayout2Dp(struct node_gra *net, double drag, double dt,
-		 int nsteps, struct prng *gen, int nbox)
+		 int nsteps, gsl_rng *gen, int nbox)
 {
   double *Fx = NULL, *Fy = NULL, *Fz = NULL;
   double *prev_xco = NULL, *prev_yco = NULL, *prev_zco = NULL;
@@ -1269,9 +1271,9 @@ MDGraphLayout2Dp(struct node_gra *net, double drag, double dt,
   ncoun = 0;
   while (p->next != NULL) {
     p = p->next;
-    p->coorX = prng_get_next(gen);
-    p->coorY = prng_get_next(gen);
-    p->coorZ = prng_get_next(gen);
+    p->coorX = gsl_rng_uniform(gen);
+    p->coorY = gsl_rng_uniform(gen);
+    p->coorZ = gsl_rng_uniform(gen);
     p->trans = ncoun; // trans stores the translation of the node
     prev_xco[ncoun] = p->coorX; // Zero X velocity
     prev_yco[ncoun] = p->coorY; // Zero Y velocity

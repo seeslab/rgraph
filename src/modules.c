@@ -9,7 +9,7 @@
 #include <string.h>
 #include <search.h>
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 
 #include "tools.h"
 #include "graph.h"
@@ -1567,7 +1567,7 @@ struct group *
 SAGroupSplit(struct group *targ,
 			   double Ti, double Tf, double Ts,
 			   int cluster_sw,
-			   struct prng *gen)
+			   gsl_rng *gen)
 {
   struct group *glist[2];
   struct group *split = NULL;
@@ -1601,15 +1601,15 @@ SAGroupSplit(struct group *targ,
   if (
       cluster_sw == 1 &&         /*  cluster switch is on */
       ngroups > 1 &&             /*  network is not connected */
-      prng_get_next(gen) < prob  /*  with some probability */
+      gsl_rng_uniform(gen) < prob  /*  with some probability */
       ) {
     
     /* Merge groups randomly until only two are left */
     while (ngroups > 2) {
       /* Select two random groups */
-      g1 = ceil(prng_get_next(gen)* (double)ngroups);
+      g1 = ceil(gsl_rng_uniform(gen)* (double)ngroups);
       do {
-	g2 = ceil(prng_get_next(gen)* (double)ngroups);
+	g2 = ceil(gsl_rng_uniform(gen)* (double)ngroups);
       } while (g2 == g1);
       
       glist[0] = split;
@@ -1643,7 +1643,7 @@ SAGroupSplit(struct group *targ,
       totallinks += CountLinks(p);
       nnod++;
       
-      des = floor(prng_get_next(gen) * 2.0);
+      des = floor(gsl_rng_uniform(gen) * 2.0);
       AddNodeToGroup(glist[des], p);
     }
     totallinks /= 2;
@@ -1654,7 +1654,7 @@ SAGroupSplit(struct group *targ,
       while (T > Tf) {
 	
 	for (i=0; i<nnod; i++) {
-	  target = floor(prng_get_next(gen) * (double)nnod);
+	  target = floor(gsl_rng_uniform(gen) * (double)nnod);
 	  oldg = nodeList[target]->inGroup;
 	  if(oldg == 0)
 	    newg = 1;
@@ -1693,7 +1693,7 @@ SAGroupSplit(struct group *targ,
 	    ((double)totallinks * (double)totallinks);
 
 	  /* Accept the move according to Metropolis */
-	  if( (dE >=0.0) || (prng_get_next(gen) < exp(dE/T)) ){
+	  if( (dE >=0.0) || (gsl_rng_uniform(gen) < exp(dE/T)) ){
 	    MoveNode(nodeList[target],glist[oldg],glist[newg]);
 	    energy += dE;
 	  }
@@ -1738,7 +1738,7 @@ SACommunityIdent(struct node_gra *net,
 		 char initial_sw,
 		 int collective_sw,
 		 char output_sw,
-		 struct prng *gen)
+		 gsl_rng *gen)
 {
   int i;
   struct group *part = NULL;
@@ -1805,7 +1805,7 @@ SACommunityIdent(struct node_gra *net,
       glist[i] = lastg = CreateGroup(lastg, i);
     while ((p = p->next) != NULL) {
       nlist[p->num] = p;
-      dice = floor(prng_get_next(gen)* (double)ngroup);
+      dice = floor(gsl_rng_uniform(gen)* (double)ngroup);
       AddNodeToGroup(glist[dice], p);
       totallinks += CountLinks(p);
     }
@@ -1863,10 +1863,10 @@ SACommunityIdent(struct node_gra *net,
     for (i=0; i<cicle1; i++) {
       
       /* Propose an individual move */
-      dice = floor(prng_get_next(gen) * (double)nnod);
+      dice = floor(gsl_rng_uniform(gen) * (double)nnod);
       oldg = nlist[dice]->inGroup;
       do {
-	newg = floor(prng_get_next(gen) * (double)ngroup);
+	newg = floor(gsl_rng_uniform(gen) * (double)ngroup);
       } while (newg == oldg);
 
       /* Calculate the change of energy */
@@ -1900,7 +1900,7 @@ SACommunityIdent(struct node_gra *net,
 	((double)totallinks * (double)totallinks);
 
       /* Accept the change according to Metroppolis */
-      if ((dE >= 0.0) || (prng_get_next(gen) < exp(dE/T))) {
+      if ((dE >= 0.0) || (gsl_rng_uniform(gen) < exp(dE/T))) {
 	MoveNode(nlist[dice], glist[oldg], glist[newg]);
 	energy += dE;
       }
@@ -1911,12 +1911,12 @@ SACommunityIdent(struct node_gra *net,
       for ( i=0; i < cicle2; i++ ){
 
 	/* MERGE */
-	dice = floor(prng_get_next(gen) * (double)nnod);
+	dice = floor(gsl_rng_uniform(gen) * (double)nnod);
 	g1 = nlist[dice]->inGroup;
 	
 	if (glist[g1]->size < nnod) { /*  Unless all nodes are together */
 	  do{
-	    dice = floor(prng_get_next(gen) * (double)nnod);
+	    dice = floor(gsl_rng_uniform(gen) * (double)nnod);
 	    g2 = nlist[dice]->inGroup;
 	  } while (g1 == g2);
 
@@ -1941,14 +1941,14 @@ SACommunityIdent(struct node_gra *net,
 	    ((double)totallinks * (double)totallinks);
 	
 	  /* Accept the change according to Metroppolis */
-	  if ((dE >= 0.0) || (prng_get_next(gen) < exp(dE/T))) {
+	  if ((dE >= 0.0) || (gsl_rng_uniform(gen) < exp(dE/T))) {
 	    MergeGroups(glist[g1], glist[g2]);
 	    energy += dE;
 	  }
 	}
 
 	/* SPLIT */
-	dice = floor(prng_get_next(gen) * (double)nnod); /*  target node */
+	dice = floor(gsl_rng_uniform(gen) * (double)nnod); /*  target node */
 	dice = nlist[dice]->inGroup;                     /*  target group */
 
 	/* Look for an empty group */
@@ -1999,7 +1999,7 @@ SACommunityIdent(struct node_gra *net,
 	  /* Accept the change according to "inverse" Metroppolis.
 	     Inverse means that the algorithm is applied to the split
 	     and NOT to the merge! */
-	  if ((dE > 0.0) && (prng_get_next(gen) > exp(-dE/T))) {
+	  if ((dE > 0.0) && (gsl_rng_uniform(gen) > exp(-dE/T))) {
 	    MergeGroups(glist[dice], glist[empty]);
 	  }
 	  else{
@@ -2314,7 +2314,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
 
 
-/* struct group *ThermalNetworkSplitOdds(struct group *targ,double Ti, double Tf, struct prng *gen) */
+/* struct group *ThermalNetworkSplitOdds(struct group *targ,double Ti, double Tf, gsl_rng *gen) */
 /* { */
 /*   struct group *glist[2]; */
 /*   struct group *split = NULL; */
@@ -2354,7 +2354,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*     totallinks += CountLinks(p); */
 /*     nnod++; */
 
-/*     des = floor(prng_get_next(gen)*2.0); */
+/*     des = floor(gsl_rng_uniform(gen)*2.0); */
 /*     AddNodeToGroup(glist[des],p); */
 /*   } */
 
@@ -2370,7 +2370,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   while( T > Tf){ */
 
 /*     for (i=0; i< nnod; i++){ */
-/*       target = floor(prng_get_next(gen) * (double)nnod); */
+/*       target = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /*       oldg = nlist[target]->inGroup; */
 /*       if(oldg == 0) */
 /* 	newg = 1; */
@@ -2392,7 +2392,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       dE = Anew * Dnew / (Bnew * Cnew) - A * D / (B * C); */
 
 /*       // Accept the change according to the Boltzman factor */
-/*       if( (dE >= 0.0) || (prng_get_next(gen) < exp(dE/T)) ){ */
+/*       if( (dE >= 0.0) || (gsl_rng_uniform(gen) < exp(dE/T)) ){ */
 /* 	MoveNode(nlist[target],glist[oldg],glist[newg]); */
 /*       } */
 /*     } */
@@ -2407,7 +2407,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
 
 /* // merge = 0 => No group merging */
-/* struct group *SACommunityIdentOdds(struct node_gra *net,double Ti,double Tf,double Ts,double fac, int merge, struct prng *gen) */
+/* struct group *SACommunityIdentOdds(struct node_gra *net,double Ti,double Tf,double Ts,double fac, int merge, gsl_rng *gen) */
 /* { */
 /*   int i; */
 /*   struct group *part = NULL; */
@@ -2492,10 +2492,10 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       /////////////////////////////// */
 /*       // Propose an individual change */
 /*       /////////////////////////////// */
-/*       target = floor(prng_get_next(gen) * (double)nnod); */
+/*       target = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /*       oldg = nlist[target]->inGroup; */
 /*       do{ */
-/* 	newg = floor(prng_get_next(gen) * (double)nnod); */
+/* 	newg = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /*       }while(newg == oldg); */
 
 /*       // Calculate the change of energy */
@@ -2519,7 +2519,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* /\*       printf("%d %d %d %lf\n",innew,inold,nlink,exp(dE/T)); *\/ */
 
 /*       // Accept the change according to Metroppolis */
-/*       if( (dE >= 0.0) || ( prng_get_next(gen) < exp(dE/T) ) ){ */
+/*       if( (dE >= 0.0) || ( gsl_rng_uniform(gen) < exp(dE/T) ) ){ */
 /* 	MoveNode(nlist[target],glist[oldg],glist[newg]); */
 /* 	energy = (double)(Anew * Dnew) / (double)(Bnew * Cnew); */
 /* 	A = Anew; */
@@ -2539,13 +2539,13 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	////////////////////////////////////////////////////// */
 
 /* 	// Merge ///////////////////////////////////////////// */
-/* 	target = floor(prng_get_next(gen) * (double)nnod); */
+/* 	target = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /* 	g1 = nlist[target]->inGroup; */
 	
 /* 	if(glist[g1]->size < nnod){ */
 
 /* 	  do{ */
-/* 	    target = floor(prng_get_next(gen) * (double)nnod); */
+/* 	    target = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /* 	    g2 = nlist[target]->inGroup; */
 /* 	  }while( g1 == g2 ); */
 	
@@ -2565,7 +2565,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	    dE = Anew * Dnew / (Bnew * Cnew) - A * D / (B * C); */
 	
 /* 	  // Accept the change according to Metroppolis */
-/* 	  if( (dE >= 0.0) || ( prng_get_next(gen) < exp(dE/T) ) ){ */
+/* 	  if( (dE >= 0.0) || ( gsl_rng_uniform(gen) < exp(dE/T) ) ){ */
 /* 	    MergeGroups(glist[g1],glist[g2]); */
 /* 	    energy += dE; */
 /* 	    A = Anew; */
@@ -2576,7 +2576,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	} */
 
 /* 	// Split ///////////////////////////////////////////// */
-/* 	target = floor(prng_get_next(gen) * (double)nnod); // target node */
+/* 	target = floor(gsl_rng_uniform(gen) * (double)nnod); // target node */
 /* 	target = nlist[target]->inGroup;    // target group */
 
 /* 	// Look for an empty group */
@@ -2620,7 +2620,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	  // Accept the change according to "inverse" Metroppolis. */
 /* 	  // Inverse means that the algor is applied to the split */
 /* 	  // and NOT to the merge! */
-/* 	  if( (dE >= 0.0) && ( prng_get_next(gen) > exp(-dE/T) ) ){ */
+/* 	  if( (dE >= 0.0) && ( gsl_rng_uniform(gen) > exp(-dE/T) ) ){ */
 /* 	    MergeGroups(glist[target],glist[empty]); */
 /* 	  } */
 /* 	  else{ */
@@ -2725,7 +2725,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* } */
 
 
-/* struct group *SABlockModules(struct node_gra *net,double Ti,double Tf,double Ts,double fac,double alpha, struct prng *gen) */
+/* struct group *SABlockModules(struct node_gra *net,double Ti,double Tf,double Ts,double fac,double alpha, gsl_rng *gen) */
 /* { */
 /*   int i,j,k; */
 /*   struct group *part = NULL; */
@@ -2798,10 +2798,10 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       /////////////////////////////// */
 /*       // Propose an individual change */
 /*       /////////////////////////////// */
-/*       target = floor(prng_get_next(gen) * (double)nnod); */
+/*       target = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /*       oldg = nlist[target]->inGroup; */
 /*       do{ */
-/* 	newg = floor(prng_get_next(gen) * (double)nnod); */
+/* 	newg = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /*       }while(newg == oldg); */
 
 /*       // Calculate the change of energy */
@@ -2875,7 +2875,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
 /*       // Accept the change according to Metroppolis */
 /*       dE = enew - eold; */
-/*       if( (dE >= 0.0) || ( prng_get_next(gen) < exp(dE/T) ) ){ */
+/*       if( (dE >= 0.0) || ( gsl_rng_uniform(gen) < exp(dE/T) ) ){ */
 /* 	energy += dE; */
 /*       } */
 /*       else{ */
@@ -3079,7 +3079,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* } */
 
 
-/* struct group *SABlockModules3(struct node_gra *net,double Ti,double Tf,double Ts,double fac, int ngroup, struct prng *gen) */
+/* struct group *SABlockModules3(struct node_gra *net,double Ti,double Tf,double Ts,double fac, int ngroup, gsl_rng *gen) */
 /* { */
 /*   int i,j,k; */
 /*   struct group *part = NULL; */
@@ -3119,7 +3119,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*     nlist[i] = p; */
 /*     totallinks += CountLinks(p); */
 
-/*     target = floor(prng_get_next(gen) * (double)ngroup); */
+/*     target = floor(gsl_rng_uniform(gen) * (double)ngroup); */
 /*     AddNodeToGroup(glist[target],p); */
 /*   } */
 
@@ -3158,10 +3158,10 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       // Propose an individual change // */
 /*       ////////////////////////////////// */
 
-/*       target = floor(prng_get_next(gen) * (double)nnod); */
+/*       target = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /*       oldg = nlist[target]->inGroup; */
 /*       do{ */
-/* 	newg = floor(prng_get_next(gen) * (double)ngroup); */
+/* 	newg = floor(gsl_rng_uniform(gen) * (double)ngroup); */
 /*       }while(newg == oldg); */
 
 /*       // Calculate the change of energy */
@@ -3182,7 +3182,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
 /*       // Accept the change according to Metroppolis */
 /*       dE = enew - eold; */
-/*       if( (dE <= 0.0) || ( prng_get_next(gen) < exp(-dE/T) ) ){ */
+/*       if( (dE <= 0.0) || ( gsl_rng_uniform(gen) < exp(-dE/T) ) ){ */
 /* 	energy = enew; */
 /*       } */
 /*       else{ */
@@ -3464,7 +3464,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   RemovePartition(pajekpart); */
 /* } */
 
-/* PlotXfigModuleRole(struct node_gra *net, struct group *gpart, struct group *rpart, double mod_pos[][2], struct prng *gen) */
+/* PlotXfigModuleRole(struct node_gra *net, struct group *gpart, struct group *rpart, double mod_pos[][2], gsl_rng *gen) */
 /* { */
 /*   struct group *g, *g2, *g3, *parentg; */
 /*   struct group *xfigpart; */
@@ -3545,9 +3545,9 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 	
 /* 	// place the special node at random inside the parent module */
 /* 	anode->coorX = xcent + */
-/* 	  0.5 * (double)(size * (prng_get_next(gen) - 0.5)); */
+/* 	  0.5 * (double)(size * (gsl_rng_uniform(gen) - 0.5)); */
 /* 	anode->coorY = ycent + */
-/* 	  0.5 * (double)(size * (prng_get_next(gen) - 0.5)); */
+/* 	  0.5 * (double)(size * (gsl_rng_uniform(gen) - 0.5)); */
 
 /* 	g3->coorX = anode->coorX; */
 /* 	g3->coorY = anode->coorY; */
@@ -3582,12 +3582,12 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
 /* 	for (i=0; i<iter; i++){ */
 	  
-/* 	  target = floor(prng_get_next(gen) * (double)nspec); */
+/* 	  target = floor(gsl_rng_uniform(gen) * (double)nspec); */
 /* 	  agroup = specialg[target]; */
 	
 /* 	  do{ */
-/* 	    dx = 0.01 * (double)(size * (prng_get_next(gen) - 0.5)); */
-/* 	    dy = 0.01 * (double)(size * (prng_get_next(gen) - 0.5)); */
+/* 	    dx = 0.01 * (double)(size * (gsl_rng_uniform(gen) - 0.5)); */
+/* 	    dy = 0.01 * (double)(size * (gsl_rng_uniform(gen) - 0.5)); */
 /* 	    dis = sqrt( (agroup->coorX + dx - xcent) * */
 /* 			(agroup->coorX + dx - xcent) + */
 /* 			(agroup->coorY + dy - ycent) * */
@@ -3705,12 +3705,12 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
 /*     for (i=0; i<iter; i++){ */
 	  
-/*       target = floor(prng_get_next(gen) * (double)nspec); */
+/*       target = floor(gsl_rng_uniform(gen) * (double)nspec); */
 /*       agroup = specialg[target]; */
       
 /*       do{ */
-/* 	dx = 0.01 * (double)(size * (prng_get_next(gen) - 0.5)); */
-/* 	dy = 0.01 * (double)(size * (prng_get_next(gen) - 0.5)); */
+/* 	dx = 0.01 * (double)(size * (gsl_rng_uniform(gen) - 0.5)); */
+/* 	dy = 0.01 * (double)(size * (gsl_rng_uniform(gen) - 0.5)); */
 /* 	dis = sqrt( (agroup->coorX + dx - xcent) * */
 /* 		    (agroup->coorX + dx - xcent) + */
 /* 		    (agroup->coorY + dy - ycent) * */
@@ -3908,7 +3908,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* // node. This is achieved by randomizing links between modules i and j */
 /* // with each other---but not with other links---for all i and j */
 /* // (including j=i). */
-/* struct node_gra *RandomizeNetworkRolePreserve(struct node_gra *net, struct group *part, double times, struct prng *gen) */
+/* struct node_gra *RandomizeNetworkRolePreserve(struct node_gra *net, struct group *part, double times, gsl_rng *gen) */
 /* { */
 /*   int i, j; */
 /*   int nlink; */
@@ -3938,7 +3938,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       nlink = NG2GLinks(g1, g2); */
 /*       if (g1 == g2) */
 /* 	nlink /= 2; */
-/*       niter =  ceil(times * (double)nlink + 0.5 + prng_get_next(gen)); */
+/*       niter =  ceil(times * (double)nlink + 0.5 + gsl_rng_uniform(gen)); */
 /*       // The +0.5+ran2 makes the number of iterations sometimes even */
 /*       // and sometimes odd, for cases in which thre may be only one */
 /*       // pair of randomizable links. */
@@ -4001,14 +4001,14 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 	  
 /* 	  // select the 4 different nodes */
 /* 	  do{ */
-/* 	    target1 = floor(prng_get_next(gen) * (double)nlink); */
+/* 	    target1 = floor(gsl_rng_uniform(gen) * (double)nlink); */
 /* 	    n1 = ori[target1]; */
 /* 	    n2 = des[target1]; */
 	   
 /* /\* 	    printf("%d-%d\n", n1->num+1, n2->num+1); *\/ */
  
-/* 	    target2 = floor(prng_get_next(gen) * (double)nlink); */
-/* 	    if ( (g1 == g2) && (prng_get_next(gen) < 0.5) ) { */
+/* 	    target2 = floor(gsl_rng_uniform(gen) * (double)nlink); */
+/* 	    if ( (g1 == g2) && (gsl_rng_uniform(gen) < 0.5) ) { */
 /* 	      n4 = ori[target2]; */
 /* 	      n3 = des[target2]; */
 /* 	    } */
@@ -4062,7 +4062,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* struct node_gra *RandomizeNetworkOneComponentRolePreserve(struct node_gra *net, */
 /* 							  struct group *part, */
 /* 							  double times, */
-/* 							  struct prng *gen) */
+/* 							  gsl_rng *gen) */
 /* { */
 /*   int i, j; */
 /*   int nlink; */
@@ -4093,7 +4093,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       nlink = NG2GLinks(g1, g2); */
 /*       if (g1 == g2) */
 /* 	nlink /= 2; */
-/*       niter =  ceil(times * (double)nlink + 0.5 + prng_get_next(gen)); */
+/*       niter =  ceil(times * (double)nlink + 0.5 + gsl_rng_uniform(gen)); */
 /*       // The +0.5+ran2 makes the number of iterations sometimes even */
 /*       // and sometimes odd, for cases in which thre may be only one */
 /*       // pair of randomizable links. */
@@ -4182,14 +4182,14 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 	    
 /* 	    // select the 4 different nodes */
 /* 	    do{ */
-/* 	      target1 = floor(prng_get_next(gen) * (double)nlink); */
+/* 	      target1 = floor(gsl_rng_uniform(gen) * (double)nlink); */
 /* 	      n1 = ori[target1]; */
 /* 	      n2 = des[target1]; */
 	   
 /* /\* 	    printf("%d-%d\n", n1->num+1, n2->num+1); *\/ */
  
-/* 	      target2 = floor(prng_get_next(gen) * (double)nlink); */
-/* 	      if ( (g1 == g2) && (prng_get_next(gen) < 0.5) ) { */
+/* 	      target2 = floor(gsl_rng_uniform(gen) * (double)nlink); */
+/* 	      if ( (g1 == g2) && (gsl_rng_uniform(gen) < 0.5) ) { */
 /* 		n4 = ori[target2]; */
 /* 		n3 = des[target2]; */
 /* 	      } */
@@ -4297,11 +4297,11 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* /\* */
 /*   Returns a randomly selected node from the specified module */
 /* *\/ */
-/* struct node_gra *SelectRandomNodeInGroup(struct group *mod, struct prng *gen) */
+/* struct node_gra *SelectRandomNodeInGroup(struct group *mod, gsl_rng *gen) */
 /* { */
 /*   int i; */
 /*   struct node_lis *node = mod->nodeList->next; */
-/*   int target = floor(prng_get_next(gen) * mod->size); */
+/*   int target = floor(gsl_rng_uniform(gen) * mod->size); */
 
 /*   for (i=0; i<target; i++) { */
 /*     node = node->next; */
@@ -4447,7 +4447,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
 
 
-/* struct group *ThermalNetworkSplitWeight(struct group *targ,double Ti, double Tf, struct prng *gen) */
+/* struct group *ThermalNetworkSplitWeight(struct group *targ,double Ti, double Tf, gsl_rng *gen) */
 /* { */
 /*   struct group *glist[2]; */
 /*   struct group *split = NULL; */
@@ -4488,7 +4488,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*     totallinks += CountLinksWeight(p); */
 /*     nnod++; */
 
-/*     des = floor(prng_get_next(gen)*2.0); */
+/*     des = floor(gsl_rng_uniform(gen)*2.0); */
 /*     AddNodeToGroup(glist[des],p); */
 /*   } */
 
@@ -4499,7 +4499,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   while( T > Tf){ */
 
 /*     for (i=0; i< nnod; i++){ */
-/*       target = floor(prng_get_next(gen) * (double)nnod); */
+/*       target = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /*       oldg = nlist[target]->inGroup; */
 /*       if(oldg == 0) */
 /* 	newg = 1; */
@@ -4542,7 +4542,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	((double)totallinks * (double)totallinks); */
 
 /*       // Accept the change according to the Boltzman factor */
-/*       if( (dE >= 0.0) || (prng_get_next(gen) < exp(dE/T)) ){ */
+/*       if( (dE >= 0.0) || (gsl_rng_uniform(gen) < exp(dE/T)) ){ */
 /* 	MoveNode(nlist[target],glist[oldg],glist[newg]); */
 /* 	energy += dE; */
 /*       } */
@@ -4559,7 +4559,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
 /* struct group *ThermalPercNetworkSplitWeight(struct group *targ, */
 /* 					    double Ti, double Tf, */
-/* 					    struct prng *gen) */
+/* 					    gsl_rng *gen) */
 /* { */
 /*   struct group *glist[2]; */
 /*   struct group *split = NULL; */
@@ -4591,15 +4591,15 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   split = ClustersPartition(net); */
 /*   ngroups = CountGroups(split); */
 
-/*   if ( ngroups > 1 && prng_get_next(gen) < prob) { // Network is not */
+/*   if ( ngroups > 1 && gsl_rng_uniform(gen) < prob) { // Network is not */
 /* 						   // connected */
     
 /*     // Merge groups randomly until only two are left */
 /*     while (ngroups > 2) { */
 /*       // Select two random groups */
-/*       g1 = ceil(prng_get_next(gen)* (double)ngroups); */
+/*       g1 = ceil(gsl_rng_uniform(gen)* (double)ngroups); */
 /*       do { */
-/* 	g2 = ceil(prng_get_next(gen)* (double)ngroups); */
+/* 	g2 = ceil(gsl_rng_uniform(gen)* (double)ngroups); */
 /*       } while (g2 == g1); */
       
 /*       glist[0] = split; */
@@ -4634,7 +4634,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       totallinks += CountLinksWeight(p); */
 /*       nnod++; */
       
-/*       des = floor(prng_get_next(gen)*2.0); */
+/*       des = floor(gsl_rng_uniform(gen)*2.0); */
 /*       AddNodeToGroup(glist[des],p); */
 /*     } */
 
@@ -4646,7 +4646,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       while( T > Tf){ */
       
 /* 	for (i=0; i< nnod; i++){ */
-/* 	  target = floor(prng_get_next(gen) * (double)nnod); */
+/* 	  target = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /* 	  oldg = nlist[target]->inGroup; */
 /* 	  if(oldg == 0) */
 /* 	    newg = 1; */
@@ -4689,7 +4689,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	    ((double)totallinks * (double)totallinks); */
 
 /* 	  // Accept the change according to the Boltzman factor */
-/* 	  if( (dE >= 0.0) || (prng_get_next(gen) < exp(dE/T)) ){ */
+/* 	  if( (dE >= 0.0) || (gsl_rng_uniform(gen) < exp(dE/T)) ){ */
 /* 	    MoveNode(nlist[target],glist[oldg],glist[newg]); */
 /* 	    energy += dE; */
 /* 	  } */
@@ -4718,7 +4718,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
 
 /* // merge = 0 => No group merging */
-/* struct group *SACommunityIdentWeight(struct node_gra *net,double Ti,double Tf,double Ts,double fac, int merge, struct prng *gen) */
+/* struct group *SACommunityIdentWeight(struct node_gra *net,double Ti,double Tf,double Ts,double fac, int merge, gsl_rng *gen) */
 /* { */
 /*   int i; */
 /*   struct group *part = NULL; */
@@ -4801,13 +4801,13 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	////////////////////////////////////////////////////// */
 
 /* 	// Merge ///////////////////////////////////////////// */
-/* 	target = floor(prng_get_next(gen) * nnod); */
+/* 	target = floor(gsl_rng_uniform(gen) * nnod); */
 /* 	g1 = nlist[target]->inGroup; */
 	
 /* 	if(glist[g1]->size < nnod){ */
 
 /* 	  do{ */
-/* 	    target = floor(prng_get_next(gen) * nnod); */
+/* 	    target = floor(gsl_rng_uniform(gen) * nnod); */
 /* 	    g2 = nlist[target]->inGroup; */
 /* 	  }while( g1 == g2 ); */
 	
@@ -4836,14 +4836,14 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	    (double)(totallinks*totallinks); */
 	
 /* 	  // Accept the change according to Metroppolis */
-/* 	  if( (dE >= 0.0) || ( prng_get_next(gen) < exp(dE/T) ) ){ */
+/* 	  if( (dE >= 0.0) || ( gsl_rng_uniform(gen) < exp(dE/T) ) ){ */
 /* 	    MergeGroups(glist[g1],glist[g2]); */
 /* 	    energy += dE; */
 /* 	  } */
 /* 	} */
 
 /* 	// Split ///////////////////////////////////////////// */
-/* 	target = floor(prng_get_next(gen) * nnod); // target node */
+/* 	target = floor(gsl_rng_uniform(gen) * nnod); // target node */
 /* 	target = nlist[target]->inGroup;    // target group */
 
 /* 	// Look for an empty group */
@@ -4911,7 +4911,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	  // Accept the change according to "inverse" Metroppolis. */
 /* 	  // Inverse means that the algor is applied to the split */
 /* 	  // and NOT to the merge! */
-/* 	  if( (dE >= 0.0) && ( prng_get_next(gen) > exp(-dE/T) ) ){ */
+/* 	  if( (dE >= 0.0) && ( gsl_rng_uniform(gen) > exp(-dE/T) ) ){ */
 /* 	    MergeGroups(glist[target],glist[empty]); */
 /* 	  } */
 /* 	  else{ */
@@ -4928,10 +4928,10 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       /////////////////////////////// */
 /*       // Propose an individual change */
 /*       /////////////////////////////// */
-/*       target = floor(prng_get_next(gen) * (double)nnod); */
+/*       target = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /*       oldg = nlist[target]->inGroup; */
 /*       do{ */
-/* 	newg = floor(prng_get_next(gen) * (double)nnod); */
+/* 	newg = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /*       }while(newg == oldg); */
 
 /*       // Calculate the change of energy */
@@ -4970,7 +4970,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	((double)totallinks * (double)totallinks); */
 
 /*       // Accept the change according to Metroppolis */
-/*       if( (dE >= 0.0) || ( prng_get_next(gen) < exp(dE/T) ) ){ */
+/*       if( (dE >= 0.0) || ( gsl_rng_uniform(gen) < exp(dE/T) ) ){ */
 /* 	MoveNode(nlist[target],glist[oldg],glist[newg]); */
 /* 	energy += dE; */
 /*       } */
@@ -4987,7 +4987,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
 
 
-/* struct group *AllLevelsCommunities(struct node_gra *net,double Ti,double Tf,double Ts,double fac, int merge, struct prng *gen) */
+/* struct group *AllLevelsCommunities(struct node_gra *net,double Ti,double Tf,double Ts,double fac, int merge, gsl_rng *gen) */
 /* { */
 /*   struct group *hier = NULL; */
 /*   struct group *plist[2*max_size+1]; */

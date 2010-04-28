@@ -7,7 +7,7 @@
 #ifndef RGRAPH_BIPARTITE_H
 #define RGRAPH_BIPARTITE_H 1
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 #include "graph.h"
 #include "modules.h"
 
@@ -36,7 +36,7 @@ struct binet *BuildModularBipartiteNetwork(int *mod_size,
 					   int mmin, int mmax,
 					   double geom_p,
 					   double p,
-					   struct prng *gen);
+					   gsl_rng *gen);
 struct binet *FBuildNetworkBipart(FILE *inFile,
 				  int weight_sw,
 				  int add_weight_sw);
@@ -61,7 +61,7 @@ struct binet *InvertBipart(struct binet *net);
 int NLinksBipart(struct binet *binet);
 struct node_gra *ProjectBipart(struct binet *binet);
 struct binet *RandomizeBipart(struct binet *binet,
-			     double times, struct prng *gen);
+			     double times, gsl_rng *gen);
 
 /*
   ---------------------------------------------------------------------
@@ -85,12 +85,12 @@ void SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 			double Ti, double Tf, double Ts,
 			double cluster_prob, 
 			double **cmat, double msfac,
-			struct prng *gen);
+			gsl_rng *gen);
 void SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
 			double Ti, double Tf, double Ts,
 			double cluster_prob, 
 			double **swwmat, double Wafac,
-			struct prng *gen);
+			gsl_rng *gen);
 struct group *SACommunityIdentBipart(struct binet *binet,
 				     double Ti, double Tf, double Ts,
 				     double fac,
@@ -98,7 +98,7 @@ struct group *SACommunityIdentBipart(struct binet *binet,
 				     char initial_sw,
 				     int collective_sw,
 				     char output_sw,
-				     struct prng *gen);
+				     gsl_rng *gen);
 struct group *SACommunityIdentBipartWeighted(struct binet *binet,
 				     double Ti, double Tf, double Ts,
 				     double fac,
@@ -106,7 +106,7 @@ struct group *SACommunityIdentBipartWeighted(struct binet *binet,
 				     char initial_sw,
 				     int collective_sw,
 				     char output_sw,
-				     struct prng *gen);
+				     gsl_rng *gen);
 double ParticipationCoefficientBipart(struct node_gra *node);
 void StatisticsParticipationCoefficientBipart(struct node_gra *net,
 					      double *theMean,

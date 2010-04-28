@@ -9,7 +9,7 @@
 
 #include <search.h>
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 
 #define MAX_LABEL_LENGTH 100
 
@@ -181,11 +181,11 @@ void CleanAdjacencies(struct node_gra *net);
 void RemoveRandomLinks(struct node_gra *net,
 		       int nLinks,
 		       int symmetric_sw,
-		       struct prng *gen);
+		       gsl_rng *gen);
 void AddRandomLinks(struct node_gra *net,
 		    int nLinks,
 		    int symmetric_sw,
-		    struct prng *gen);
+		    gsl_rng *gen);
 
 /*
   ---------------------------------------------------------------------
@@ -234,7 +234,7 @@ void RenumberNodes(struct node_gra *net);
 */
 struct node_gra *RandomizeSymmetricNetwork(struct node_gra *net,
 					   double times,
-					   struct prng *gen);
+					   gsl_rng *gen);
 
 /*
   ---------------------------------------------------------------------

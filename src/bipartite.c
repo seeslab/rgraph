@@ -9,7 +9,7 @@
 #include <string.h>
 #include <search.h>
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 
 #include "tools.h"
 #include "graph.h"
@@ -148,7 +148,7 @@ BuildModularBipartiteNetwork(int *modSizes,
 			     int mmin, int mmax,
 			     double geom_p,
 			     double p,
-			     struct prng *gen)
+			     gsl_rng *gen)
 {
   int i, j;
   struct binet *net = NULL;
@@ -217,7 +217,7 @@ BuildModularBipartiteNetwork(int *modSizes,
        probability for all colors otherwise), that is, the module that
        will contribute, in principle, more nodes. */
     if (col_prob != NULL) {
-      dice = prng_get_next(gen);
+      dice = gsl_rng_uniform(gen);
       cum = 0.0;
       teamcol = -1;
       while (cum < dice) {
@@ -226,7 +226,7 @@ BuildModularBipartiteNetwork(int *modSizes,
       }
     }
     else {
-      teamcol = floor(prng_get_next(gen) * nmod);
+      teamcol = floor(gsl_rng_uniform(gen) * nmod);
     }
     list2[i]->inGroup = teamcol;
     n_team_col = 0; /* No nodes of the team color added so far */
@@ -236,24 +236,24 @@ BuildModularBipartiteNetwork(int *modSizes,
       m = geometric_dist_val(geom_p, gen);
     }
     else if (mmax != mmin) /* use uniform distribution */
-      m = floor(prng_get_next(gen) * (double)(mmax+1-mmin) + mmin);
+      m = floor(gsl_rng_uniform(gen) * (double)(mmax+1-mmin) + mmin);
     else  /* all teams have the same size */
       m = mmin;
 
     for (j=0; j<m; j++) {  /* loop over spots in a team */
 
-      if (prng_get_next(gen) < p &&
+      if (gsl_rng_uniform(gen) < p &&
 	  n_team_col < modSizes[teamcol]) { /* select node with the
 					       module's color */
 	n_team_col++;
 	do {
-	  target = mod_starting[teamcol] + floor(prng_get_next(gen) *
+	  target = mod_starting[teamcol] + floor(gsl_rng_uniform(gen) *
 						 modSizes[teamcol]);
 	} while (IsThereLink(list1[target], list2[i]) == 1);
       }
       else {  /* choose node at random */
 	do {
-	  target = floor(prng_get_next(gen) * S1);
+	  target = floor(gsl_rng_uniform(gen) * S1);
 	} while (IsThereLink(list1[target], list2[i]) == 1);
 	if (module[target] == teamcol) {
 	  n_team_col++;
@@ -598,7 +598,7 @@ ProjectBipart(struct binet *binet)
   ---------------------------------------------------------------------
 */
 struct binet *
-RandomizeBipart(struct binet *binet, double times, struct prng *gen)
+RandomizeBipart(struct binet *binet, double times, gsl_rng *gen)
 {
   int i;
   int nlink, niter, coun = 0;
@@ -632,12 +632,12 @@ RandomizeBipart(struct binet *binet, double times, struct prng *gen)
     
     /* select the two links (four nodes) to swap */
     do {
-      target1 = floor(prng_get_next(gen) * (double)nlink);
+      target1 = floor(gsl_rng_uniform(gen) * (double)nlink);
       n1 = ori[target1];
       n2 = des[target1];
 
       do {
-	target2 = floor(prng_get_next(gen) * (double)nlink);
+	target2 = floor(gsl_rng_uniform(gen) * (double)nlink);
 	n3 = ori[target2];
 	n4 = des[target2];
       } while (n1 == n3 || n2 == n4);
@@ -854,7 +854,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 		   double Ti, double Tf, double Ts,
 		   double cluster_prob, 
 		   double **cmat, double msfac,
-		   struct prng *gen)
+		   gsl_rng *gen)
 {
   struct group *glist[2], *g = NULL, *split = NULL;
   struct node_gra **nlist;
@@ -879,7 +879,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
   glist[1] = empty_g;
 
   /* Are we going to use clusters? */
-  if (prng_get_next(gen) < cluster_prob)
+  if (gsl_rng_uniform(gen) < cluster_prob)
     cluster_sw = 1;
 
   /*
@@ -907,7 +907,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
     /* Move the nodes in some (half) of the clusters to empty module */
     g = split;
     while ((g = g->next) != NULL) {
-      if (prng_get_next(gen) < 0.500000) { // With prob=0.5 move to empty
+      if (gsl_rng_uniform(gen) < 0.500000) { // With prob=0.5 move to empty
 	p = g->nodeList;
 	while ((p = p->next) != NULL) {
 	  MoveNode(GetNodeDict(p->nodeLabel, dict), target_g, empty_g);
@@ -928,7 +928,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
     p = target_g->nodeList;
     while (p->next != NULL) {
       nlist[nnod++] = p->next->ref;
-      dice = prng_get_next(gen);
+      dice = gsl_rng_uniform(gen);
       if (dice < 0.500000) {
 	MoveNode(p->next->ref, target_g, empty_g);
       }
@@ -946,7 +946,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
       for (i=0; i<nnod; i++) {
 
 	/* Determine target node */
-	target = floor(prng_get_next(gen) * (double)nnod);
+	target = floor(gsl_rng_uniform(gen) * (double)nnod);
 	if (nlist[target]->inGroup == target_g->label)
 	  oldg = 0;
 	else
@@ -975,7 +975,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 	}
 	
 	/* Accept the change according to the Boltzman factor */
-	if (prng_get_next(gen) < exp(dE/T)) {
+	if (gsl_rng_uniform(gen) < exp(dE/T)) {
 	  MoveNode(nlist[target], glist[oldg], glist[newg]);
 	  energy += dE;
 	}
@@ -1024,7 +1024,7 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
 		   double Ti, double Tf, double Ts,
 		   double cluster_prob, 
 		   double **swwmat, double Wafac,
-		   struct prng *gen)
+		   gsl_rng *gen)
 {
   struct group *glist[2], *g = NULL, *split = NULL;
   struct node_gra **nlist;
@@ -1049,7 +1049,7 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
   glist[1] = empty_g;
 
   /* Are we going to use clusters? */
-  if (prng_get_next(gen) < cluster_prob)
+  if (gsl_rng_uniform(gen) < cluster_prob)
     cluster_sw = 1;
 
   /*
@@ -1083,7 +1083,7 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
     /* Move the nodes in some (half) of the clusters to empty module */
     g = split;
     while ((g = g->next) != NULL) {
-      if (prng_get_next(gen) < 0.500000) { // With prob=0.5 move to empty
+      if (gsl_rng_uniform(gen) < 0.500000) { // With prob=0.5 move to empty
 	p = g->nodeList;
 	while ((p = p->next) != NULL) {
 	  MoveNode(GetNodeDict(p->nodeLabel, dict), target_g, empty_g);
@@ -1104,7 +1104,7 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
     p = target_g->nodeList;
     while (p->next != NULL) {
       nlist[nnod++] = p->next->ref;
-      dice = prng_get_next(gen);
+      dice = gsl_rng_uniform(gen);
       if (dice < 0.500000) {
 	MoveNode(p->next->ref, target_g, empty_g);
       }
@@ -1122,7 +1122,7 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
       for (i=0; i<nnod; i++) {
 
 	/* Determine target node */
-	target = floor(prng_get_next(gen) * (double)nnod);
+	target = floor(gsl_rng_uniform(gen) * (double)nnod);
 	if (nlist[target]->inGroup == target_g->label)
 	  oldg = 0;
 	else
@@ -1151,7 +1151,7 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
 	}
 	
 	/* Accept the change according to the Boltzman factor */
-	if (prng_get_next(gen) < exp(dE/T)) {
+	if (gsl_rng_uniform(gen) < exp(dE/T)) {
 	  MoveNode(nlist[target], glist[oldg], glist[newg]);
 	  energy += dE;
 	}
@@ -1215,7 +1215,7 @@ SACommunityIdentBipart(struct binet *binet,
 		      char initial_sw,
 		      int collective_sw,
 		      char output_sw,
-		      struct prng *gen)
+		      gsl_rng *gen)
 {
   int i;
   struct node_gra *net1 = binet->net1;
@@ -1284,7 +1284,7 @@ SACommunityIdentBipart(struct binet *binet,
       glist[i] = lastg = CreateGroup(lastg, i);
     while ((p = p->next) != NULL) {
       nlist[p->num] = p;
-      dice = floor(prng_get_next(gen)* (double)ngroup);
+      dice = floor(gsl_rng_uniform(gen)* (double)ngroup);
       AddNodeToGroup(glist[dice], p);
     }
     break;
@@ -1366,10 +1366,10 @@ SACommunityIdentBipart(struct binet *binet,
     for (i=0; i<cicle1; i++) {
 
       /* Propose an individual change */
-      target = floor(prng_get_next(gen) * (double)nnod);
+      target = floor(gsl_rng_uniform(gen) * (double)nnod);
       oldg = nlist[target]->inGroup;
       do {
-	newg = floor(prng_get_next(gen) * ngroup);
+	newg = floor(gsl_rng_uniform(gen) * ngroup);
       } while (newg == oldg);
 
       /* Calculate the change of energy */
@@ -1395,7 +1395,7 @@ SACommunityIdentBipart(struct binet *binet,
 		  t1 * t1 * msfac);
 
       /* Accept or reject movement according to Metropolis */ 
-      if (prng_get_next(gen) < exp(dE/T)) {
+      if (gsl_rng_uniform(gen) < exp(dE/T)) {
 	energy += dE;
 	MoveNode(nlist[target],glist[oldg],glist[newg]);
       }
@@ -1408,12 +1408,12 @@ SACommunityIdentBipart(struct binet *binet,
       for (i=0; i<cicle2; i++){
 	
 	/* MERGE */
-	target = floor(prng_get_next(gen) * nnod);
+	target = floor(gsl_rng_uniform(gen) * nnod);
 	g1 = nlist[target]->inGroup;
 
 	if (glist[g1]->size < nnod) {
 	  do {
-	    target = floor(prng_get_next(gen) * nnod);
+	    target = floor(gsl_rng_uniform(gen) * nnod);
 	    g2 = nlist[target]->inGroup;
 	  } while (g1 == g2);
 	  
@@ -1431,7 +1431,7 @@ SACommunityIdentBipart(struct binet *binet,
 	  }
 
 	  /* Accept or reject change */
-	  if (prng_get_next(gen) < exp(dE/T)) {
+	  if (gsl_rng_uniform(gen) < exp(dE/T)) {
 	    MergeGroups(glist[g1], glist[g2]);
 	    energy += dE;
 	  }
@@ -1451,7 +1451,7 @@ SACommunityIdentBipart(struct binet *binet,
 	if (empty >= 0 ) { /* if there are no empty groups, do nothing */
 	  /* Select group to split */
 	  do {
-	    target = floor(prng_get_next(gen) * (double)nnod); /* node */
+	    target = floor(gsl_rng_uniform(gen) * (double)nnod); /* node */
 	    target = nlist[target]->inGroup;    /* target group */
 	  } while (glist[target]->size == 1);
 	  
@@ -1477,7 +1477,7 @@ SACommunityIdentBipart(struct binet *binet,
 	  /* Accept the change according to "inverse" Metroppolis.
 	     Inverse means that the algor is applied to the split and
 	     NOT to the merge! */
-	  if ((dE > EPSILON_MOD_B) && (prng_get_next(gen) > exp(-dE/T))) {
+	  if ((dE > EPSILON_MOD_B) && (gsl_rng_uniform(gen) > exp(-dE/T))) {
 	    /* Undo the split */
 	    MergeGroups(glist[target],glist[empty]);
 	  }
@@ -1597,7 +1597,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 		      char initial_sw,
 		      int collective_sw,
 		      char output_sw,
-		      struct prng *gen)
+		      gsl_rng *gen)
 {
   int i;
   struct node_gra *net1 = binet->net1;
@@ -1667,7 +1667,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
       glist[i] = lastg = CreateGroup(lastg, i);
     while ((p = p->next) != NULL) {
       nlist[p->num] = p;
-      dice = floor(prng_get_next(gen)* (double)ngroup);
+      dice = floor(gsl_rng_uniform(gen)* (double)ngroup);
       AddNodeToGroup(glist[dice], p);
     }
     break;
@@ -1754,10 +1754,10 @@ SACommunityIdentBipartWeighted(struct binet *binet,
       accepted = "rejected";
 
       /* Propose an individual change */
-      target = floor(prng_get_next(gen) * (double)nnod);
+      target = floor(gsl_rng_uniform(gen) * (double)nnod);
       oldg = nlist[target]->inGroup;
       do {
-	newg = floor(prng_get_next(gen) * ngroup);
+	newg = floor(gsl_rng_uniform(gen) * ngroup);
       } while (newg == oldg);
 
       /* Calculate the change of energy */
@@ -1783,7 +1783,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 		  s1 * s1 * Wafac);
 
       /* Accept or reject movement according to Metropolis */ 
-      if (prng_get_next(gen) < exp(dE/T)) {
+      if (gsl_rng_uniform(gen) < exp(dE/T)) {
 	accepted = "ACCEPTED";
 	energy += dE;
 	MoveNode(nlist[target],glist[oldg],glist[newg]);
@@ -1809,12 +1809,12 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 	/* MERGE */
 	accepted = "rejected";
 
-	target = floor(prng_get_next(gen) * nnod);
+	target = floor(gsl_rng_uniform(gen) * nnod);
 	g1 = nlist[target]->inGroup;
 
 	if (glist[g1]->size < nnod) {
 	  do {
-	    target = floor(prng_get_next(gen) * nnod);
+	    target = floor(gsl_rng_uniform(gen) * nnod);
 	    g2 = nlist[target]->inGroup;
 	  } while (g1 == g2);
 	  
@@ -1832,7 +1832,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 	  }
 
 	  /* Accept or reject change */
-	  if (prng_get_next(gen) < exp(dE/T)) {
+	  if (gsl_rng_uniform(gen) < exp(dE/T)) {
 	    accepted = "ACCEPTED";
 	    MergeGroups(glist[g1], glist[g2]);
 	    energy += dE;
@@ -1864,7 +1864,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 	if (empty >= 0 ) { /* if there are no empty groups, do nothing */
 	  /* Select group to split */
 	  do {
-	    target = floor(prng_get_next(gen) * (double)nnod); /* node */
+	    target = floor(gsl_rng_uniform(gen) * (double)nnod); /* node */
 	    target = nlist[target]->inGroup;    /* target group */
 	  } while (glist[target]->size == 1);
 	  
@@ -1890,7 +1890,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 	  /* Accept the change according to "inverse" Metroppolis.
 	     Inverse means that the algor is applied to the split and
 	     NOT to the merge! */
-	  if (prng_get_next(gen) > exp(-dE/T)) {
+	  if (gsl_rng_uniform(gen) > exp(-dE/T)) {
 	    /* Undo the split */
 	    MergeGroups(glist[target],glist[empty]);
 	  }
@@ -2227,7 +2227,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /* *\/ */
 /* ThermalBipartworkCoSplit(struct group *target_g, struct group *empty_g, */
 /* 			double Ti, double Tf, */
-/* 			struct prng *gen) */
+/* 			gsl_rng *gen) */
 /* { */
 /*   struct group *glist[2]; */
 /*   struct node_gra *nlist[maxim_int]; */
@@ -2273,7 +2273,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*     p->trans = nnod++; */
 /*     nlist[p->trans] = p; */
 /*     nlinks[p->trans] = CountLinks(p); */
-/*     dice = prng_get_next(gen); */
+/*     dice = gsl_rng_uniform(gen); */
 /*     if (dice < 0.5) { */
 /*       AddNodeToGroup(glist[0], p); */
 /*     } */
@@ -2286,7 +2286,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*     p->trans = nnod++; */
 /*     nlist[p->trans] = p; */
 /*     nlinks[p->trans] = CountLinks(p); */
-/*     dice = prng_get_next(gen); */
+/*     dice = gsl_rng_uniform(gen); */
 /*     if (dice < 0.5) { */
 /*       AddNodeToGroup(glist[0], p); */
 /*     } */
@@ -2306,7 +2306,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*   while (T >= Tf) { */
     
 /*     for (i=0; i<nnod; i++) { */
-/*       target = floor(prng_get_next(gen) * (double)nnod); */
+/*       target = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /*       oldg = nlist[target]->inGroup; */
 /*       newg = 1 - oldg; */
 	
@@ -2335,7 +2335,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*       } */
       
 /*       // Accept the change according to the Boltzman factor */
-/*       if( (dE >= 0.0) || (prng_get_next(gen) < exp(dE/T)) ){ */
+/*       if( (dE >= 0.0) || (gsl_rng_uniform(gen) < exp(dE/T)) ){ */
 /* 	MoveNode(nlist[target], glist[oldg], glist[newg]); */
 /*       } */
 
@@ -2448,7 +2448,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /* *\/ */
 /* ThermalPercBipartworkCoSplit(struct group *target_g, struct group *empty_g, */
 /* 			    double prob, double Ti, double Tf, */
-/* 			    struct prng *gen) */
+/* 			    gsl_rng *gen) */
 /* { */
 /*   struct group *glist[maxim_int], *g = NULL; */
 /*   struct node_gra *nlist[maxim_int]; */
@@ -2492,7 +2492,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*   // Check if there are disconnected clusters */
 /*   temp_part = BipartClustersPartition(module_binet); */
 
-/*   if (CountGroups(temp_part) > 1 && prng_get_next(gen) < prob) { */
+/*   if (CountGroups(temp_part) > 1 && gsl_rng_uniform(gen) < prob) { */
 /*     /\* */
 /*       Determine modules using clusters */
 /*     *\/ */
@@ -2507,10 +2507,10 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*     // Merge pairs of modules until only two are left */
 /*     nmerge = ngroup-2; */
 /*     for (i=0; i<nmerge; i++) { */
-/*       node1 = floor(prng_get_next(gen) * (double)nnod); */
+/*       node1 = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /*       mod1 = nlist[node1]->inGroup; */
 /*       do { */
-/* 	node2 = floor(prng_get_next(gen) * (double)nnod); */
+/* 	node2 = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /* 	mod2 = nlist[node2]->inGroup; */
 /*       } while (mod2 == mod1); */
 /*       MergeGroups(glist[mod1], glist[mod2]); */
@@ -2544,7 +2544,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*     p = module_binet->net1; */
 /*     while ((p = p->next) != NULL) { */
 /*       nlinks[p->trans] = CountLinks(p); */
-/*       dice = prng_get_next(gen); */
+/*       dice = gsl_rng_uniform(gen); */
 /*       if (dice < 0.5) { */
 /* 	AddNodeToGroup(glist[0], p); */
 /*       } */
@@ -2555,7 +2555,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*     p = module_binet->net2; */
 /*     while ((p = p->next) != NULL) { */
 /*       nlinks[p->trans] = CountLinks(p); */
-/*       dice = prng_get_next(gen); */
+/*       dice = gsl_rng_uniform(gen); */
 /*       if (dice < 0.5) { */
 /* 	AddNodeToGroup(glist[0], p); */
 /*       } */
@@ -2575,7 +2575,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*     while (T >= Tf) { */
       
 /*       for (i=0; i<nnod; i++) { */
-/* 	target = floor(prng_get_next(gen) * (double)nnod); */
+/* 	target = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /* 	oldg = nlist[target]->inGroup; */
 /* 	newg = 1 - oldg; */
 	
@@ -2604,7 +2604,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /* 	} */
 	
 /* 	// Accept the change according to the Boltzman factor */
-/* 	if( (dE >= 0.0) || (prng_get_next(gen) < exp(dE/T)) ){ */
+/* 	if( (dE >= 0.0) || (gsl_rng_uniform(gen) < exp(dE/T)) ){ */
 /* 	  MoveNode(nlist[target], glist[oldg], glist[newg]); */
 /* 	} */
 	
@@ -2669,7 +2669,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /* 				      double fac, */
 /* 				      int merge, */
 /* 				      double prob, */
-/* 				      struct prng *gen) */
+/* 				      gsl_rng *gen) */
 /* { */
 /*   int i; */
 /*   struct node_gra *net1 = binet->net1; */
@@ -2745,12 +2745,12 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*       for (i=0; i<cicle2; i++) { */
 	
 /* 	// Merge ------------------------------ */
-/* 	target = floor(prng_get_next(gen) * nnod); */
+/* 	target = floor(gsl_rng_uniform(gen) * nnod); */
 /* 	g1 = nlist[target]->inGroup; */
 
 /* 	if (glist[g1]->size < nnod) { */
 /* 	  do { */
-/* 	    target = floor(prng_get_next(gen) * nnod); */
+/* 	    target = floor(gsl_rng_uniform(gen) * nnod); */
 /* 	    g2 = nlist[target]->inGroup; */
 /* 	  } while (g1 == g2); */
 	  
@@ -2770,7 +2770,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /* 	    } */
 /* 	  } */
 /* 	  // Accept/reject change */
-/* 	  if ((dE > 0) || (prng_get_next(gen) < exp(dE/T))) { */
+/* 	  if ((dE > 0) || (gsl_rng_uniform(gen) < exp(dE/T))) { */
 /* /\* 	    printf("\taccepting merge\n"); *\/ */
 /* 	    MergeGroups(glist[g1], glist[g2]); */
 /* 	    energy += dE; */
@@ -2794,7 +2794,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /* 	if (empty >= 0 ) { // if there are no empty groups, do nothing */
 /* 	  // Select group */
 /* 	  do { */
-/* 	    target = floor(prng_get_next(gen) * (double)nnod); // targ */
+/* 	    target = floor(gsl_rng_uniform(gen) * (double)nnod); // targ */
 /* 							       // node */
 /* 	    target = nlist[target]->inGroup;    // target group */
 /* 	  } while (glist[target]->size == 1); */
@@ -2826,7 +2826,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /* 	  // Accept the change according to "inverse" Metroppolis. */
 /* 	  // Inverse means that the algor is applied to the split and */
 /* 	  // NOT to the merge! */
-/* 	  if ((dE > 0.0) && (prng_get_next(gen) > exp(-dE/T))) { */
+/* 	  if ((dE > 0.0) && (gsl_rng_uniform(gen) > exp(-dE/T))) { */
 /* 	    // Undo the split */
 /* 	    MergeGroups(glist[target],glist[empty]); */
 /* /\* 	    printf("\trejecting split\n"); *\/ */
@@ -2847,10 +2847,10 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*     for (i=0; i<cicle1; i++) { */
 
 /*       // Propose an individual change // */
-/*       target = floor(prng_get_next(gen) * (double)nnod); */
+/*       target = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /*       oldg = nlist[target]->inGroup; */
 /*       do { */
-/* 	newg = floor(prng_get_next(gen) * nnod); */
+/* 	newg = floor(gsl_rng_uniform(gen) * nnod); */
 /*       } while (newg == oldg); */
 
 /*       // Calculate the change of energy */
@@ -2877,7 +2877,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*       } */
 
 /*       // Accept/reject movement according to Metropolis */
-/*       if ((dE > 0) || (prng_get_next(gen) < exp(dE/T))) { */
+/*       if ((dE > 0) || (gsl_rng_uniform(gen) < exp(dE/T))) { */
 /* 	energy += dE; */
 /* 	MoveNode(nlist[target],glist[oldg],glist[newg]); */
 /*       } */

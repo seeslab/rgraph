@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "prng.h"
+#include <gsl/gsl_rng.h>
 #include "tools.h"
 #include "graph.h"
 #include "layout.h"
@@ -15,7 +15,7 @@ main(int argc, char **argv)
   int method;
   FILE *inFile;
   struct node_gra *net = NULL;
-  struct prng *rand_gen;
+  gsl_rng *rand_gen;
   int S, L;
   int nsteps;
   double step, damp;
@@ -46,8 +46,8 @@ main(int argc, char **argv)
     Initialize the random number generator
     ---------------------------------------------------------------------------
   */
-  rand_gen = prng_new("mt19937(1111)");
-  prng_seed(rand_gen, seed);
+  rand_gen = gsl_rng_alloc(gsl_rng_mt19937);
+  gsl_rng_set(rand_gen, seed);
 
   /*
     ---------------------------------------------------------------------------
@@ -88,4 +88,5 @@ main(int argc, char **argv)
     ---------------------------------------------------------------------------
   */
   RemoveGraph(net);
+  gsl_rng_free(rand_gen);
 }
