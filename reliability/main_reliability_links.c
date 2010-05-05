@@ -62,7 +62,7 @@ main(int argc, char **argv)
     ---------------------------------------------------------------------------
   */
   outfile1 = fopen("missing.dat", "w");
-  outfile2 = fopen("bogus.dat", "w");
+  outfile2 = fopen("spurious.dat", "w");
   p1 = net;
   while ((p1 = p1->next) != NULL) {
     p2 = p1;

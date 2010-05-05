@@ -5,12 +5,12 @@ INCLUDES = -I$(top_builddir) -I$(top_srcdir) \
 	-I$(top_srcdir)/lib -I$(top_srcdir)/src
 AM_LDFLAGS = -static
 
-bin_PROGRAMS = reconstruct links
+bin_PROGRAMS = reliability_reconstruct reliability_links
 
-reconstruct_SOURCES = main_reconstruct.c
-reconstruct_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
+reliability_reconstruct_SOURCES = main_reliability_reconstruct.c
+reliability_reconstruct_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
 
-links_SOURCES = main_links.c
-links_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
+reliability_links_SOURCES = main_reliability_links.c
+reliability_links_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
 
 CLEANFILES = net_reconstructed.dat bogus.dat missing.dat

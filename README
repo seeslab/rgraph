@@ -314,6 +314,68 @@ identical to the modules.dat described above for netcarto.
 
 
 ----------------------------------------------------------------------
+reliability
+----------------------------------------------------------------------
+Given a network observation, the programs in reliability:
+
+1) reliability_links: evaluate the reliability of links
+
+2) reliability_reconstruct: reconstruct the network
+
+In case you use the results of the program in a publication, please
+cite the following papers:
+
+5. Guimera, R. & Sales-Pardo, M., Missing and spurious interactions
+   and the reconstruction of complex networks,
+   Proc. Natl. Acad. Sci. USA ?????? (2009).
+
+Input parameters
+----------------------------------------------------------------------
+The programs take two arguments:
+
+- Name of the network file: Name of the file that contains the
+  network. The file must be a list of links with the format:
+
+  n1 n2
+  n3 n4
+  .  .
+  .  .
+  .  .
+
+  This represents a network with a link between nodes n1 and n2,
+  another between nodes n3 and n4, and so on. Nodes must be separated
+  by spaces.
+
+- Seed for the random number generator: Must be a positive
+  integer. Since the reliability algorithms are stochastic, different
+  runs will yield, in general, slightly different different
+  results. Two runs with the same seed, though, should give the exact
+  same results.
+
+Program output
+----------------------------------------------------------------------
+
+The "links" program generates two files: missing.dat and
+spurious.dat. Each of these files has the format:
+
+score12 n1 n2
+score13 n1 n3
+...
+
+missing.dat contains all scores for links that are not observed in the
+network. High scores in missing.dat correspond to links that are
+likely to be missing.
+
+spurious.dat contains all scores for links that are observed in the
+network. Low scores in spurious.dat correspond to links that are
+likely to be spurious.
+
+
+The "reconstruct" program returns a file net_reconstructed.dat with
+the reconstructed network.
+
+
+----------------------------------------------------------------------
 Utils
 ----------------------------------------------------------------------
 
