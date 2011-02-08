@@ -1,5 +1,386 @@
 ------------------------------------------------------------------------
-r175 | rguimera | 2009-03-06 14:38:31 -0600 (Fri, 06 Mar 2009) | 2 lines
+r221 | rguimera | 2010-05-07 14:52:55 +0200 (Fri, 07 May 2010) | 2 lines
+Changed paths:
+   M /trunk/configure.in
+
+New version.
+
+------------------------------------------------------------------------
+r220 | rguimera | 2010-05-05 11:17:42 +0200 (Wed, 05 May 2010) | 3 lines
+Changed paths:
+   M /trunk/README
+   M /trunk/reliability/Makefile.am
+   D /trunk/reliability/main_links.c
+   D /trunk/reliability/main_reconstruct.c
+   A /trunk/reliability/main_reliability_links.c (from /trunk/reliability/main_links.c:219)
+   A /trunk/reliability/main_reliability_reconstruct.c (from /trunk/reliability/main_reconstruct.c:219)
+
+Added reliability section to README.
+Reliability executables renamed.
+
+------------------------------------------------------------------------
+r219 | rguimera | 2010-04-28 16:05:59 +0200 (Wed, 28 Apr 2010) | 1 line
+Changed paths:
+   M /trunk/README
+   M /trunk/bipartmod/main_bipartmod.c
+   M /trunk/configure.in
+   M /trunk/netcarto/main_netcarto.c
+   M /trunk/netcarto/main_netcarto_cl.c
+   M /trunk/recommender/main_recommend_2.c
+   M /trunk/reliability/main_links.c
+   M /trunk/reliability/main_reconstruct.c
+   M /trunk/src/bipartite.c
+   M /trunk/src/bipartite.h
+   M /trunk/src/graph.c
+   M /trunk/src/graph.h
+   M /trunk/src/layout.c
+   M /trunk/src/layout.h
+   M /trunk/src/missing.c
+   M /trunk/src/missing.h
+   M /trunk/src/models.c
+   M /trunk/src/models.h
+   M /trunk/src/modules.c
+   M /trunk/src/modules.h
+   M /trunk/src/recommend.c
+   M /trunk/src/recommend.h
+   M /trunk/src/tools.c
+   M /trunk/src/tools.h
+   M /trunk/test/main_bipart1.c
+   M /trunk/test/main_bipart2.c
+   M /trunk/test/main_coclas.c
+   M /trunk/test/main_graph1.c
+   M /trunk/test/main_netsum.c
+   A /trunk/test/test_graph1.dat (from /branches/prng_free/test/test_graph1.dat:218)
+   M /trunk/utils/main_modularbipart.c
+   M /trunk/utils/main_multinetlayout.c
+   M /trunk/utils/main_netcompare.c
+   M /trunk/utils/main_netlayout.c
+   M /trunk/utils/main_netrandomize.c
+
+Merged prng_free branch.
+------------------------------------------------------------------------
+r215 | rguimera | 2010-04-16 16:57:21 +0200 (Fri, 16 Apr 2010) | 2 lines
+Changed paths:
+   M /trunk/configure.in
+   M /trunk/recommender/main_recommend_2.c
+
+Getting ready for a bug-fix release.
+
+------------------------------------------------------------------------
+r214 | rguimera | 2010-04-16 16:52:06 +0200 (Fri, 16 Apr 2010) | 2 lines
+Changed paths:
+   M /trunk/src/bipartite.c
+   M /trunk/src/recommend.c
+
+Fixed important bug in RemoveNodeBipart (needed to renumber nodes after removal!!!).
+
+------------------------------------------------------------------------
+r213 | rguimera | 2010-04-16 16:50:45 +0200 (Fri, 16 Apr 2010) | 3 lines
+Changed paths:
+   M /trunk/README
+
+Updated README.
+
+
+------------------------------------------------------------------------
+r212 | rguimera | 2010-04-16 11:16:33 +0200 (Fri, 16 Apr 2010) | 1 line
+Changed paths:
+   M /trunk/src/bipartite.c
+   M /trunk/src/graph.c
+   M /trunk/src/recommend.c
+   M /trunk/src/recommend.h
+
+Trying to fix a segmentation fault.
+------------------------------------------------------------------------
+r211 | rguimera | 2010-04-14 16:20:36 +0200 (Wed, 14 Apr 2010) | 1 line
+Changed paths:
+   M /trunk/src/bipartite.c
+   M /trunk/src/bipartite.h
+   M /trunk/src/graph.c
+   M /trunk/src/recommend.c
+
+Fixed memory leak.
+------------------------------------------------------------------------
+r210 | rguimera | 2010-04-13 18:14:32 +0200 (Tue, 13 Apr 2010) | 2 lines
+Changed paths:
+   M /trunk/src/recommend.c
+
+Added exception for 1-node networks in the recommender.
+
+------------------------------------------------------------------------
+r209 | rguimera | 2010-04-13 17:11:13 +0200 (Tue, 13 Apr 2010) | 2 lines
+Changed paths:
+   M /trunk/recommender/main_recommend_2.c
+   M /trunk/src/missing.c
+   M /trunk/src/missing.h
+   M /trunk/src/recommend.c
+   M /trunk/src/recommend.h
+   M /trunk/utils/main_netprop.c
+
+Added thermalization to 2-state recommender. Fixed some include problems in missing.h.
+
+------------------------------------------------------------------------
+r208 | rguimera | 2010-04-13 16:32:30 +0200 (Tue, 13 Apr 2010) | 2 lines
+Changed paths:
+   M /trunk/src/missing.c
+   M /trunk/src/missing.h
+   M /trunk/src/recommend.c
+   M /trunk/src/recommend.h
+
+Added decorrelation step calculation to the 2-state recommender.
+
+------------------------------------------------------------------------
+r207 | rguimera | 2010-04-09 14:36:42 +0200 (Fri, 09 Apr 2010) | 2 lines
+Changed paths:
+   M /trunk/recommender/main_recommend_2.c
+   M /trunk/src/recommend.c
+   M /trunk/src/recommend.h
+
+First working version of the 2-state recommender (without thermalization and decorrelation step, yet).
+
+------------------------------------------------------------------------
+r206 | rguimera | 2010-04-07 16:28:44 +0200 (Wed, 07 Apr 2010) | 1 line
+Changed paths:
+   A /trunk/recommender/recommend_test.dat
+
+Added test network for the recommender.
+------------------------------------------------------------------------
+r205 | rguimera | 2010-04-07 15:22:05 +0200 (Wed, 07 Apr 2010) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/configure.in
+   A /trunk/recommender
+   A /trunk/recommender/Makefile.am
+   A /trunk/recommender/main_recommend_2.c
+   M /trunk/src/recommend.c
+   M /trunk/src/recommend.h
+
+Working on the 2-state recommender. This may not compile!
+
+------------------------------------------------------------------------
+r204 | rguimera | 2010-01-25 08:16:12 +0100 (Mon, 25 Jan 2010) | 2 lines
+Changed paths:
+   M /trunk/utils/main_multinetlayout.c
+   M /trunk/utils/main_netlayout.c
+
+Small change (cannot understand how this was compiling before).
+
+------------------------------------------------------------------------
+r203 | rguimera | 2009-09-25 19:43:35 +0200 (Fri, 25 Sep 2009) | 2 lines
+Changed paths:
+   M /trunk/src/missing.c
+   M /trunk/src/tools.c
+
+Fixed a couple of numerical precision errors.
+
+------------------------------------------------------------------------
+r202 | rguimera | 2009-09-24 01:34:12 +0200 (Thu, 24 Sep 2009) | 2 lines
+Changed paths:
+   M /trunk/reliability/main_links.c
+   M /trunk/src/models.c
+   M /trunk/src/models.h
+
+Some changes :)
+
+------------------------------------------------------------------------
+r201 | rguimera | 2009-09-19 01:06:29 +0200 (Sat, 19 Sep 2009) | 2 lines
+Changed paths:
+   M /trunk/src/models.c
+   M /trunk/src/models.h
+
+Functions for generating block graphs, including Girvan-Newman networks.
+
+------------------------------------------------------------------------
+r199 | rguimera | 2009-09-17 18:58:12 +0200 (Thu, 17 Sep 2009) | 2 lines
+Changed paths:
+   M /trunk/configure.in
+
+Getting ready for the 0.3.1 bug-fix release.
+
+------------------------------------------------------------------------
+r198 | rguimera | 2009-09-17 18:54:57 +0200 (Thu, 17 Sep 2009) | 2 lines
+Changed paths:
+   M /trunk/src/bipartite.c
+
+Fixed (hopefully) bug that prevented SACommunityIdentBipart from stopping when being used at Ti=0.
+
+------------------------------------------------------------------------
+r196 | rguimera | 2009-09-17 18:28:19 +0200 (Thu, 17 Sep 2009) | 2 lines
+Changed paths:
+   M /trunk/configure.in
+
+Getting ready for 0.3 release.
+
+------------------------------------------------------------------------
+r195 | rguimera | 2009-09-17 16:41:12 +0200 (Thu, 17 Sep 2009) | 2 lines
+Changed paths:
+   M /trunk/src/models.c
+   M /trunk/src/models.h
+
+Added preferential attachment model.
+
+------------------------------------------------------------------------
+r194 | rguimera | 2009-09-05 02:29:44 +0200 (Sat, 05 Sep 2009) | 2 lines
+Changed paths:
+   M /trunk/src/Makefile.am
+   A /trunk/src/recommend.c
+   A /trunk/src/recommend.h
+
+First steps towards recommender.
+
+------------------------------------------------------------------------
+r193 | rguimera | 2009-06-24 18:29:00 +0200 (Wed, 24 Jun 2009) | 1 line
+Changed paths:
+   M /trunk/utils/Makefile.am
+   D /trunk/utils/main_missing.c
+
+Removed main_missing.c from utils, because there is a better version in /reliability.
+------------------------------------------------------------------------
+r192 | irmak | 2009-06-02 03:49:10 +0200 (Tue, 02 Jun 2009) | 3 lines
+Changed paths:
+   M /trunk/src/bipartite.c
+
+slight modification to bipartite.c to allow steepest descent
+
+
+------------------------------------------------------------------------
+r191 | irmak | 2009-05-27 00:06:05 +0200 (Wed, 27 May 2009) | 1 line
+Changed paths:
+   M /trunk/src/bipartite.c
+
+Irmak: Split move in weighted bipartite partition simulated annealing changed to be automatically accepted only above zero (instead of -epsilon).
+------------------------------------------------------------------------
+r190 | rguimera | 2009-05-22 19:36:14 +0200 (Fri, 22 May 2009) | 2 lines
+Changed paths:
+   M /trunk/utils/Makefile.am
+   A /trunk/utils/main_multinetlayout.c
+
+Added utility to layout multiple (overlapping) networks at the same time.
+
+------------------------------------------------------------------------
+r189 | rguimera | 2009-05-22 19:30:44 +0200 (Fri, 22 May 2009) | 2 lines
+Changed paths:
+   M /trunk/test/Makefile.am
+   A /trunk/test/main_netsum.c
+
+Added test to check the network sum function.
+
+------------------------------------------------------------------------
+r188 | rguimera | 2009-05-22 01:27:30 +0200 (Fri, 22 May 2009) | 2 lines
+Changed paths:
+   M /trunk/src/graph.c
+   M /trunk/src/graph.h
+
+Added AddTwoNetworks function.
+
+------------------------------------------------------------------------
+r187 | rguimera | 2009-05-22 00:28:13 +0200 (Fri, 22 May 2009) | 2 lines
+Changed paths:
+   M /trunk/src/layout.c
+   M /trunk/src/layout.h
+   M /trunk/utils/Makefile.am
+   A /trunk/utils/main_netlayout.c
+
+Fixed some bugs in the layout functions. Working version of netlayout in utils.
+
+------------------------------------------------------------------------
+r186 | rguimera | 2009-05-22 00:06:46 +0200 (Fri, 22 May 2009) | 2 lines
+Changed paths:
+   M /trunk/src/Makefile.am
+   A /trunk/src/layout.c (from /trunk/src/visual.c:185)
+   A /trunk/src/layout.h
+   D /trunk/src/visual.c
+
+Visualization libraries renamed layout libraries.
+
+------------------------------------------------------------------------
+r185 | rguimera | 2009-05-21 23:59:22 +0200 (Thu, 21 May 2009) | 2 lines
+Changed paths:
+   M /trunk/src/Makefile.am
+   M /trunk/src/graph.c
+   M /trunk/src/graph.h
+   M /trunk/src/missing.h
+   A /trunk/src/visual.c
+
+Added old version (slightly twiked) of the visual functions library.
+
+------------------------------------------------------------------------
+r184 | rguimera | 2009-05-21 23:56:58 +0200 (Thu, 21 May 2009) | 2 lines
+Changed paths:
+   A /trunk/reliability/main_links.c
+
+Forgot to add this.
+
+------------------------------------------------------------------------
+r183 | rguimera | 2009-05-13 18:36:19 +0200 (Wed, 13 May 2009) | 2 lines
+Changed paths:
+   M /trunk/reliability/Makefile.am
+
+Preliminary version of link reliability program (TODO: output should be sorted).
+
+------------------------------------------------------------------------
+r182 | rguimera | 2009-05-11 23:44:01 +0200 (Mon, 11 May 2009) | 2 lines
+Changed paths:
+   M /trunk/Makefile.am
+   M /trunk/configure.in
+   A /trunk/reliability
+   A /trunk/reliability/Makefile.am
+   A /trunk/reliability/main_reconstruct.c
+   M /trunk/src/missing.c
+
+Added network reconstruction program.
+
+------------------------------------------------------------------------
+r181 | rguimera | 2009-04-22 02:54:41 +0200 (Wed, 22 Apr 2009) | 2 lines
+Changed paths:
+   M /trunk/src/missing.c
+
+Some comments added.
+
+------------------------------------------------------------------------
+r180 | irmak | 2009-03-26 23:11:53 +0100 (Thu, 26 Mar 2009) | 1 line
+Changed paths:
+   M /trunk/src/bipartite.c
+   M /trunk/src/bipartite.h
+   M /trunk/src/graph.c
+   M /trunk/src/graph.h
+
+Added Community Identification for weighted bipartite networks
+------------------------------------------------------------------------
+r179 | rdm | 2009-03-13 23:26:43 +0100 (Fri, 13 Mar 2009) | 1 line
+Changed paths:
+   M /trunk/utils/main_netprop.c
+
+Fixed small bug in main_netprop.c
+------------------------------------------------------------------------
+r178 | jduch | 2009-03-13 22:08:51 +0100 (Fri, 13 Mar 2009) | 1 line
+Changed paths:
+   M /trunk/src/graph.c
+   M /trunk/src/graph.h
+   M /trunk/test/main_giant.c
+   M /trunk/utils/main_netprop.c
+
+Added function to get all the connected components
+------------------------------------------------------------------------
+r177 | rguimera | 2009-03-13 17:16:40 +0100 (Fri, 13 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+   M /trunk/src/modules.c
+   M /trunk/utils/Makefile.am
+   D /trunk/utils/main_betweenness.c
+   A /trunk/utils/main_nodeprop.c (from /trunk/utils/main_betweenness.c:176)
+
+utils/betweenness renamed to nodeprop. Now it calculates degree and betweenness.
+
+------------------------------------------------------------------------
+r176 | rguimera | 2009-03-10 00:38:19 +0100 (Tue, 10 Mar 2009) | 2 lines
+Changed paths:
+   M /trunk/src/missing.c
+
+Network reconstruction algorithm made a little more exhaustive (and tunable).
+
+------------------------------------------------------------------------
+r175 | rguimera | 2009-03-06 21:38:31 +0100 (Fri, 06 Mar 2009) | 2 lines
 Changed paths:
    M /trunk/src/matrix.c
    M /trunk/src/matrix.h
@@ -8,7 +389,7 @@ Changed paths:
 Added Synchronizability (lambda_N / lambda_2) to matrix.* and addapted lapspec test.
 
 ------------------------------------------------------------------------
-r174 | rguimera | 2009-03-06 10:57:15 -0600 (Fri, 06 Mar 2009) | 2 lines
+r174 | rguimera | 2009-03-06 17:57:15 +0100 (Fri, 06 Mar 2009) | 2 lines
 Changed paths:
    M /trunk/utils/Makefile.am
    A /trunk/utils/main_lapspec.c
@@ -17,7 +398,7 @@ Changed paths:
 Added util to calculate the stectrum of the Laplacian.
 
 ------------------------------------------------------------------------
-r173 | rguimera | 2009-03-06 10:49:22 -0600 (Fri, 06 Mar 2009) | 4 lines
+r173 | rguimera | 2009-03-06 17:49:22 +0100 (Fri, 06 Mar 2009) | 4 lines
 Changed paths:
    M /trunk/src/graph.c
    M /trunk/src/graph.h
@@ -29,7 +410,7 @@ Minor change in test/betweenness.
 Got rid of modularity in utils/netprop, and added a few more descriptive properties.
 
 ------------------------------------------------------------------------
-r172 | rguimera | 2009-03-05 17:15:39 -0600 (Thu, 05 Mar 2009) | 2 lines
+r172 | rguimera | 2009-03-06 00:15:39 +0100 (Fri, 06 Mar 2009) | 2 lines
 Changed paths:
    M /trunk/src/Makefile.am
    A /trunk/src/matrix.c
@@ -40,35 +421,35 @@ Changed paths:
 Added matrix functions (adjacency, laplacian, and laplacian spectrum), and a test program.
 
 ------------------------------------------------------------------------
-r171 | rguimera | 2009-03-04 15:37:22 -0600 (Wed, 04 Mar 2009) | 2 lines
+r171 | rguimera | 2009-03-04 22:37:22 +0100 (Wed, 04 Mar 2009) | 2 lines
 Changed paths:
    M /trunk/src/missing.c
 
 New version of the network reconstruction function based on network score maximization.
 
 ------------------------------------------------------------------------
-r170 | rguimera | 2009-03-04 10:51:25 -0600 (Wed, 04 Mar 2009) | 1 line
+r170 | rguimera | 2009-03-04 17:51:25 +0100 (Wed, 04 Mar 2009) | 1 line
 Changed paths:
    M /trunk/src/missing.c
    M /trunk/src/missing.h
 
 First attempts to reconstruct networks based on the whole network score.
 ------------------------------------------------------------------------
-r169 | rguimera | 2009-03-03 11:09:13 -0600 (Tue, 03 Mar 2009) | 2 lines
+r169 | rguimera | 2009-03-03 18:09:13 +0100 (Tue, 03 Mar 2009) | 2 lines
 Changed paths:
    A /trunk/utils/main_modularbipart.c
 
 That is, NOW I added the util to create modular bipartite networks.
 
 ------------------------------------------------------------------------
-r168 | rguimera | 2009-03-03 11:08:35 -0600 (Tue, 03 Mar 2009) | 2 lines
+r168 | rguimera | 2009-03-03 18:08:35 +0100 (Tue, 03 Mar 2009) | 2 lines
 Changed paths:
    M /trunk/utils/Makefile.am
 
 Added util to create modular bipartite networks.
 
 ------------------------------------------------------------------------
-r167 | rguimera | 2009-03-03 10:38:20 -0600 (Tue, 03 Mar 2009) | 2 lines
+r167 | rguimera | 2009-03-03 17:38:20 +0100 (Tue, 03 Mar 2009) | 2 lines
 Changed paths:
    M /trunk/src/missing.c
    M /trunk/src/missing.h
@@ -77,7 +458,7 @@ Changed paths:
 Added verbose_sw (to control the amount of screen output) to a bunch of missing.c functions.
 
 ------------------------------------------------------------------------
-r166 | rguimera | 2009-03-03 09:53:16 -0600 (Tue, 03 Mar 2009) | 2 lines
+r166 | rguimera | 2009-03-03 16:53:16 +0100 (Tue, 03 Mar 2009) | 2 lines
 Changed paths:
    M /trunk/src/missing.c
    M /trunk/src/missing.h
@@ -85,14 +466,14 @@ Changed paths:
 First seemingly non-buggy version of NetworkScore.
 
 ------------------------------------------------------------------------
-r165 | rguimera | 2009-03-02 19:04:42 -0600 (Mon, 02 Mar 2009) | 2 lines
+r165 | rguimera | 2009-03-03 02:04:42 +0100 (Tue, 03 Mar 2009) | 2 lines
 Changed paths:
    M /trunk/configure.in
 
 Changed to version 0.2.
 
 ------------------------------------------------------------------------
-r164 | rguimera | 2009-03-02 19:02:47 -0600 (Mon, 02 Mar 2009) | 4 lines
+r164 | rguimera | 2009-03-03 02:02:47 +0100 (Tue, 03 Mar 2009) | 4 lines
 Changed paths:
    M /trunk/src/missing.c
    M /trunk/src/missing.h
@@ -103,7 +484,7 @@ Added NetworkScore.
 Modified utils/main_missing.c accordingly.
 
 ------------------------------------------------------------------------
-r163 | rguimera | 2009-03-02 17:28:18 -0600 (Mon, 02 Mar 2009) | 3 lines
+r163 | rguimera | 2009-03-03 00:28:18 +0100 (Tue, 03 Mar 2009) | 3 lines
 Changed paths:
    M /trunk/README
    M /trunk/utils/Makefile.am
@@ -113,7 +494,7 @@ Added network randomization util.
 Changed readme accordingly.
 
 ------------------------------------------------------------------------
-r162 | rguimera | 2009-02-13 11:16:02 -0600 (Fri, 13 Feb 2009) | 4 lines
+r162 | rguimera | 2009-02-13 18:16:02 +0100 (Fri, 13 Feb 2009) | 4 lines
 Changed paths:
    M /trunk/src/graph.c
 
@@ -122,7 +503,7 @@ neighbors (even if the denominator is also 0, in which case it was
 returning nan before).
 
 ------------------------------------------------------------------------
-r161 | rguimera | 2009-02-11 19:52:25 -0600 (Wed, 11 Feb 2009) | 2 lines
+r161 | rguimera | 2009-02-12 02:52:25 +0100 (Thu, 12 Feb 2009) | 2 lines
 Changed paths:
    M /trunk/src/missing.c
    M /trunk/utils/Makefile.am
@@ -131,7 +512,7 @@ Changed paths:
 New util to calculate global network properties, and tweaking of missing.c.
 
 ------------------------------------------------------------------------
-r160 | rguimera | 2009-02-11 16:07:07 -0600 (Wed, 11 Feb 2009) | 3 lines
+r160 | rguimera | 2009-02-11 23:07:07 +0100 (Wed, 11 Feb 2009) | 3 lines
 Changed paths:
    D /trunk/config.guess
    D /trunk/config.sub
@@ -142,7 +523,7 @@ Added NetFromBMSScores to missing.
 Removed automatically generated files.
 
 ------------------------------------------------------------------------
-r159 | rguimera | 2009-02-10 09:53:54 -0600 (Tue, 10 Feb 2009) | 2 lines
+r159 | rguimera | 2009-02-10 16:53:54 +0100 (Tue, 10 Feb 2009) | 2 lines
 Changed paths:
    M /trunk/utils/Makefile.am
    A /trunk/utils/main_countlinks.c
@@ -150,7 +531,7 @@ Changed paths:
 Added util to count nodes and links in a network.
 
 ------------------------------------------------------------------------
-r158 | rguimera | 2009-02-02 18:27:16 -0600 (Mon, 02 Feb 2009) | 3 lines
+r158 | rguimera | 2009-02-03 01:27:16 +0100 (Tue, 03 Feb 2009) | 3 lines
 Changed paths:
    M /trunk/src/graph.c
    M /trunk/src/graph.h
@@ -160,7 +541,7 @@ Added JaccardIndex and CommonNeighbors to graph.*.
 Modified check program to test these functions.
 
 ------------------------------------------------------------------------
-r157 | rguimera | 2009-01-29 18:00:35 -0600 (Thu, 29 Jan 2009) | 3 lines
+r157 | rguimera | 2009-01-30 01:00:35 +0100 (Fri, 30 Jan 2009) | 3 lines
 Changed paths:
    M /trunk/README
    M /trunk/configure.in
@@ -169,7 +550,7 @@ Added check for libgslcblas to configure.in. Not it works in Barcelona!!!!
 Typo fixed in README.
 
 ------------------------------------------------------------------------
-r156 | rguimera | 2009-01-29 17:21:44 -0600 (Thu, 29 Jan 2009) | 3 lines
+r156 | rguimera | 2009-01-30 00:21:44 +0100 (Fri, 30 Jan 2009) | 3 lines
 Changed paths:
    M /trunk/configure.in
    D /trunk/ltmain.sh
@@ -178,33 +559,33 @@ New configure.in.
 Removed autogenerated file ltmain.sh.
 
 ------------------------------------------------------------------------
-r155 | rguimera | 2009-01-28 18:40:49 -0600 (Wed, 28 Jan 2009) | 1 line
+r155 | rguimera | 2009-01-29 01:40:49 +0100 (Thu, 29 Jan 2009) | 1 line
 Changed paths:
    M /trunk/configure.in
 
 More configure.in.
 ------------------------------------------------------------------------
-r154 | rguimera | 2009-01-28 18:09:11 -0600 (Wed, 28 Jan 2009) | 1 line
+r154 | rguimera | 2009-01-29 01:09:11 +0100 (Thu, 29 Jan 2009) | 1 line
 Changed paths:
    M /trunk/configure.in
 
 More configure.in twicking.
 ------------------------------------------------------------------------
-r153 | rguimera | 2009-01-28 18:01:38 -0600 (Wed, 28 Jan 2009) | 2 lines
+r153 | rguimera | 2009-01-29 01:01:38 +0100 (Thu, 29 Jan 2009) | 2 lines
 Changed paths:
    M /trunk/configure.in
 
 Trying new configure.in.
 
 ------------------------------------------------------------------------
-r152 | rguimera | 2009-01-28 17:50:55 -0600 (Wed, 28 Jan 2009) | 2 lines
+r152 | rguimera | 2009-01-29 00:50:55 +0100 (Thu, 29 Jan 2009) | 2 lines
 Changed paths:
    M /trunk/configure.in
 
 Refined configure.in that checks for a few more things.
 
 ------------------------------------------------------------------------
-r151 | rguimera | 2009-01-28 14:39:35 -0600 (Wed, 28 Jan 2009) | 3 lines
+r151 | rguimera | 2009-01-28 21:39:35 +0100 (Wed, 28 Jan 2009) | 3 lines
 Changed paths:
    M /trunk/src/graph.c
 
@@ -212,7 +593,7 @@ Small change to RandomizeSymmetric so that it has a smaller chance of
 getting stucked with small networks.
 
 ------------------------------------------------------------------------
-r150 | rguimera | 2009-01-28 11:52:40 -0600 (Wed, 28 Jan 2009) | 2 lines
+r150 | rguimera | 2009-01-28 18:52:40 +0100 (Wed, 28 Jan 2009) | 2 lines
 Changed paths:
    M /trunk/configure.in
    M /trunk/utils/main_missing.c
@@ -220,7 +601,7 @@ Changed paths:
 Changes so that the GSL library is checked and used properly. utils/main_missing.c now compiles correctly.
 
 ------------------------------------------------------------------------
-r149 | rguimera | 2009-01-27 19:03:00 -0600 (Tue, 27 Jan 2009) | 3 lines
+r149 | rguimera | 2009-01-28 02:03:00 +0100 (Wed, 28 Jan 2009) | 3 lines
 Changed paths:
    M /trunk/src/missing.c
 
@@ -228,19 +609,19 @@ Important "bug" corrected in MissingLinks. At the beginning, node groups are now
 
 
 ------------------------------------------------------------------------
-r148 | rguimera | 2009-01-27 16:23:59 -0600 (Tue, 27 Jan 2009) | 1 line
+r148 | rguimera | 2009-01-27 23:23:59 +0100 (Tue, 27 Jan 2009) | 1 line
 Changed paths:
    M /trunk/src/tools.c
 
 Back to the old form of stddev (dividing by N).
 ------------------------------------------------------------------------
-r147 | rguimera | 2009-01-27 16:21:29 -0600 (Tue, 27 Jan 2009) | 1 line
+r147 | rguimera | 2009-01-27 23:21:29 +0100 (Tue, 27 Jan 2009) | 1 line
 Changed paths:
    M /trunk/src/tools.c
 
 Fixed bug in stddev, created in the previous commit.
 ------------------------------------------------------------------------
-r146 | rguimera | 2009-01-27 15:19:20 -0600 (Tue, 27 Jan 2009) | 2 lines
+r146 | rguimera | 2009-01-27 22:19:20 +0100 (Tue, 27 Jan 2009) | 2 lines
 Changed paths:
    M /trunk/src/missing.c
    M /trunk/src/missing.h
@@ -248,14 +629,14 @@ Changed paths:
 Added SBMStructureScore.
 
 ------------------------------------------------------------------------
-r145 | rguimera | 2009-01-27 15:04:43 -0600 (Tue, 27 Jan 2009) | 2 lines
+r145 | rguimera | 2009-01-27 22:04:43 +0100 (Tue, 27 Jan 2009) | 2 lines
 Changed paths:
    M /trunk/src/tools.c
 
 stddev now divided by N-1, instead of N.
 
 ------------------------------------------------------------------------
-r144 | rguimera | 2009-01-27 14:26:13 -0600 (Tue, 27 Jan 2009) | 3 lines
+r144 | rguimera | 2009-01-27 21:26:13 +0100 (Tue, 27 Jan 2009) | 3 lines
 Changed paths:
    M /trunk/src/models.c
    M /trunk/src/models.h
@@ -264,7 +645,7 @@ Added EmptyGraph function.
 
 
 ------------------------------------------------------------------------
-r143 | rguimera | 2009-01-27 12:34:33 -0600 (Tue, 27 Jan 2009) | 2 lines
+r143 | rguimera | 2009-01-27 19:34:33 +0100 (Tue, 27 Jan 2009) | 2 lines
 Changed paths:
    M /trunk/src/missing.c
    M /trunk/src/missing.h
@@ -272,14 +653,14 @@ Changed paths:
 NetworkReliability renamed to SBMError.
 
 ------------------------------------------------------------------------
-r142 | rguimera | 2008-11-22 16:52:53 -0600 (Sat, 22 Nov 2008) | 2 lines
+r142 | rguimera | 2008-11-22 23:52:53 +0100 (Sat, 22 Nov 2008) | 2 lines
 Changed paths:
    M /trunk/src/graph.c
 
 Fixed bug in AddRandomLinks.
 
 ------------------------------------------------------------------------
-r141 | rguimera | 2008-11-21 20:00:45 -0600 (Fri, 21 Nov 2008) | 2 lines
+r141 | rguimera | 2008-11-22 03:00:45 +0100 (Sat, 22 Nov 2008) | 2 lines
 Changed paths:
    M /trunk/src/graph.c
    M /trunk/src/missing.c
@@ -287,7 +668,7 @@ Changed paths:
 Fixed some minor bugs and memory leaks.
 
 ------------------------------------------------------------------------
-r140 | rguimera | 2008-11-21 19:02:45 -0600 (Fri, 21 Nov 2008) | 3 lines
+r140 | rguimera | 2008-11-22 02:02:45 +0100 (Sat, 22 Nov 2008) | 3 lines
 Changed paths:
    M /trunk/src/graph.c
    M /trunk/src/graph.h
@@ -296,7 +677,7 @@ Modified RemoveRandomLinks so that the second argument is now the number of link
 than the probability of removing each of the links in the network).
 
 ------------------------------------------------------------------------
-r139 | rguimera | 2008-11-20 14:11:43 -0600 (Thu, 20 Nov 2008) | 2 lines
+r139 | rguimera | 2008-11-20 21:11:43 +0100 (Thu, 20 Nov 2008) | 2 lines
 Changed paths:
    M /trunk/src/graph.c
    M /trunk/src/graph.h
@@ -304,14 +685,14 @@ Changed paths:
 Added AddRandomLinks function.
 
 ------------------------------------------------------------------------
-r138 | rguimera | 2008-11-17 18:54:08 -0600 (Mon, 17 Nov 2008) | 2 lines
+r138 | rguimera | 2008-11-18 01:54:08 +0100 (Tue, 18 Nov 2008) | 2 lines
 Changed paths:
    M /trunk/src/missing.c
 
 Small bug fixed in NetworkReliability.
 
 ------------------------------------------------------------------------
-r137 | rguimera | 2008-11-17 18:52:47 -0600 (Mon, 17 Nov 2008) | 2 lines
+r137 | rguimera | 2008-11-18 01:52:47 +0100 (Tue, 18 Nov 2008) | 2 lines
 Changed paths:
    M /trunk/src/missing.c
    M /trunk/src/missing.h
@@ -319,7 +700,7 @@ Changed paths:
 First version of the network reliability score.
 
 ------------------------------------------------------------------------
-r136 | rguimera | 2008-10-23 15:01:26 -0500 (Thu, 23 Oct 2008) | 3 lines
+r136 | rguimera | 2008-10-23 22:01:26 +0200 (Thu, 23 Oct 2008) | 3 lines
 Changed paths:
    M /trunk/src/Makefile.am
    A /trunk/src/missing.c
@@ -332,7 +713,7 @@ Missing link functions moved out of modules.
 main_missing.c in utils modified accordingly.
 
 ------------------------------------------------------------------------
-r134 | rguimera | 2008-10-22 17:39:18 -0500 (Wed, 22 Oct 2008) | 3 lines
+r134 | rguimera | 2008-10-23 00:39:18 +0200 (Thu, 23 Oct 2008) | 3 lines
 Changed paths:
    M /trunk/src/modules.c
    M /trunk/src/modules.h
@@ -341,14 +722,14 @@ Cleaned up version of the "missing links" subroutines. Monte Carlo steps are now
 
 
 ------------------------------------------------------------------------
-r133 | rguimera | 2008-10-17 12:01:33 -0500 (Fri, 17 Oct 2008) | 2 lines
+r133 | rguimera | 2008-10-17 19:01:33 +0200 (Fri, 17 Oct 2008) | 2 lines
 Changed paths:
    A /trunk/utils/main_missing.c
 
 Forgot to add this util before.
 
 ------------------------------------------------------------------------
-r132 | rguimera | 2008-10-15 19:08:31 -0500 (Wed, 15 Oct 2008) | 2 lines
+r132 | rguimera | 2008-10-16 02:08:31 +0200 (Thu, 16 Oct 2008) | 2 lines
 Changed paths:
    M /trunk/src/modules.c
    M /trunk/src/tools.c
@@ -357,7 +738,7 @@ Changed paths:
 Much faster version of MissingLinks.
 
 ------------------------------------------------------------------------
-r131 | rguimera | 2008-10-15 16:54:54 -0500 (Wed, 15 Oct 2008) | 3 lines
+r131 | rguimera | 2008-10-15 23:54:54 +0200 (Wed, 15 Oct 2008) | 3 lines
 Changed paths:
    M /trunk/src/modules.c
    M /trunk/src/tools.c
@@ -367,7 +748,7 @@ Faster missing links through a bunch of changes, including faster LogChoose (for
 
 
 ------------------------------------------------------------------------
-r130 | rguimera | 2008-10-13 19:13:23 -0500 (Mon, 13 Oct 2008) | 2 lines
+r130 | rguimera | 2008-10-14 02:13:23 +0200 (Tue, 14 Oct 2008) | 2 lines
 Changed paths:
    M /trunk/src/modules.c
    M /trunk/src/modules.h
@@ -375,7 +756,7 @@ Changed paths:
 Added initial missing links subroutines.
 
 ------------------------------------------------------------------------
-r129 | rguimera | 2008-10-07 16:15:28 -0500 (Tue, 07 Oct 2008) | 2 lines
+r129 | rguimera | 2008-10-07 23:15:28 +0200 (Tue, 07 Oct 2008) | 2 lines
 Changed paths:
    M /trunk/src/graph.c
    M /trunk/src/graph.h
@@ -389,20 +770,20 @@ Changed paths:
 Initial work on missing links.
 
 ------------------------------------------------------------------------
-r128 | rguimera | 2008-09-25 12:32:14 -0500 (Thu, 25 Sep 2008) | 1 line
+r128 | rguimera | 2008-09-25 19:32:14 +0200 (Thu, 25 Sep 2008) | 1 line
 Changed paths:
    M /trunk/src/graph.c
    M /trunk/src/graph.h
 
 Old changed (long forgotten) to graph.
 ------------------------------------------------------------------------
-r127 | rguimera | 2008-04-18 12:34:32 -0500 (Fri, 18 Apr 2008) | 1 line
+r127 | rguimera | 2008-04-18 19:34:32 +0200 (Fri, 18 Apr 2008) | 1 line
 Changed paths:
    M /trunk/src/bipartite.c
 
 Changes to bipartite.c to make SACommunityIdentBipart less prone to rounding errors. Also, the no-change-counter is, now, only increase for low enough temperatures (that is, not at the very beginning).
 ------------------------------------------------------------------------
-r126 | rguimera | 2008-03-25 18:37:58 -0500 (Tue, 25 Mar 2008) | 2 lines
+r126 | rguimera | 2008-03-26 00:37:58 +0100 (Wed, 26 Mar 2008) | 2 lines
 Changed paths:
    M /trunk/src/graph.c
    M /trunk/src/graph.h
@@ -410,14 +791,14 @@ Changed paths:
 NodeBetweennessStatistics added (to calculate mean, std, min and max node betweenness in the network).
 
 ------------------------------------------------------------------------
-r125 | rguimera | 2008-03-25 18:05:12 -0500 (Tue, 25 Mar 2008) | 1 line
+r125 | rguimera | 2008-03-26 00:05:12 +0100 (Wed, 26 Mar 2008) | 1 line
 Changed paths:
    M /trunk/src/datastruct.c
    M /trunk/src/datastruct.h
 
 svn:keywords added to datastruct.*
 ------------------------------------------------------------------------
-r124 | rguimera | 2008-03-25 18:02:36 -0500 (Tue, 25 Mar 2008) | 2 lines
+r124 | rguimera | 2008-03-26 00:02:36 +0100 (Wed, 26 Mar 2008) | 2 lines
 Changed paths:
    M /trunk/utils/Makefile.am
    A /trunk/utils/main_betweenness.c
@@ -425,7 +806,7 @@ Changed paths:
 Betweenness calculation utility added.
 
 ------------------------------------------------------------------------
-r123 | rguimera | 2008-03-25 17:19:06 -0500 (Tue, 25 Mar 2008) | 3 lines
+r123 | rguimera | 2008-03-25 23:19:06 +0100 (Tue, 25 Mar 2008) | 3 lines
 Changed paths:
    M /trunk/src/Makefile.am
    A /trunk/src/datastruct.c
@@ -440,13 +821,13 @@ Brandes betweenness algorithm added, along with a test program and data structur
 stack). Makefile.am changed in test and src accordingly.
 
 ------------------------------------------------------------------------
-r122 | rguimera | 2008-03-25 13:58:03 -0500 (Tue, 25 Mar 2008) | 1 line
+r122 | rguimera | 2008-03-25 19:58:03 +0100 (Tue, 25 Mar 2008) | 1 line
 Changed paths:
    D /trunk/test/testpart.dat
 
 This file is not needed for the tests.
 ------------------------------------------------------------------------
-r121 | rguimera | 2008-03-25 13:46:10 -0500 (Tue, 25 Mar 2008) | 3 lines
+r121 | rguimera | 2008-03-25 19:46:10 +0100 (Tue, 25 Mar 2008) | 3 lines
 Changed paths:
    M /trunk/test/Makefile.am
 
@@ -454,27 +835,27 @@ Test networks added to the distribution through Makefile.am, so that all tests c
 distribution alone.
 
 ------------------------------------------------------------------------
-r120 | rguimera | 2008-02-06 13:17:03 -0600 (Wed, 06 Feb 2008) | 2 lines
+r120 | rguimera | 2008-02-06 20:17:03 +0100 (Wed, 06 Feb 2008) | 2 lines
 Changed paths:
    M /trunk/src/graph.c
 
 CompareTwoNetworks thoroughly tested.
 
 ------------------------------------------------------------------------
-r119 | rguimera | 2008-02-04 17:14:12 -0600 (Mon, 04 Feb 2008) | 2 lines
+r119 | rguimera | 2008-02-05 00:14:12 +0100 (Tue, 05 Feb 2008) | 2 lines
 Changed paths:
    M /trunk/README
 
 Changes to README.
 
 ------------------------------------------------------------------------
-r118 | rguimera | 2008-02-04 16:52:23 -0600 (Mon, 04 Feb 2008) | 1 line
+r118 | rguimera | 2008-02-04 23:52:23 +0100 (Mon, 04 Feb 2008) | 1 line
 Changed paths:
    M /trunk/utils/main_netcompare.c
 
 Random number generator is not needed here
 ------------------------------------------------------------------------
-r117 | rguimera | 2008-02-04 16:49:31 -0600 (Mon, 04 Feb 2008) | 3 lines
+r117 | rguimera | 2008-02-04 23:49:31 +0100 (Mon, 04 Feb 2008) | 3 lines
 Changed paths:
    M /trunk/utils/Makefile.am
    M /trunk/utils/main_netcompare.c
@@ -483,7 +864,7 @@ Keyword substitution added to these files.
 
 
 ------------------------------------------------------------------------
-r116 | rguimera | 2008-02-04 16:27:48 -0600 (Mon, 04 Feb 2008) | 3 lines
+r116 | rguimera | 2008-02-04 23:27:48 +0100 (Mon, 04 Feb 2008) | 3 lines
 Changed paths:
    M /trunk/src/graph.c
 
@@ -491,7 +872,7 @@ Memory leak corrected in src/graph.c/CompareTwoNetworks.
 
 
 ------------------------------------------------------------------------
-r115 | rguimera | 2008-02-04 16:15:17 -0600 (Mon, 04 Feb 2008) | 5 lines
+r115 | rguimera | 2008-02-04 23:15:17 +0100 (Mon, 04 Feb 2008) | 5 lines
 Changed paths:
    M /trunk/Makefile.am
    M /trunk/configure.in
@@ -507,14 +888,14 @@ CompareTwoNetworks function added to graph.*
 
 
 ------------------------------------------------------------------------
-r114 | rguimera | 2008-02-04 13:51:57 -0600 (Mon, 04 Feb 2008) | 1 line
+r114 | rguimera | 2008-02-04 20:51:57 +0100 (Mon, 04 Feb 2008) | 1 line
 Changed paths:
    M /trunk/netcarto/main_netcarto.c
    M /trunk/netcarto/main_netcarto_cl.c
 
 netcarto and netcarto_cl in s mode (backup + minimal output).
 ------------------------------------------------------------------------
-r113 | rguimera | 2008-02-04 12:10:18 -0600 (Mon, 04 Feb 2008) | 3 lines
+r113 | rguimera | 2008-02-04 19:10:18 +0100 (Mon, 04 Feb 2008) | 3 lines
 Changed paths:
    M /trunk/netcarto/main_netcarto.c
    M /trunk/netcarto/main_netcarto_cl.c
@@ -523,13 +904,13 @@ netcarto and netcarto_cl are now in "backup" mode (that is, they write the best 
 
 
 ------------------------------------------------------------------------
-r112 | rguimera | 2008-01-23 18:32:14 -0600 (Wed, 23 Jan 2008) | 1 line
+r112 | rguimera | 2008-01-24 01:32:14 +0100 (Thu, 24 Jan 2008) | 1 line
 Changed paths:
    M /trunk/netcarto/main_netcarto_cl.c
 
 Bug fixed in main_netcarto_cl: inital temperature was calculated incorrectly.
 ------------------------------------------------------------------------
-r111 | rguimera | 2007-12-21 19:06:15 -0600 (Fri, 21 Dec 2007) | 3 lines
+r111 | rguimera | 2007-12-22 02:06:15 +0100 (Sat, 22 Dec 2007) | 3 lines
 Changed paths:
    M /trunk/frontend/netcarto-fe.py
    A /trunk/frontend/network.py
@@ -538,13 +919,13 @@ More work on front-end. The SA parameter dialogs are now fully functional. The O
 
 
 ------------------------------------------------------------------------
-r110 | rguimera | 2007-11-30 20:00:32 -0600 (Fri, 30 Nov 2007) | 1 line
+r110 | rguimera | 2007-12-01 03:00:32 +0100 (Sat, 01 Dec 2007) | 1 line
 Changed paths:
    M /trunk/frontend/netcarto-fe.py
 
 More changes to the front end.
 ------------------------------------------------------------------------
-r109 | rguimera | 2007-11-28 18:33:02 -0600 (Wed, 28 Nov 2007) | 2 lines
+r109 | rguimera | 2007-11-29 01:33:02 +0100 (Thu, 29 Nov 2007) | 2 lines
 Changed paths:
    M /trunk/src/modules.c
    M /trunk/src/modules.h
@@ -553,7 +934,7 @@ Changed paths:
 Function GroupSizeStatistics added to modules. Test to check that is working added to test/bipartite2.
 
 ------------------------------------------------------------------------
-r108 | rguimera | 2007-11-28 18:24:47 -0600 (Wed, 28 Nov 2007) | 2 lines
+r108 | rguimera | 2007-11-29 01:24:47 +0100 (Thu, 29 Nov 2007) | 2 lines
 Changed paths:
    M /trunk/src/bipartite.c
    M /trunk/src/bipartite.h
@@ -561,20 +942,20 @@ Changed paths:
 Some changes to StatisticsParticipationCoefficientBipart. This function is now checked in test/bipart2, and is working.
 
 ------------------------------------------------------------------------
-r107 | rguimera | 2007-11-28 18:21:34 -0600 (Wed, 28 Nov 2007) | 1 line
+r107 | rguimera | 2007-11-29 01:21:34 +0100 (Thu, 29 Nov 2007) | 1 line
 Changed paths:
    M /trunk/test/main_bipart2.c
 
 A few more tests added to bipart2
 ------------------------------------------------------------------------
-r106 | rguimera | 2007-11-28 18:09:21 -0600 (Wed, 28 Nov 2007) | 2 lines
+r106 | rguimera | 2007-11-29 01:09:21 +0100 (Thu, 29 Nov 2007) | 2 lines
 Changed paths:
    M /trunk/test/main_bipart2.c
 
 Small changes to test more things.
 
 ------------------------------------------------------------------------
-r105 | rguimera | 2007-11-28 18:00:38 -0600 (Wed, 28 Nov 2007) | 3 lines
+r105 | rguimera | 2007-11-29 01:00:38 +0100 (Thu, 29 Nov 2007) | 3 lines
 Changed paths:
    M /trunk/test/main_tools.c
 
@@ -582,7 +963,7 @@ svn propset svn:keywords "LastChangedDate Revision" main_tools.c
 
 
 ------------------------------------------------------------------------
-r104 | rguimera | 2007-11-28 17:57:15 -0600 (Wed, 28 Nov 2007) | 2 lines
+r104 | rguimera | 2007-11-29 00:57:15 +0100 (Thu, 29 Nov 2007) | 2 lines
 Changed paths:
    M /trunk/test/Makefile.am
    A /trunk/test/main_tools.c
@@ -590,21 +971,21 @@ Changed paths:
 A test added for the tools library.
 
 ------------------------------------------------------------------------
-r103 | rguimera | 2007-11-28 17:56:34 -0600 (Wed, 28 Nov 2007) | 2 lines
+r103 | rguimera | 2007-11-29 00:56:34 +0100 (Thu, 29 Nov 2007) | 2 lines
 Changed paths:
    M /trunk/src/tools.c
 
 Bug fixed in tools.stddev.
 
 ------------------------------------------------------------------------
-r102 | rguimera | 2007-11-28 15:14:12 -0600 (Wed, 28 Nov 2007) | 2 lines
+r102 | rguimera | 2007-11-28 22:14:12 +0100 (Wed, 28 Nov 2007) | 2 lines
 Changed paths:
    M /trunk/frontend/netcarto-fe.py
 
 More work on the front end to NetCarto.
 
 ------------------------------------------------------------------------
-r101 | rguimera | 2007-11-28 15:06:52 -0600 (Wed, 28 Nov 2007) | 3 lines
+r101 | rguimera | 2007-11-28 22:06:52 +0100 (Wed, 28 Nov 2007) | 3 lines
 Changed paths:
    M /trunk/src/bipartite.c
    M /trunk/src/bipartite.h
@@ -613,7 +994,7 @@ StatisticsParticipationCoefficientBipart added to bipart.
 
 
 ------------------------------------------------------------------------
-r100 | rguimera | 2007-11-28 15:02:57 -0600 (Wed, 28 Nov 2007) | 2 lines
+r100 | rguimera | 2007-11-28 22:02:57 +0100 (Wed, 28 Nov 2007) | 2 lines
 Changed paths:
    M /trunk/src/tools.c
    M /trunk/src/tools.h
@@ -621,14 +1002,14 @@ Changed paths:
 Some statistica functions added to tools.
 
 ------------------------------------------------------------------------
-r99 | rguimera | 2007-11-26 15:06:57 -0600 (Mon, 26 Nov 2007) | 1 line
+r99 | rguimera | 2007-11-26 22:06:57 +0100 (Mon, 26 Nov 2007) | 1 line
 Changed paths:
    A /trunk/frontend/netcarto-fe.py (from /trunk/frontend/test.py:98)
    D /trunk/frontend/test.py
 
 Change of name
 ------------------------------------------------------------------------
-r98 | rguimera | 2007-11-26 15:06:21 -0600 (Mon, 26 Nov 2007) | 2 lines
+r98 | rguimera | 2007-11-26 22:06:21 +0100 (Mon, 26 Nov 2007) | 2 lines
 Changed paths:
    A /trunk/frontend
    A /trunk/frontend/test.py
@@ -636,7 +1017,7 @@ Changed paths:
 First attempt to build a frontend to NetCarto.
 
 ------------------------------------------------------------------------
-r97 | rguimera | 2007-11-26 15:05:11 -0600 (Mon, 26 Nov 2007) | 3 lines
+r97 | rguimera | 2007-11-26 22:05:11 +0100 (Mon, 26 Nov 2007) | 3 lines
 Changed paths:
    M /trunk/README
 
@@ -644,7 +1025,7 @@ Changes in README.
 
 
 ------------------------------------------------------------------------
-r96 | rguimera | 2007-10-26 17:05:23 -0500 (Fri, 26 Oct 2007) | 4 lines
+r96 | rguimera | 2007-10-27 00:05:23 +0200 (Sat, 27 Oct 2007) | 4 lines
 Changed paths:
    M /trunk/README
    M /trunk/bipartmod/Makefile.am
@@ -657,7 +1038,7 @@ netcarto_cl (command line added to netcarto).
 
 
 ------------------------------------------------------------------------
-r95 | rguimera | 2007-10-19 16:37:39 -0500 (Fri, 19 Oct 2007) | 1 line
+r95 | rguimera | 2007-10-19 23:37:39 +0200 (Fri, 19 Oct 2007) | 1 line
 Changed paths:
    M /trunk/bipartmod/Makefile.am
    M /trunk/netcarto/Makefile.am
@@ -665,7 +1046,7 @@ Changed paths:
 
 librgraph is now created with Libtool
 ------------------------------------------------------------------------
-r94 | rguimera | 2007-09-13 10:24:20 -0500 (Thu, 13 Sep 2007) | 2 lines
+r94 | rguimera | 2007-09-13 17:24:20 +0200 (Thu, 13 Sep 2007) | 2 lines
 Changed paths:
    M /trunk/bipartmod/main_bipartmod.c
    M /trunk/netcarto/main_netcarto.c
@@ -673,14 +1054,14 @@ Changed paths:
 Parameter promp in netcarto and bipartmod now suggests appropriate values (people seem to be using values for the cooling rate and iteration factor that are too fast).
 
 ------------------------------------------------------------------------
-r93 | rguimera | 2007-09-13 09:57:18 -0500 (Thu, 13 Sep 2007) | 2 lines
+r93 | rguimera | 2007-09-13 16:57:18 +0200 (Thu, 13 Sep 2007) | 2 lines
 Changed paths:
    M /trunk/README
 
 Some installation instructions clarified in README.
 
 ------------------------------------------------------------------------
-r92 | rguimera | 2007-09-11 15:29:24 -0500 (Tue, 11 Sep 2007) | 7 lines
+r92 | rguimera | 2007-09-11 22:29:24 +0200 (Tue, 11 Sep 2007) | 7 lines
 Changed paths:
    M /trunk/src/bipartite.c
    M /trunk/src/modules.c
@@ -693,7 +1074,7 @@ M    src/bipartite.c
 M    src/modules.c
 
 ------------------------------------------------------------------------
-r91 | rguimera | 2007-09-11 11:53:21 -0500 (Tue, 11 Sep 2007) | 2 lines
+r91 | rguimera | 2007-09-11 18:53:21 +0200 (Tue, 11 Sep 2007) | 2 lines
 Changed paths:
    M /trunk/src/bipartite.c
    M /trunk/src/modules.c
@@ -701,35 +1082,35 @@ Changed paths:
 Bug from last revision fixed.
 
 ------------------------------------------------------------------------
-r90 | rguimera | 2007-09-10 16:50:14 -0500 (Mon, 10 Sep 2007) | 2 lines
+r90 | rguimera | 2007-09-10 23:50:14 +0200 (Mon, 10 Sep 2007) | 2 lines
 Changed paths:
    M /trunk/README
 
 Now SVN keeps track of changes to README.
 
 ------------------------------------------------------------------------
-r89 | rguimera | 2007-09-10 16:24:30 -0500 (Mon, 10 Sep 2007) | 2 lines
+r89 | rguimera | 2007-09-10 23:24:30 +0200 (Mon, 10 Sep 2007) | 2 lines
 Changed paths:
    M /trunk/README
 
 Small bug fixed in readme (for SVN to keep track of last revision info).
 
 ------------------------------------------------------------------------
-r88 | rguimera | 2007-09-10 16:22:23 -0500 (Mon, 10 Sep 2007) | 2 lines
+r88 | rguimera | 2007-09-10 23:22:23 +0200 (Mon, 10 Sep 2007) | 2 lines
 Changed paths:
    M /trunk/README
 
 README changed to DOS format.
 
 ------------------------------------------------------------------------
-r87 | rguimera | 2007-09-10 16:20:29 -0500 (Mon, 10 Sep 2007) | 2 lines
+r87 | rguimera | 2007-09-10 23:20:29 +0200 (Mon, 10 Sep 2007) | 2 lines
 Changed paths:
    M /trunk/README
 
 First draft of README.
 
 ------------------------------------------------------------------------
-r86 | rguimera | 2007-09-10 14:49:46 -0500 (Mon, 10 Sep 2007) | 4 lines
+r86 | rguimera | 2007-09-10 21:49:46 +0200 (Mon, 10 Sep 2007) | 4 lines
 Changed paths:
    M /trunk/bipartmod/Makefile.am
    M /trunk/bipartmod/main_bipartmod.c
@@ -742,7 +1123,7 @@ These files have also been added to the distribution through the corresponding M
 Files resulting from netcarto/netcarto and bipartmod/bipartmod have been added to CLEANFILES in the corresponding Makefile.am.
 
 ------------------------------------------------------------------------
-r85 | rguimera | 2007-09-10 13:59:02 -0500 (Mon, 10 Sep 2007) | 2 lines
+r85 | rguimera | 2007-09-10 20:59:02 +0200 (Mon, 10 Sep 2007) | 2 lines
 Changed paths:
    M /trunk/Makefile.am
    A /trunk/bipartmod
@@ -753,7 +1134,7 @@ Changed paths:
 bipartmod added. Makefile.am and configure.in modified accordingly.
 
 ------------------------------------------------------------------------
-r84 | rguimera | 2007-09-06 19:04:59 -0500 (Thu, 06 Sep 2007) | 2 lines
+r84 | rguimera | 2007-09-07 02:04:59 +0200 (Fri, 07 Sep 2007) | 2 lines
 Changed paths:
    M /trunk/src/bipartite.c
    M /trunk/src/modules.c
@@ -761,13 +1142,13 @@ Changed paths:
 'b' (backup) option added to the output_sw in SACommunityIdent and SACommunityIdentBipart. With this option, no output is sent to the screen, but after each temperature of the SA, the current best partition is written, in list format, to a file.
 
 ------------------------------------------------------------------------
-r83 | rguimera | 2007-09-05 15:55:24 -0500 (Wed, 05 Sep 2007) | 1 line
+r83 | rguimera | 2007-09-05 22:55:24 +0200 (Wed, 05 Sep 2007) | 1 line
 Changed paths:
    M /trunk/src/bipartite.c
 
 Cosmetic change to bipartite.c
 ------------------------------------------------------------------------
-r82 | rguimera | 2007-09-04 19:57:19 -0500 (Tue, 04 Sep 2007) | 4 lines
+r82 | rguimera | 2007-09-05 02:57:19 +0200 (Wed, 05 Sep 2007) | 4 lines
 Changed paths:
    M /trunk/src/bipartite.c
    M /trunk/src/bipartite.h
@@ -781,7 +1162,7 @@ main_bipart2 added to test to check the new function (Makefile.am changed accord
 
 
 ------------------------------------------------------------------------
-r81 | rguimera | 2007-08-17 12:20:03 -0500 (Fri, 17 Aug 2007) | 3 lines
+r81 | rguimera | 2007-08-17 19:20:03 +0200 (Fri, 17 Aug 2007) | 3 lines
 Changed paths:
    M /trunk/src/bipartite.c
 
@@ -789,14 +1170,14 @@ No-change counter added to the simulated annealing in SAGroupSplitBipart (to avo
 Temperature loop in SACommunityIdentBipart is now while T>=Tf instead of while T>Tf.
 
 ------------------------------------------------------------------------
-r80 | rguimera | 2007-07-17 15:29:14 -0500 (Tue, 17 Jul 2007) | 1 line
+r80 | rguimera | 2007-07-17 22:29:14 +0200 (Tue, 17 Jul 2007) | 1 line
 Changed paths:
    M /trunk/src/graph.c
    M /trunk/src/graph.h
 
 Cosmetic changes to graph.h and graph.c
 ------------------------------------------------------------------------
-r79 | rguimera | 2007-07-17 15:28:10 -0500 (Tue, 17 Jul 2007) | 2 lines
+r79 | rguimera | 2007-07-17 22:28:10 +0200 (Tue, 17 Jul 2007) | 2 lines
 Changed paths:
    M /trunk/test/Makefile.am
    A /trunk/test/main_coclas.c
@@ -806,21 +1187,21 @@ Changed paths:
 Two more test programs added. Makefile.am modified accordingly.
 
 ------------------------------------------------------------------------
-r78 | rguimera | 2007-07-10 19:03:08 -0500 (Tue, 10 Jul 2007) | 2 lines
+r78 | rguimera | 2007-07-11 02:03:08 +0200 (Wed, 11 Jul 2007) | 2 lines
 Changed paths:
    M /trunk/src/bipartite.c
 
 Bug fixed in SACommunityIdentBipart. If the argument ngroup==0 (or negative) and initial_sw==0, the function now sets ngroup=nnod. 
 
 ------------------------------------------------------------------------
-r77 | rguimera | 2007-07-10 16:35:02 -0500 (Tue, 10 Jul 2007) | 2 lines
+r77 | rguimera | 2007-07-10 23:35:02 +0200 (Tue, 10 Jul 2007) | 2 lines
 Changed paths:
    M /trunk/src/bipartite.h
 
 Cosmetic change.
 
 ------------------------------------------------------------------------
-r76 | rguimera | 2007-07-03 18:14:45 -0500 (Tue, 03 Jul 2007) | 3 lines
+r76 | rguimera | 2007-07-04 01:14:45 +0200 (Wed, 04 Jul 2007) | 3 lines
 Changed paths:
    M /trunk/src/bipartite.c
 
@@ -828,20 +1209,20 @@ bipartite.c changed to fix a memory leak in SAGroupSplitBipart.
 bipartite.c changed to calculate the nodes' degree only once in SACommunityIdentBipart (makes function a lot faster).
 
 ------------------------------------------------------------------------
-r75 | rguimera | 2007-07-02 17:54:49 -0500 (Mon, 02 Jul 2007) | 1 line
+r75 | rguimera | 2007-07-03 00:54:49 +0200 (Tue, 03 Jul 2007) | 1 line
 Changed paths:
    M /trunk/src/bipartite.c
 
 Small error fixed in bipartite.c: energyant is now properly updated after EACH temperature
 ------------------------------------------------------------------------
-r74 | rguimera | 2007-07-02 15:36:52 -0500 (Mon, 02 Jul 2007) | 1 line
+r74 | rguimera | 2007-07-02 22:36:52 +0200 (Mon, 02 Jul 2007) | 1 line
 Changed paths:
    M /trunk/netcarto/main_netcarto.c
    M /trunk/src/graph.c
 
 Minor changes
 ------------------------------------------------------------------------
-r73 | rguimera | 2007-07-02 11:10:53 -0500 (Mon, 02 Jul 2007) | 4 lines
+r73 | rguimera | 2007-07-02 18:10:53 +0200 (Mon, 02 Jul 2007) | 4 lines
 Changed paths:
    M /trunk/Makefile.am
    M /trunk/configure.in
@@ -855,7 +1236,7 @@ Bug fixed in CopyNetwork (and a couple other places): RewireNetworkByNum changed
 Bug fixed in SACommunityIdent: energyant was not updated every iteration, which resulted in unnecessary resetting of partitions.
 
 ------------------------------------------------------------------------
-r72 | rguimera | 2007-06-29 20:28:59 -0500 (Fri, 29 Jun 2007) | 4 lines
+r72 | rguimera | 2007-06-30 03:28:59 +0200 (Sat, 30 Jun 2007) | 4 lines
 Changed paths:
    M /trunk/Makefile.am
    M /trunk/configure.in
@@ -869,14 +1250,14 @@ Changes to Makefile.am and configure.in accordingly.
 Bug fixed in WithinModuleRelativeDegree: now it returns 0.0 (instead of nan) if all nodes in the module have the exact same degree.
 
 ------------------------------------------------------------------------
-r71 | rguimera | 2007-06-29 14:59:32 -0500 (Fri, 29 Jun 2007) | 2 lines
+r71 | rguimera | 2007-06-29 21:59:32 +0200 (Fri, 29 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/src/bipartite.h
 
 Minor changes in bipartite.h.
 
 ------------------------------------------------------------------------
-r70 | rguimera | 2007-06-29 14:58:36 -0500 (Fri, 29 Jun 2007) | 2 lines
+r70 | rguimera | 2007-06-29 21:58:36 +0200 (Fri, 29 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/src/bipartite.c
    M /trunk/src/bipartite.h
@@ -886,7 +1267,7 @@ Changed paths:
 Module identification functions added to bipartite (and other changes accordingly).
 
 ------------------------------------------------------------------------
-r69 | rguimera | 2007-06-28 19:35:53 -0500 (Thu, 28 Jun 2007) | 3 lines
+r69 | rguimera | 2007-06-29 02:35:53 +0200 (Fri, 29 Jun 2007) | 3 lines
 Changed paths:
    M /trunk/src/bipartite.c
    M /trunk/src/bipartite.h
@@ -900,7 +1281,7 @@ Several functions added to bipartite, and some changes accordingly (including ad
 main_bipart modified.
 
 ------------------------------------------------------------------------
-r68 | rguimera | 2007-06-28 12:22:15 -0500 (Thu, 28 Jun 2007) | 2 lines
+r68 | rguimera | 2007-06-28 19:22:15 +0200 (Thu, 28 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/test/Makefile.am
    A /trunk/test/main_bipart1.c
@@ -908,33 +1289,33 @@ Changed paths:
 bipart1 added to the test directory. Makefile.am changed and keyworkd properties set accordingly.
 
 ------------------------------------------------------------------------
-r67 | rguimera | 2007-06-28 09:38:39 -0500 (Thu, 28 Jun 2007) | 1 line
+r67 | rguimera | 2007-06-28 16:38:39 +0200 (Thu, 28 Jun 2007) | 1 line
 Changed paths:
    M /trunk/src/bipartite.c
 
 Minor changes in bipartite.c
 ------------------------------------------------------------------------
-r66 | rguimera | 2007-06-27 15:34:09 -0500 (Wed, 27 Jun 2007) | 1 line
+r66 | rguimera | 2007-06-27 22:34:09 +0200 (Wed, 27 Jun 2007) | 1 line
 Changed paths:
    M /trunk/src/bipartite.c
    M /trunk/src/bipartite.h
 
 Some more functions added to bipartite
 ------------------------------------------------------------------------
-r65 | rguimera | 2007-06-26 20:32:42 -0500 (Tue, 26 Jun 2007) | 1 line
+r65 | rguimera | 2007-06-27 03:32:42 +0200 (Wed, 27 Jun 2007) | 1 line
 Changed paths:
    M /trunk/src/bipartite.c
    M /trunk/src/bipartite.h
 
 Propset added to bipartite.c/h
 ------------------------------------------------------------------------
-r64 | rguimera | 2007-06-26 20:31:52 -0500 (Tue, 26 Jun 2007) | 1 line
+r64 | rguimera | 2007-06-27 03:31:52 +0200 (Wed, 27 Jun 2007) | 1 line
 Changed paths:
    M /trunk/src/bipartite.c
 
 Foo
 ------------------------------------------------------------------------
-r63 | rguimera | 2007-06-26 20:26:09 -0500 (Tue, 26 Jun 2007) | 1 line
+r63 | rguimera | 2007-06-27 03:26:09 +0200 (Wed, 27 Jun 2007) | 1 line
 Changed paths:
    M /trunk/src/Makefile.am
    A /trunk/src/bipartite.c
@@ -943,51 +1324,51 @@ Changed paths:
 
 First addition of the bipartite network stuff
 ------------------------------------------------------------------------
-r62 | rguimera | 2007-06-26 19:05:11 -0500 (Tue, 26 Jun 2007) | 1 line
+r62 | rguimera | 2007-06-27 02:05:11 +0200 (Wed, 27 Jun 2007) | 1 line
 Changed paths:
    M /trunk/test/Makefile.am
 
 Order of libraries changed in test/Makefile.am
 ------------------------------------------------------------------------
-r61 | rguimera | 2007-06-26 18:25:24 -0500 (Tue, 26 Jun 2007) | 1 line
+r61 | rguimera | 2007-06-27 01:25:24 +0200 (Wed, 27 Jun 2007) | 1 line
 Changed paths:
    M /trunk/configure.in
 
 Change to configure.in suggested by autoscan
 ------------------------------------------------------------------------
-r60 | rguimera | 2007-06-26 18:15:39 -0500 (Tue, 26 Jun 2007) | 1 line
+r60 | rguimera | 2007-06-27 01:15:39 +0200 (Wed, 27 Jun 2007) | 1 line
 Changed paths:
    M /trunk/test/main_graph1.c
 
 Version control auto-update added to main_graph1.c
 ------------------------------------------------------------------------
-r59 | rguimera | 2007-06-26 18:13:32 -0500 (Tue, 26 Jun 2007) | 1 line
+r59 | rguimera | 2007-06-27 01:13:32 +0200 (Wed, 27 Jun 2007) | 1 line
 Changed paths:
    M /trunk/test/main_graph1.c
 
 Version control auto-update added to main_graph1.c
 ------------------------------------------------------------------------
-r58 | rguimera | 2007-06-26 18:08:49 -0500 (Tue, 26 Jun 2007) | 2 lines
+r58 | rguimera | 2007-06-27 01:08:49 +0200 (Wed, 27 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/test/Makefile.am
 
 Bug fixed in Makefile.am.
 
 ------------------------------------------------------------------------
-r57 | rguimera | 2007-06-26 18:03:37 -0500 (Tue, 26 Jun 2007) | 1 line
+r57 | rguimera | 2007-06-27 01:03:37 +0200 (Wed, 27 Jun 2007) | 1 line
 Changed paths:
    D /trunk/Makefile.in
 
 Some non-primary files removed from repository
 ------------------------------------------------------------------------
-r56 | rguimera | 2007-06-26 18:02:59 -0500 (Tue, 26 Jun 2007) | 1 line
+r56 | rguimera | 2007-06-27 01:02:59 +0200 (Wed, 27 Jun 2007) | 1 line
 Changed paths:
    D /trunk/lib/Makefile.in
    D /trunk/src/Makefile.in
 
 Some non-primary files removed from repository
 ------------------------------------------------------------------------
-r55 | rguimera | 2007-06-26 18:01:50 -0500 (Tue, 26 Jun 2007) | 1 line
+r55 | rguimera | 2007-06-27 01:01:50 +0200 (Wed, 27 Jun 2007) | 1 line
 Changed paths:
    D /trunk/config.h.in
    D /trunk/libtool
@@ -995,13 +1376,13 @@ Changed paths:
 
 Some non-primary files removed from repository
 ------------------------------------------------------------------------
-r54 | rguimera | 2007-06-26 17:51:09 -0500 (Tue, 26 Jun 2007) | 1 line
+r54 | rguimera | 2007-06-27 00:51:09 +0200 (Wed, 27 Jun 2007) | 1 line
 Changed paths:
    A /trunk/test/Makefile.am
 
 test/Makefile.am added
 ------------------------------------------------------------------------
-r53 | rguimera | 2007-06-26 17:47:33 -0500 (Tue, 26 Jun 2007) | 4 lines
+r53 | rguimera | 2007-06-27 00:47:33 +0200 (Wed, 27 Jun 2007) | 4 lines
 Changed paths:
    M /trunk/Makefile.am
    M /trunk/Makefile.in
@@ -1017,7 +1398,7 @@ aclocal.m4 (generated by aclocal) and config.status (generated by autoconf) remo
 Some bugs in modules (detected with the simple check) fixed.
 
 ------------------------------------------------------------------------
-r52 | rguimera | 2007-06-26 16:30:04 -0500 (Tue, 26 Jun 2007) | 2 lines
+r52 | rguimera | 2007-06-26 23:30:04 +0200 (Tue, 26 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/src/modules.c
    M /trunk/src/modules.h
@@ -1025,7 +1406,7 @@ Changed paths:
 BlockModel added to modules.
 
 ------------------------------------------------------------------------
-r51 | rguimera | 2007-06-26 15:21:30 -0500 (Tue, 26 Jun 2007) | 4 lines
+r51 | rguimera | 2007-06-26 22:21:30 +0200 (Tue, 26 Jun 2007) | 4 lines
 Changed paths:
    D /trunk/Makefile
    M /trunk/Makefile.in
@@ -1044,13 +1425,13 @@ Some non-primary files (configure, several Makefiles, and so on) removed.
 Other minor changes.
 
 ------------------------------------------------------------------------
-r50 | rguimera | 2007-06-26 11:26:14 -0500 (Tue, 26 Jun 2007) | 1 line
+r50 | rguimera | 2007-06-26 18:26:14 +0200 (Tue, 26 Jun 2007) | 1 line
 Changed paths:
    M /trunk/src/modules.c
 
 Some BlockModel added to modules: still needs work
 ------------------------------------------------------------------------
-r49 | rguimera | 2007-06-26 11:22:42 -0500 (Tue, 26 Jun 2007) | 2 lines
+r49 | rguimera | 2007-06-26 18:22:42 +0200 (Tue, 26 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/configure
    M /trunk/configure.in
@@ -1058,7 +1439,7 @@ Changed paths:
 Bug fixed in configure.in
 
 ------------------------------------------------------------------------
-r48 | rguimera | 2007-06-25 20:21:32 -0500 (Mon, 25 Jun 2007) | 1 line
+r48 | rguimera | 2007-06-26 03:21:32 +0200 (Tue, 26 Jun 2007) | 1 line
 Changed paths:
    M /trunk/src/graph.c
    M /trunk/src/models.c
@@ -1067,7 +1448,7 @@ Changed paths:
 
 property svn:keywords Revision+LastChangedDate set on *.c
 ------------------------------------------------------------------------
-r47 | rguimera | 2007-06-25 20:15:38 -0500 (Mon, 25 Jun 2007) | 1 line
+r47 | rguimera | 2007-06-26 03:15:38 +0200 (Tue, 26 Jun 2007) | 1 line
 Changed paths:
    M /trunk/src/graph.h
    M /trunk/src/models.h
@@ -1076,7 +1457,7 @@ Changed paths:
 
 property svn:keywords Revision+LastChangedDate set on *.h
 ------------------------------------------------------------------------
-r46 | rguimera | 2007-06-25 20:11:17 -0500 (Mon, 25 Jun 2007) | 1 line
+r46 | rguimera | 2007-06-26 03:11:17 +0200 (Tue, 26 Jun 2007) | 1 line
 Changed paths:
    M /trunk/src/graph.h
    M /trunk/src/models.h
@@ -1085,26 +1466,26 @@ Changed paths:
 
 property svn:keywords Revision set on *.h
 ------------------------------------------------------------------------
-r45 | rguimera | 2007-06-25 19:54:47 -0500 (Mon, 25 Jun 2007) | 1 line
+r45 | rguimera | 2007-06-26 02:54:47 +0200 (Tue, 26 Jun 2007) | 1 line
 Changed paths:
    M /trunk/configure.in
 
 Testing
 ------------------------------------------------------------------------
-r44 | rguimera | 2007-06-25 19:51:30 -0500 (Mon, 25 Jun 2007) | 1 line
+r44 | rguimera | 2007-06-26 02:51:30 +0200 (Tue, 26 Jun 2007) | 1 line
 Changed paths:
    M /trunk/configure.in
 
 More testing
 ------------------------------------------------------------------------
-r43 | rguimera | 2007-06-25 19:48:55 -0500 (Mon, 25 Jun 2007) | 2 lines
+r43 | rguimera | 2007-06-26 02:48:55 +0200 (Tue, 26 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/configure.in
 
 svn keyword Revision set for configure.in
 
 ------------------------------------------------------------------------
-r42 | rguimera | 2007-06-25 19:41:37 -0500 (Mon, 25 Jun 2007) | 2 lines
+r42 | rguimera | 2007-06-26 02:41:37 +0200 (Tue, 26 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/configure
    M /trunk/configure.in
@@ -1112,7 +1493,7 @@ Changed paths:
 Trying for autoupdate to work.
 
 ------------------------------------------------------------------------
-r41 | rguimera | 2007-06-25 19:32:08 -0500 (Mon, 25 Jun 2007) | 2 lines
+r41 | rguimera | 2007-06-26 02:32:08 +0200 (Tue, 26 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/Makefile
    M /trunk/config.status
@@ -1125,7 +1506,7 @@ Changed paths:
 configure.in changed to keep track of revision number
 
 ------------------------------------------------------------------------
-r40 | rguimera | 2007-06-25 18:20:37 -0500 (Mon, 25 Jun 2007) | 2 lines
+r40 | rguimera | 2007-06-26 01:20:37 +0200 (Tue, 26 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/Makefile
    M /trunk/config.status
@@ -1137,14 +1518,14 @@ Changed paths:
 Small changes to configure.in (and others irrelevant).
 
 ------------------------------------------------------------------------
-r39 | rguimera | 2007-06-25 15:44:40 -0500 (Mon, 25 Jun 2007) | 2 lines
+r39 | rguimera | 2007-06-25 22:44:40 +0200 (Mon, 25 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/src/modules.c
 
 Comments ANSIed in modules.c.
 
 ------------------------------------------------------------------------
-r38 | rguimera | 2007-06-25 15:31:37 -0500 (Mon, 25 Jun 2007) | 3 lines
+r38 | rguimera | 2007-06-25 22:31:37 +0200 (Mon, 25 Jun 2007) | 3 lines
 Changed paths:
    M /trunk/src/graph.c
    M /trunk/src/modules.c
@@ -1154,21 +1535,21 @@ Added a number of role-related functions to modules.
 Added RemoveInterGroupLinks to modules.
 
 ------------------------------------------------------------------------
-r37 | rguimera | 2007-06-22 16:57:43 -0500 (Fri, 22 Jun 2007) | 1 line
+r37 | rguimera | 2007-06-22 23:57:43 +0200 (Fri, 22 Jun 2007) | 1 line
 Changed paths:
    M /trunk/lib/search_.h
    M /trunk/lib/tsearch.c
 
 search_.h and tsearch.c modified to work in Windows. Before, tdestroy was only defined if "_LIBC" (and was not defined in search_.h), but this is precisely the case in which we do not need gnulib!!
 ------------------------------------------------------------------------
-r36 | rguimera | 2007-06-22 14:42:50 -0500 (Fri, 22 Jun 2007) | 2 lines
+r36 | rguimera | 2007-06-22 21:42:50 +0200 (Fri, 22 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/configure.in
 
 AM_PROG_LIBTOOL (deprecated) changed to AC_PROG_LIBTOOL
 
 ------------------------------------------------------------------------
-r35 | rguimera | 2007-06-22 13:52:03 -0500 (Fri, 22 Jun 2007) | 2 lines
+r35 | rguimera | 2007-06-22 20:52:03 +0200 (Fri, 22 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/src/Makefile
    M /trunk/src/Makefile.am
@@ -1177,7 +1558,7 @@ Changed paths:
 search.h removed from the distribution.
 
 ------------------------------------------------------------------------
-r34 | rguimera | 2007-06-21 19:25:23 -0500 (Thu, 21 Jun 2007) | 2 lines
+r34 | rguimera | 2007-06-22 02:25:23 +0200 (Fri, 22 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/Makefile
    M /trunk/Makefile.in
@@ -1193,7 +1574,7 @@ Changed paths:
 config.h.in added to solve installation crash in Windows.
 
 ------------------------------------------------------------------------
-r33 | rguimera | 2007-06-21 11:15:27 -0500 (Thu, 21 Jun 2007) | 3 lines
+r33 | rguimera | 2007-06-21 18:15:27 +0200 (Thu, 21 Jun 2007) | 3 lines
 Changed paths:
    A /trunk/AUTHORS
    A /trunk/COPYING
@@ -1264,7 +1645,7 @@ Major reorganization to use autoconf-automake.
 gnulib tsearch module added for platforms without glibc.
 
 ------------------------------------------------------------------------
-r32 | rguimera | 2007-06-19 15:44:43 -0500 (Tue, 19 Jun 2007) | 2 lines
+r32 | rguimera | 2007-06-19 22:44:43 +0200 (Tue, 19 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/graph.c
    M /trunk/models.c
@@ -1274,7 +1655,7 @@ Changed paths:
 Return types for all function definitions put on a separate line.
 
 ------------------------------------------------------------------------
-r31 | rguimera | 2007-06-19 15:25:16 -0500 (Tue, 19 Jun 2007) | 2 lines
+r31 | rguimera | 2007-06-19 22:25:16 +0200 (Tue, 19 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/graph.h
    M /trunk/models.h
@@ -1284,14 +1665,14 @@ Changed paths:
 #ifndef added to all header files to prevent multiple scanning.
 
 ------------------------------------------------------------------------
-r30 | rguimera | 2007-06-15 18:38:03 -0500 (Fri, 15 Jun 2007) | 1 line
+r30 | rguimera | 2007-06-16 01:38:03 +0200 (Sat, 16 Jun 2007) | 1 line
 Changed paths:
    M /trunk/main_test.c
    M /trunk/test.dat
 
 Trying to harmonize windows and Linux
 ------------------------------------------------------------------------
-r29 | rguimera | 2007-06-15 18:27:36 -0500 (Fri, 15 Jun 2007) | 2 lines
+r29 | rguimera | 2007-06-16 01:27:36 +0200 (Sat, 16 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/Makefile
    M /trunk/main_test.c
@@ -1299,7 +1680,7 @@ Changed paths:
 Irrelevant changes to main_test and changes to Makefile to adapt it to Windows.
 
 ------------------------------------------------------------------------
-r28 | rguimera | 2007-06-15 18:20:46 -0500 (Fri, 15 Jun 2007) | 3 lines
+r28 | rguimera | 2007-06-16 01:20:46 +0200 (Sat, 16 Jun 2007) | 3 lines
 Changed paths:
    M /trunk/modules.c
    M /trunk/modules.h
@@ -1308,21 +1689,21 @@ ParticipationCoefficient added.
 NLinkToGroupByNum added to make ParticipationCoefficient calculation independent of the number of groups.
 
 ------------------------------------------------------------------------
-r27 | rguimera | 2007-06-15 15:04:26 -0500 (Fri, 15 Jun 2007) | 1 line
+r27 | rguimera | 2007-06-15 22:04:26 +0200 (Fri, 15 Jun 2007) | 1 line
 Changed paths:
    M /trunk/Makefile
    M /trunk/graph.h
 
 First port to Windows. Small changes in the testing process.
 ------------------------------------------------------------------------
-r26 | rguimera | 2007-06-13 15:41:25 -0500 (Wed, 13 Jun 2007) | 2 lines
+r26 | rguimera | 2007-06-13 22:41:25 +0200 (Wed, 13 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/models.c
 
 Memory leak corrected in ERGraph.
 
 ------------------------------------------------------------------------
-r25 | rguimera | 2007-06-13 12:36:32 -0500 (Wed, 13 Jun 2007) | 3 lines
+r25 | rguimera | 2007-06-13 19:36:32 +0200 (Wed, 13 Jun 2007) | 3 lines
 Changed paths:
    M /trunk/Makefile
    A /trunk/models.c
@@ -1332,21 +1713,21 @@ First version of models.* added (with only ER graphs).
 Makefile modified accordingly.
 
 ------------------------------------------------------------------------
-r24 | rguimera | 2007-06-11 19:32:08 -0500 (Mon, 11 Jun 2007) | 1 line
+r24 | rguimera | 2007-06-12 02:32:08 +0200 (Tue, 12 Jun 2007) | 1 line
 Changed paths:
    M /trunk/Makefile
    M /trunk/main_test.c
 
 Library name changed to librgraph.a
 ------------------------------------------------------------------------
-r23 | rguimera | 2007-06-11 18:53:47 -0500 (Mon, 11 Jun 2007) | 1 line
+r23 | rguimera | 2007-06-12 01:53:47 +0200 (Tue, 12 Jun 2007) | 1 line
 Changed paths:
    M /trunk/main_test.c
    M /trunk/modules.c
 
 Memory leak fixed in SAGroupSplit. SACommunityIdent is now fully operative
 ------------------------------------------------------------------------
-r22 | rguimera | 2007-06-11 18:11:04 -0500 (Mon, 11 Jun 2007) | 4 lines
+r22 | rguimera | 2007-06-12 01:11:04 +0200 (Tue, 12 Jun 2007) | 4 lines
 Changed paths:
    M /trunk/graph.c
    M /trunk/graph.h
@@ -1358,21 +1739,21 @@ To avoid encountering this problem again, FreeNodeLis added to graph: frees the 
 node_lis.
 
 ------------------------------------------------------------------------
-r21 | rguimera | 2007-06-11 16:56:37 -0500 (Mon, 11 Jun 2007) | 2 lines
+r21 | rguimera | 2007-06-11 23:56:37 +0200 (Mon, 11 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/graph.c
 
 GetNodeDict modified so that it returns NULL when the node is not found (as opposed to crashing!).
 
 ------------------------------------------------------------------------
-r20 | rguimera | 2007-06-11 16:31:06 -0500 (Mon, 11 Jun 2007) | 2 lines
+r20 | rguimera | 2007-06-11 23:31:06 +0200 (Mon, 11 Jun 2007) | 2 lines
 Changed paths:
    M /trunk/graph.c
 
 CleanAdjacencies modified to use labels instead of node numbers.
 
 ------------------------------------------------------------------------
-r19 | rguimera | 2007-06-11 16:21:26 -0500 (Mon, 11 Jun 2007) | 7 lines
+r19 | rguimera | 2007-06-11 23:21:26 +0200 (Mon, 11 Jun 2007) | 7 lines
 Changed paths:
    M /trunk/graph.c
    M /trunk/graph.h
@@ -1386,7 +1767,7 @@ M    graph.h
 M    modules.c
 
 ------------------------------------------------------------------------
-r18 | rguimera | 2007-06-08 17:51:19 -0500 (Fri, 08 Jun 2007) | 2 lines
+r18 | rguimera | 2007-06-09 00:51:19 +0200 (Sat, 09 Jun 2007) | 2 lines
 Changed paths:
    A /trunk/test.dat
    A /trunk/testpart.dat
@@ -1394,7 +1775,7 @@ Changed paths:
 test network and partition added.
 
 ------------------------------------------------------------------------
-r17 | rguimera | 2007-06-08 17:44:55 -0500 (Fri, 08 Jun 2007) | 5 lines
+r17 | rguimera | 2007-06-09 00:44:55 +0200 (Sat, 09 Jun 2007) | 5 lines
 Changed paths:
    M /trunk/graph.c
    M /trunk/graph.h
@@ -1408,7 +1789,7 @@ Rewire...ByLabel added.
 Some bugs fixed.
 
 ------------------------------------------------------------------------
-r16 | rguimera | 2007-06-07 18:16:22 -0500 (Thu, 07 Jun 2007) | 3 lines
+r16 | rguimera | 2007-06-08 01:16:22 +0200 (Fri, 08 Jun 2007) | 3 lines
 Changed paths:
    M /trunk/main_test.c
    M /trunk/modules.c
@@ -1418,7 +1799,7 @@ CreatePartitionFromInGroup added to modules.
 FBuildPartition changed to FCreatePartition.
 
 ------------------------------------------------------------------------
-r15 | rguimera | 2007-06-07 17:55:11 -0500 (Thu, 07 Jun 2007) | 4 lines
+r15 | rguimera | 2007-06-08 00:55:11 +0200 (Fri, 08 Jun 2007) | 4 lines
 Changed paths:
    M /trunk/Makefile
    M /trunk/graph.c
@@ -1431,14 +1812,14 @@ Makefile changed slightly to add flags for warnings.
 Some warnings related to the use of pointers/arrays fixed.
 
 ------------------------------------------------------------------------
-r14 | rguimera | 2007-06-07 15:42:49 -0500 (Thu, 07 Jun 2007) | 1 line
+r14 | rguimera | 2007-06-07 22:42:49 +0200 (Thu, 07 Jun 2007) | 1 line
 Changed paths:
    M /trunk/graph.c
    M /trunk/main_test.c
 
 Bug fixed in RemoveGraph (memory allocated to the node labels was freed twice, which resulted in a segmentation fault if the removed network was accessed again after removal).
 ------------------------------------------------------------------------
-r13 | rguimera | 2007-06-07 15:03:48 -0500 (Thu, 07 Jun 2007) | 1 line
+r13 | rguimera | 2007-06-07 22:03:48 +0200 (Thu, 07 Jun 2007) | 1 line
 Changed paths:
    M /trunk/graph.c
    M /trunk/graph.h
@@ -1447,7 +1828,7 @@ Changed paths:
 
 GetNodeDict added to graph to search nodes by label from a tree in logarithmic time
 ------------------------------------------------------------------------
-r12 | rguimera | 2007-06-07 14:39:20 -0500 (Thu, 07 Jun 2007) | 4 lines
+r12 | rguimera | 2007-06-07 21:39:20 +0200 (Thu, 07 Jun 2007) | 4 lines
 Changed paths:
    M /trunk/Makefile
    M /trunk/graph.c
@@ -1460,7 +1841,7 @@ MakeLabelDict and FreeLabelDict added to graph for fast search by label.
 Some other modifications related to these issues.
 
 ------------------------------------------------------------------------
-r11 | rguimera | 2007-06-01 21:11:50 -0500 (Fri, 01 Jun 2007) | 1 line
+r11 | rguimera | 2007-06-02 04:11:50 +0200 (Sat, 02 Jun 2007) | 1 line
 Changed paths:
    M /trunk/Makefile
    M /trunk/graph.c
@@ -1470,35 +1851,35 @@ Changed paths:
 
 Work on FBuildPartition and related: test crashes
 ------------------------------------------------------------------------
-r10 | rguimera | 2007-06-01 18:41:20 -0500 (Fri, 01 Jun 2007) | 1 line
+r10 | rguimera | 2007-06-02 01:41:20 +0200 (Sat, 02 Jun 2007) | 1 line
 Changed paths:
    M /trunk/graph.c
    M /trunk/graph.h
 
 MakeLabelDict added to graph for fast access to nodes from label
 ------------------------------------------------------------------------
-r9 | rguimera | 2007-06-01 16:54:05 -0500 (Fri, 01 Jun 2007) | 1 line
+r9 | rguimera | 2007-06-01 23:54:05 +0200 (Fri, 01 Jun 2007) | 1 line
 Changed paths:
    M /trunk/graph.c
    M /trunk/graph.h
 
 nodeLabel attribute added to node_lis and modifications accordingly in some other functions
 ------------------------------------------------------------------------
-r8 | rguimera | 2007-06-01 14:00:42 -0500 (Fri, 01 Jun 2007) | 1 line
+r8 | rguimera | 2007-06-01 21:00:42 +0200 (Fri, 01 Jun 2007) | 1 line
 Changed paths:
    M /trunk/graph.c
    M /trunk/graph.h
 
 IsThereNode added to graph
 ------------------------------------------------------------------------
-r7 | rguimera | 2007-06-01 10:56:18 -0500 (Fri, 01 Jun 2007) | 1 line
+r7 | rguimera | 2007-06-01 17:56:18 +0200 (Fri, 01 Jun 2007) | 1 line
 Changed paths:
    M /trunk/graph.c
    M /trunk/graph.h
 
 CleanAdjacencies modified so that it does not require the list of nodes in the network
 ------------------------------------------------------------------------
-r6 | rguimera | 2007-05-30 20:56:43 -0500 (Wed, 30 May 2007) | 4 lines
+r6 | rguimera | 2007-05-31 03:56:43 +0200 (Thu, 31 May 2007) | 4 lines
 Changed paths:
    M /trunk/Makefile
    M /trunk/graph.c
@@ -1510,7 +1891,7 @@ CleanAdjacencies needs to be made consistent between modules and graph (probably
 the second argument--node list--in graph).
 
 ------------------------------------------------------------------------
-r5 | rguimera | 2007-05-30 13:44:54 -0500 (Wed, 30 May 2007) | 1 line
+r5 | rguimera | 2007-05-30 20:44:54 +0200 (Wed, 30 May 2007) | 1 line
 Changed paths:
    M /trunk/Makefile
    M /trunk/graph.c
@@ -1520,20 +1901,20 @@ Changed paths:
 
 First working copy of modules.c and modules.h (not yet operational)
 ------------------------------------------------------------------------
-r4 | rguimera | 2007-05-18 09:26:18 -0500 (Fri, 18 May 2007) | 1 line
+r4 | rguimera | 2007-05-18 16:26:18 +0200 (Fri, 18 May 2007) | 1 line
 Changed paths:
    M /trunk/Makefile
    M /trunk/main_test.c
 
 Minor change in Makefile to the PRNGDIR
 ------------------------------------------------------------------------
-r3 | rguimera | 2007-05-17 13:18:12 -0500 (Thu, 17 May 2007) | 1 line
+r3 | rguimera | 2007-05-17 20:18:12 +0200 (Thu, 17 May 2007) | 1 line
 Changed paths:
    M /trunk/graph.c
 
 Some unused variables removed
 ------------------------------------------------------------------------
-r2 | rguimera | 2007-05-17 12:56:33 -0500 (Thu, 17 May 2007) | 4 lines
+r2 | rguimera | 2007-05-17 19:56:33 +0200 (Thu, 17 May 2007) | 4 lines
 Changed paths:
    A /trunk/Makefile
    M /trunk/graph.c
@@ -1547,7 +1928,7 @@ main_test.c added.
 Initial Makefile to compile the library and the test executable added.
 
 ------------------------------------------------------------------------
-r1 | rguimera | 2006-08-21 11:56:02 -0500 (Mon, 21 Aug 2006) | 1 line
+r1 | rguimera | 2006-08-21 18:56:02 +0200 (Mon, 21 Aug 2006) | 1 line
 Changed paths:
    A /branches
    A /tags
