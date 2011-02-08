@@ -56,5 +56,11 @@ double FastLogChoose(int a,
 		     double **LogChooseList,
 		     int LogChooseListSize);
 
+/*
+  ---------------------------------------------------------------------
+  File operations
+  ---------------------------------------------------------------------
+*/
+int CountLinesInFile(char *inFileName);
 
 #endif /* !RGRAPH_TOOLS_H */

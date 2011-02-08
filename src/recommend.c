@@ -47,22 +47,164 @@ FreeQuery(struct query *q)
 }
 
 /*
-  ---------------------------------------------------------------------
-  ---------------------------------------------------------------------
-  Recommender functions
-  ---------------------------------------------------------------------
-  ---------------------------------------------------------------------
+  -----------------------------------------------------------------------------
+  Given a (bipartite) network of ratings, return the number of
+  unobserved pairs.
+  -----------------------------------------------------------------------------
 */
+int
+CountUnobserved(struct binet *ratings)
+{
+  return (CountNodes(ratings->net1) * CountNodes(ratings->net2)) -
+    NLinksBipart(ratings);
+}
 
 /*
   -----------------------------------------------------------------------------
-  Hamiltoninan H for 2-state recommender. query_list contains the list
+  Given a (bipartite) network of ratings, return a list of unobserved
+  pairs.
+  -----------------------------------------------------------------------------
+*/
+struct query **
+BuildUnobservedSet(struct binet *ratings)
+{
+  struct node_gra *p, *m;
+  int nunobserved=CountUnobserved(ratings), n=0;
+  struct query **unobservedSet=NULL;
+
+  unobservedSet = (struct query **) calloc(nunobserved, sizeof(struct query *));
+  p = ratings->net1;
+  while ((p = p->next) != NULL) {
+    m = ratings->net2;
+    while ((m = m->next) != NULL) {
+      if (IsThereLink(p, m) == 0) {
+	unobservedSet[n++] = CreateQuery(p, m);
+      }
+    }
+  }
+  return unobservedSet;
+}
+
+/*
+  -----------------------------------------------------------------------------
+  Given a (bipartite) network of ratings, remove all ratings whose
+  value is r.
+  -----------------------------------------------------------------------------
+*/
+void
+RemoveRatings(struct binet *ratings, int r)
+{
+  struct node_gra *p=NULL;
+  struct node_lis *m=NULL;
+
+  p = ratings->net1;
+  while ((p = p->next) != NULL) {
+    m = p->neig;
+    while (m->next!= NULL) {
+      if ((m->next)->weight == r) {
+	RemoveLink(p, (m->next)->ref, 1);
+      }
+      else {
+	m = m->next;
+      }
+    }
+  }
+  return;
+}
+
+/*
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+  I/O functions
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+*/
+/*
+  -----------------------------------------------------------------------------
+  From a file with format:
+
+  p1 m1 0
+  p1 m2 5
+  ...
+
+  (representing person 1 rating movie 1 with a 0, movie 2 with a 5,
+  and so on) return a bipartite network with link weights representing
+  the ratings.
+  -----------------------------------------------------------------------------
+*/
+struct binet *
+ReadRecommenderObservations(FILE *inFile)
+{
+  return FBuildNetworkBipart(inFile, 1, 0);
+}
+
+/*
+  -----------------------------------------------------------------------------
+  Read a file with a query list with format:
+
+  p1 m1
+  p1 m2
+  p2 m3
+  ...
+
+  representing the pairs (person, movie) that we want to predict.
+  
+  -----------------------------------------------------------------------------
+*/
+struct query **
+ReadQueries(FILE *inFile, int nQueries, struct binet *binet)
+{
+  void *dict1, *dict2;
+  char node1[MAX_LABEL_LENGTH], node2[MAX_LABEL_LENGTH];
+  struct query **querySet;
+  struct query *q=NULL;
+  int nq=0;
+
+  /* Create the search dictionaries */
+  dict1 = MakeLabelDict(binet->net1);
+  dict2 = MakeLabelDict(binet->net2);
+
+  /* Allocate space for the queries */
+  querySet = (struct query **) calloc(nQueries, sizeof(struct query *));
+
+  /* Go through the file and create the queries */
+  for (nq=0; nq<nQueries; nq++) {
+    fscanf(inFile, "%s %s\n", &node1[0], &node2[0]);
+    GetNodeDict(node1, dict1);
+    q = CreateQuery(GetNodeDict(node1, dict1), GetNodeDict(node2, dict2));
+    if (IsQueryInSet(q, querySet, nq) == 0) {
+      querySet[nq] = q;
+    }
+    else {
+      FreeQuery(q);
+    }
+  }
+
+  /* Free memory */
+  FreeLabelDict(dict1);
+  FreeLabelDict(dict2);
+
+  /* Done */
+  return querySet;
+}
+
+
+/*
+  -----------------------------------------------------------------------------
+  -----------------------------------------------------------------------------
+  Recommender functions
+  -----------------------------------------------------------------------------
+  -----------------------------------------------------------------------------
+
+/*
+  -----------------------------------------------------------------------------
+  Hamiltoninan H for 2-state recommender. ignore_list contains the list
   of unobserved links
   -----------------------------------------------------------------------------
 */
 double
 H2State(struct group *part1, struct group *part2,
-	struct query **query_list, int nquery)
+	struct query **ignore_list, int nignore)
 {
   struct group *g1=NULL, *g2=NULL;
   double r, l, H=0.0;
@@ -76,12 +218,12 @@ H2State(struct group *part1, struct group *part2,
 	if (g2->size > 0) {
 	  r = g1->size * g2->size;
 	  l = NG2GLinks(g1, g2);
-	  /* Discount unobserved query links */
-	  for (q=0; q<nquery; q++) {
-	    if ((query_list[q]->n1)->inGroup == g1->label &&
-		(query_list[q]->n2)->inGroup == g2->label) {
+	  /* Discount unobserved ignore links */
+	  for (q=0; q<nignore; q++) {
+	    if ((ignore_list[q]->n1)->inGroup == g1->label &&
+		(ignore_list[q]->n2)->inGroup == g2->label) {
 	      r--;
-	      l -= IsThereLink(query_list[q]->n1, query_list[q]->n2);
+	      l -= IsThereLink(ignore_list[q]->n1, ignore_list[q]->n2);
 	    }
 	  }
 /* 	  fprintf(stderr, "%d-%d: %g/%g\n", g1->label+1, g2->label+1, l, r); */
@@ -102,7 +244,7 @@ H2State(struct group *part1, struct group *part2,
 void
 MCStep2State(int factor,
 	     double *H,
-	     struct query **query_list, int nquery, 
+	     struct query **ignore_list, int nignore, 
 	     struct node_gra **nlist1, struct node_gra **nlist2,
 	     struct group **glist1, struct group **glist2,
 	     struct group *part1, struct group *part2,
@@ -172,30 +314,30 @@ MCStep2State(int factor,
 	/* old configuration, old group */
 	r = oldg->size * g->size;
 	l = (*G2G)[oldgnum][g->label];
-	for (q=0; q<nquery; q++) {
+	for (q=0; q<nignore; q++) {
 	  if ((move_in == 1 &&
-	       query_list[q]->n1->inGroup == oldg->label &&
-	       query_list[q]->n2->inGroup == g->label) ||
+	       ignore_list[q]->n1->inGroup == oldg->label &&
+	       ignore_list[q]->n2->inGroup == g->label) ||
 	      (move_in == 2 &&
-	       query_list[q]->n1->inGroup == g->label &&
-	       query_list[q]->n2->inGroup == oldg->label)) {
+	       ignore_list[q]->n1->inGroup == g->label &&
+	       ignore_list[q]->n2->inGroup == oldg->label)) {
 	    r--;
-	    l -= IsThereLink(query_list[q]->n1, query_list[q]->n2);
+	    l -= IsThereLink(ignore_list[q]->n1, ignore_list[q]->n2);
 	  }
 	}
 	dH -= log(r + 1) + LogChoose(r, l);
 	/* old configuration, new group */
 	r = newg->size * g->size;
 	l = (*G2G)[newgnum][g->label];
-	for (q=0; q<nquery; q++) {
+	for (q=0; q<nignore; q++) {
 	  if ((move_in == 1 &&
-	       query_list[q]->n1->inGroup == newg->label &&
-	       query_list[q]->n2->inGroup == g->label) ||
+	       ignore_list[q]->n1->inGroup == newg->label &&
+	       ignore_list[q]->n2->inGroup == g->label) ||
 	      (move_in == 2 &&
-	       query_list[q]->n1->inGroup == g->label &&
-	       query_list[q]->n2->inGroup == newg->label)) {
+	       ignore_list[q]->n1->inGroup == g->label &&
+	       ignore_list[q]->n2->inGroup == newg->label)) {
 	    r--;
-	    l -= IsThereLink(query_list[q]->n1, query_list[q]->n2);
+	    l -= IsThereLink(ignore_list[q]->n1, ignore_list[q]->n2);
 	  }
 	}
 	dH -= log(r + 1) + LogChoose(r, l);
@@ -220,30 +362,30 @@ MCStep2State(int factor,
 	/* new configuration, old group */
 	r = oldg->size * g2->size;
 	l = (*G2G)[oldgnum][g2->label];
-	for (q=0; q<nquery; q++) {
+	for (q=0; q<nignore; q++) {
 	  if ((move_in == 1 &&
-	       query_list[q]->n1->inGroup == oldg->label &&
-	       query_list[q]->n2->inGroup == g2->label) ||
+	       ignore_list[q]->n1->inGroup == oldg->label &&
+	       ignore_list[q]->n2->inGroup == g2->label) ||
 	      (move_in == 2 &&
-	       query_list[q]->n1->inGroup == g2->label &&
-	       query_list[q]->n2->inGroup == oldg->label)) {
+	       ignore_list[q]->n1->inGroup == g2->label &&
+	       ignore_list[q]->n2->inGroup == oldg->label)) {
 	    r--;
-	    l -= IsThereLink(query_list[q]->n1, query_list[q]->n2);
+	    l -= IsThereLink(ignore_list[q]->n1, ignore_list[q]->n2);
 	  }
 	}
 	dH += log(r + 1) + LogChoose(r, l);
 	/* new configuration, new group */
 	r = newg->size * g2->size;
 	l = (*G2G)[newgnum][g2->label];
-	for (q=0; q<nquery; q++) {
+	for (q=0; q<nignore; q++) {
 	  if ((move_in == 1 &&
-	       query_list[q]->n1->inGroup == newg->label &&
-	       query_list[q]->n2->inGroup == g2->label) ||
+	       ignore_list[q]->n1->inGroup == newg->label &&
+	       ignore_list[q]->n2->inGroup == g2->label) ||
 	      (move_in == 2 &&
-	       query_list[q]->n1->inGroup == g2->label &&
-	       query_list[q]->n2->inGroup == newg->label)) {
+	       ignore_list[q]->n1->inGroup == g2->label &&
+	       ignore_list[q]->n2->inGroup == newg->label)) {
 	    r--;
-	    l -= IsThereLink(query_list[q]->n1, query_list[q]->n2);
+	    l -= IsThereLink(ignore_list[q]->n1, ignore_list[q]->n2);
 	  }
 	}
 	dH += log(r + 1) + LogChoose(r, l);
@@ -280,7 +422,7 @@ MCStep2State(int factor,
 */
 int
 GetDecorrelationStep2State(double *H,
-			   struct query **query_list, int nquery, 
+			   struct query **ignore_list, int nignore, 
 			   struct node_gra **nlist1, struct node_gra **nlist2,
 			   struct group **glist1, struct group **glist2,
 			   struct group *part1, struct group *part2,
@@ -321,7 +463,7 @@ GetDecorrelationStep2State(double *H,
     part1Ref = CopyPartition(part1);
     part2Ref = CopyPartition(part2);
     for (step=0; step<=x2; step++) {
-      MCStep2State(1, H, query_list, nquery, nlist1, nlist2,
+      MCStep2State(1, H, ignore_list, nignore, nlist1, nlist2,
 		   glist1, glist2, part1, part2, nnod1, nnod2,
 		   G1G2, G2G1, n2gList, LogChooseList, LogChooseListSize,
 		   gen);
@@ -429,7 +571,7 @@ GetDecorrelationStep2State(double *H,
 void
 ThermalizeMC2State(int decorStep,
 		   double *H,
-		   struct query **query_list, int nquery, 
+		   struct query **ignore_list, int nignore, 
 		   struct node_gra **nlist1, struct node_gra **nlist2,
 		   struct group **glist1, struct group **glist2,
 		   struct group *part1, struct group *part2,
@@ -451,7 +593,7 @@ ThermalizeMC2State(int decorStep,
     
     /* MC steps */
     for (rep=0; rep<nrep; rep++) {
-      MCStep2State(decorStep, H, query_list, nquery, nlist1, nlist2,
+      MCStep2State(decorStep, H, ignore_list, nignore, nlist1, nlist2,
 		   glist1, glist2, part1, part2, nnod1, nnod2,
 		   G1G2, G2G1, n2gList, LogChooseList, LogChooseListSize,
 		   gen);
@@ -504,7 +646,10 @@ ThermalizeMC2State(int decorStep,
 /*
   -----------------------------------------------------------------------------
   Return the score of a single unobserved link i-j, that is
-  p(A_ij=1|A^O), for a 2-state system
+  p(A_ij=1|A^O), for a 2-state system. All links other than i-j are
+  supposed to be observed, so links in the bipartite network indicate
+  links with value 1, and non-links in the bipartite network indicate
+  links with value 0.
   -----------------------------------------------------------------------------
 */
 double
@@ -688,5 +833,275 @@ LinkScore2State(struct binet *binet,
   free_i_vec(n2gList);
   FreeFastLogChoose(LogChooseList, LogChooseListSize);
   
+  return score;
+}
+
+
+/*
+  -----------------------------------------------------------------------------
+  Return 1 if q is in set, and 0 otherwise
+  -----------------------------------------------------------------------------
+*/
+int
+IsQueryInSet(struct query *q, struct query **set, int nset)
+{
+  int i;
+
+  for (i=0; i<nset; i++)
+    if ((q->n1 == set[i]->n1) && (q->n2 == set[i]->n2))
+      return 1;
+  return 0;
+}
+
+
+/*
+  -----------------------------------------------------------------------------
+  Return the score p(A_ij=1|A^O) of a collection querySet of
+  unobserved links, for a 2-state system. Besides the links in
+  querySet, those in unobservedSet are also unobserved. Links in the
+  bipartite network indicate links with value 1, and non-links in the
+  bipartite network (other than those in the querySet and those in the
+  unobservedSet) indicate links with value 0.
+
+  CAUTION: NEEDS TESTING!!!
+  -----------------------------------------------------------------------------
+*/
+double *
+MultiLinkScore2State(struct binet *ratings,
+		     struct query **querySet, int nquery,
+		     int nIter,
+		     gsl_rng *gen,
+		     char verbose_sw,
+		     int decorStep)
+{
+  int nnod1=CountNodes(ratings->net1), nnod2=CountNodes(ratings->net2);
+  struct node_gra *net1=NULL, *net2=NULL;
+  struct group *part1=NULL, *part2=NULL;
+  struct node_gra *p1=NULL, *p2=NULL, *node=NULL;
+  struct node_gra **nlist1=NULL, **nlist2=NULL;
+  struct group **glist1=NULL, **glist2=NULL;
+  struct group *lastg=NULL;
+  double H;
+  int iter;
+  double *score, Z=0.0;
+  int i, j;
+  int **G1G2=NULL, **G2G1=NULL;
+  int *n2gList=NULL;
+  int LogChooseListSize = 500;
+  double **LogChooseList=InitializeFastLogChoose(LogChooseListSize);
+  struct node_lis *n1=NULL, *n2=NULL;
+  double weight, contrib;
+  int dice;
+  int r, l;
+  double mutualInfo;
+  struct query **ignoreSet;
+  int nignore, q;
+  int *query_linked;
+  struct query **unobservedSet;
+  int nunobserved;
+  struct binet *binet=NULL; 
+  void *dict1=NULL, *dict2=NULL;
+
+  /*
+    PRELIMINARIES
+  */
+  /* Build the set of unobserved pairs */
+  nunobserved = CountUnobserved(ratings);
+  unobservedSet = BuildUnobservedSet(ratings);
+
+  /* Create a network containing only 1-ratings (that is, without the
+     0 ratings), and MAP THE QUERYSET TO THE NEW NETWORK */
+  binet = CopyBipart(ratings);
+  RemoveRatings(binet, 0);
+  dict1 = MakeLabelDict(binet->net1);
+  dict2 = MakeLabelDict(binet->net2);
+  for (q=0; q<nquery; q++) {
+    querySet[q]->n1 = GetNodeDict(querySet[q]->n1->label, dict1);
+    querySet[q]->n2 = GetNodeDict(querySet[q]->n2->label, dict2);
+  }
+
+
+  /* Initialize scores */
+  score = allocate_d_vec(nquery);
+  for (q=0; q<nquery; q++)
+    score[q] = 0.0;
+
+  /* The ignore set (allocate maximum possibly needed space) */
+  ignoreSet = (struct query **) calloc(nunobserved + nquery,
+				       sizeof(struct query *));
+  query_linked = allocate_i_vec(nquery);
+  nignore = 0;
+  for (q=0; q<nunobserved; q++)
+    ignoreSet[nignore++] = unobservedSet[q];
+  for (q=0; q<nquery; q++) {
+    if (IsQueryInSet(querySet[q], unobservedSet, nunobserved) == 0)
+      ignoreSet[nignore++] = querySet[q];
+    query_linked[q] = IsThereLink(querySet[q]->n1, querySet[q]->n2);
+  }
+
+  /* Map nodes and groups to a list for faster access */
+  nlist1 = (struct node_gra **) calloc(nnod1, sizeof(struct node_gra *));
+  glist1 = (struct group **) calloc(nnod1, sizeof(struct group *));
+  lastg = part1 = CreateHeaderGroup();
+  p1 = net1 = binet->net1;
+  while ((p1 = p1->next) != NULL) {
+    nlist1[p1->num] = p1;
+    lastg = glist1[p1->num] = CreateGroup(lastg, p1->num);
+  }
+  nlist2 = (struct node_gra **) calloc(nnod2, sizeof(struct node_gra *));
+  glist2 = (struct group **) calloc(nnod2, sizeof(struct group *));
+  lastg = part2 = CreateHeaderGroup();
+  p2 = net2 = binet->net2;
+  while ((p2 = p2->next) != NULL) {
+    nlist2[p2->num] = p2;
+    lastg = glist2[p2->num] = CreateGroup(lastg, p2->num);
+  }
+
+ /* Place nodes in random partitions */
+  p1 = net1;
+  ResetNetGroup(net1);
+  while ((p1 = p1->next) != NULL) {
+    dice = floor(gsl_rng_uniform(gen) * (double)nnod1);
+    AddNodeToGroup(glist1[dice], p1);
+  }
+  p2 = net2;
+  ResetNetGroup(net2);
+  while ((p2 = p2->next) != NULL) {
+    dice = floor(gsl_rng_uniform(gen) * (double)nnod2);
+    AddNodeToGroup(glist2[dice], p2);
+  }
+
+  /* Get the initial group-to-group links matrix */
+  G1G2 = allocate_i_mat(nnod1, nnod2);
+  G2G1 = allocate_i_mat(nnod2, nnod1);
+  n2gList = allocate_i_vec(max(nnod1, nnod2)); /* This is only used in
+						  subroutines, but
+						  allocated here for
+						  convenience */
+  for (i=0; i<nnod1; i++) {
+    for (j=0; j<nnod2; j++) {
+      G1G2[i][j] = G2G1[j][i] = NG2GLinks(glist1[i], glist2[j]);
+/*       fprintf(stderr, "G1G2[%d][%d]=%d\n", i+1, j+1, G1G2[i][j]); */
+    }
+  }
+
+  /*
+    GET READY FOR THE SAMPLING
+  */
+  H = H2State(part1, part2, ignoreSet, nignore);
+
+  /* Get the decorrelation time */
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "# CALCULATING DECORRELATION TIME\n");
+    fprintf(stderr, "# ------------------------------\n");
+    break;
+  }
+  if (decorStep <= 0) {
+    decorStep = GetDecorrelationStep2State(&H, ignoreSet, nignore,
+					   nlist1, nlist2, glist1, glist2,
+					   part1, part2, nnod1, nnod2,
+					   G1G2, G2G1, n2gList,
+					   LogChooseList, LogChooseListSize,
+					   gen, verbose_sw);
+  }
+
+  /* Thermalization */
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "#\n#\n# THERMALIZING\n");
+    fprintf(stderr, "# ------------\n");
+    break;
+  }
+  ThermalizeMC2State(decorStep, &H,
+		     ignoreSet, nignore, 
+		     nlist1, nlist2, glist1, glist2,
+		     part1, part2, nnod1, nnod2,
+		     G1G2, G2G1, n2gList,
+		     LogChooseList, LogChooseListSize, gen, verbose_sw);
+  
+  /*
+    SAMPLIN' ALONG
+  */
+  switch (verbose_sw) {
+  case 'd':
+    break;
+  default:
+    H = 0; /* Reset the origin of energies to avoid huge exponentials */
+    break;
+  }
+  for (iter=0; iter<nIter; iter++) {
+    MCStep2State(decorStep, &H, ignoreSet, nignore, nlist1, nlist2,
+		 glist1, glist2, part1, part2, nnod1, nnod2,
+		 G1G2, G2G1, n2gList, LogChooseList, LogChooseListSize,
+		 gen);
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    case 'v':
+      fprintf(stderr, "%d %lf\n", iter, H);
+      break;
+    case 'd':
+      fprintf(stderr, "%d %lf %lf\n", iter, H, H2State(part1, part2,
+						       ignoreSet, nignore));
+/*       FPrintPartition(stderr, part1, 0); */
+/*       FPrintPartition(stderr, part2, 0); */
+      break;
+    }
+
+    /* Update partition function */
+    weight = exp(-H);
+    Z += weight;
+
+    /* Update the scores */
+    for (q=0; q<nquery; q++){
+      l = G1G2[querySet[q]->n1->inGroup][querySet[q]->n2->inGroup] - 
+	query_linked[q];
+      r = glist1[querySet[q]->n1->inGroup]->size *
+	glist2[querySet[q]->n2->inGroup]->size - 1;
+      contrib = weight * (float)(l + 1) / (float)(r + 2);
+      score[q] += contrib;
+    }
+
+  }  /* End of iter loop */
+
+  /* Normalize the scores */
+  for (q=0; q<nquery; q++)
+    score[q] /= Z;
+
+  /*   Remap the queries to the original network */
+  FreeLabelDict(dict1);  
+  FreeLabelDict(dict2);  
+  dict1 = MakeLabelDict(ratings->net1);
+  dict2 = MakeLabelDict(ratings->net2);
+  for (q=0; q<nquery; q++) {
+    querySet[q]->n1 = GetNodeDict(querySet[q]->n1->label, dict1);
+    querySet[q]->n2 = GetNodeDict(querySet[q]->n2->label, dict2);
+  }
+  FreeLabelDict(dict1);
+  FreeLabelDict(dict2);
+
+  /* Done */
+  RemovePartition(part1);
+  RemovePartition(part2);
+  free(glist1);
+  free(glist2);
+  free(nlist1);
+  free(nlist2);
+  free_i_mat(G1G2, nnod1);
+  free_i_mat(G2G1, nnod2);
+  free_i_vec(n2gList);
+  FreeFastLogChoose(LogChooseList, LogChooseListSize);
+  free(ignoreSet);
+  for (i=0; i<nunobserved; i++)
+    FreeQuery(unobservedSet[i]);
+  free(unobservedSet);
+  free_i_vec(query_linked);
+  RemoveBipart(binet);
+
   return score;
 }

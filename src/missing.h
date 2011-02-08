@@ -74,6 +74,11 @@ double NetworkScore(struct node_gra *netTar,
 		    char verbose_sw);
 struct node_gra *NetReconstruct(struct node_gra *netObs,
 				gsl_rng *gen);
+struct group **PartitionSampling(struct node_gra *net,
+				 double linC,
+				 int nIter,
+				 gsl_rng *gen,
+				 char verbose_sw);
 
 
 

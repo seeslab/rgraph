@@ -12,6 +12,8 @@
 #include "modules.h"
 #include "bipartite.h"
 
+#define MAX_QUERIES 10000;
+
 /*
   -----------------------------------------------------------------------------
   A structure containing a "query link", i.e. an unobserved link for
@@ -32,6 +34,17 @@ struct query
 */
 struct query *CreateQuery(struct node_gra *node1, struct node_gra *node2);
 void FreeQuery(struct query *q);
+int CountUnobserved(struct binet *ratings);
+struct query **BuildUnobservedSet(struct binet *ratings);
+void RemoveRatings(struct binet *ratings, int r);
+
+/*
+  -----------------------------------------------------------------------------
+  I/O functions
+  -----------------------------------------------------------------------------
+*/
+struct binet *ReadRecommenderObservations(FILE *inFile);
+struct query **ReadQueries(FILE *inFile, int nQueries, struct binet *binet);
 
 /*
   -----------------------------------------------------------------------------
@@ -39,10 +52,10 @@ void FreeQuery(struct query *q);
   -----------------------------------------------------------------------------
 */
 double H2State(struct group *part1, struct group *part2,
-	       struct query **query_list, int nquery);
+	       struct query **ignore_list, int nignore);
 void MCStep2State(int factor,
 		  double *H,
-		  struct query **query_list, int nquery, 
+		  struct query **ignore_list, int nignore, 
 		  struct node_gra **nlist1, struct node_gra **nlist2,
 		  struct group **glist1, struct group **glist2,
 		  struct group *part1, struct group *part2,
@@ -53,7 +66,7 @@ void MCStep2State(int factor,
 		  int LogChooseListSize,
 		  gsl_rng *gen);
 int GetDecorrelationStep2State(double *H,
-			       struct query **query_list, int nquery, 
+			       struct query **ignore_list, int nignore, 
 			       struct node_gra **nlist1,
 			       struct node_gra **nlist2,
 			       struct group **glist1, struct group **glist2,
@@ -67,7 +80,7 @@ int GetDecorrelationStep2State(double *H,
 			       char verbose_sw);
 void ThermalizeMC2State(int decorStep,
 			double *H,
-			struct query **query_list, int nquery, 
+			struct query **ignore_list, int nignore, 
 			struct node_gra **nlist1, struct node_gra **nlist2,
 			struct group **glist1, struct group **glist2,
 			struct group *part1, struct group *part2,
@@ -84,6 +97,13 @@ double LinkScore2State(struct binet *binet,
 		       gsl_rng *gen,
 		       char verbose_sw,
 		       int decorStep);
+int IsQueryInSet(struct query *q, struct query **set, int nset);
+double *MultiLinkScore2State(struct binet *ratings,
+			     struct query **querySet, int nquery,
+			     int nIter,
+			     gsl_rng *gen,
+			     char verbose_sw,
+			     int decorStep);
 
 
 #endif /* !RGRAPH_RECOMMEND_H */

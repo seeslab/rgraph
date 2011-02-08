@@ -1043,3 +1043,135 @@ NetReconstruct(struct node_gra *netObs,
 
   return net;
 }
+
+
+/*
+  ---------------------------------------------------------------------
+  Return all partitions sampled according to the reliability formalism
+  ---------------------------------------------------------------------
+*/
+struct group **
+PartitionSampling(struct node_gra *net,
+		  double linC,
+		  int nIter,
+		  gsl_rng *gen,
+		  char verbose_sw)
+{
+  int nnod=CountNodes(net);
+  struct group *part=NULL;
+  struct node_gra *p=NULL, *node=NULL;
+  struct node_gra **nlist=NULL;
+  struct group **glist=NULL;
+  struct group **partList=NULL;
+  struct group *lastg=NULL;
+  double H;
+  int iter, decorStep;
+  int **G2G=NULL;
+  int *n2gList=NULL;
+  int LogChooseListSize = 500;
+  double **LogChooseList=InitializeFastLogChoose(LogChooseListSize);
+  int dice;
+  int i, j;
+
+  /*
+    PRELIMINARIES
+  */
+  /* Allocate memory for the list of partitions */
+  partList = (struct group **) calloc(nIter, sizeof(struct group *));
+
+  /* Map nodes and groups to a list for faster access */
+  nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
+  glist = (struct group **) calloc(nnod, sizeof(struct group *));
+  lastg = part = CreateHeaderGroup();
+  p = net;
+  while ((p = p->next) != NULL) {
+    nlist[p->num] = p;
+    lastg = glist[p->num] = CreateGroup(lastg, p->num);
+  }
+
+  /* Place nodes in random partitions */
+  p = net;
+  ResetNetGroup(net);
+  while ((p = p->next) != NULL) {
+    dice = floor(gsl_rng_uniform(gen) * (double)nnod);
+    AddNodeToGroup(glist[dice], p);
+  }
+
+  /* Get the initial group-to-group links matrix */
+  G2G = allocate_i_mat(nnod, nnod);
+  n2gList = allocate_i_vec(nnod);
+  for (i=0; i<nnod; i++) {
+    G2G[i][i] = glist[i]->inlinks;
+    for (j=i+1; j<nnod; j++) {
+      G2G[i][j] = G2G[j][i] = NG2GLinks(glist[i], glist[j]);
+    }
+  }
+
+  /*
+    GET READY FOR THE SAMPLING
+  */
+  /* Get the decorrelation time */
+  H = PartitionH(part, linC);
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "# CALCULATING DECORRELATION TIME\n");
+    fprintf(stderr, "# ------------------------------\n");
+    break;
+  }
+  decorStep = GetDecorrelationStep(&H, linC, nlist, glist, part,
+				   nnod, G2G, n2gList,
+				   LogChooseList, LogChooseListSize,
+				   gen, verbose_sw);
+  decorStep *= 100; /* To make sure sampled partitions are decorrelated */
+
+  /* Thermalization */
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "#\n#\n# THERMALIZING\n");
+    fprintf(stderr, "# ------------\n");
+    break;
+  }
+  ThermalizeLinkScoreMC(decorStep, &H, linC, nlist, glist, part,
+			nnod, G2G, n2gList,
+			LogChooseList, LogChooseListSize,
+			gen, verbose_sw);
+  
+  /*
+    SAMPLIN' ALONG
+  */
+  H = 0; /* Reset the origin of energies to avoid huge exponentials */
+  for (iter=0; iter<nIter; iter++) {
+    LinkScoreMCStep(decorStep, &H, linC, nlist, glist, part,
+		    nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
+		    gen);
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    case 'v':
+      fprintf(stderr, "%d %lf\n", iter, H);
+      break;
+    case 'd':
+      fprintf(stderr, "%d %lf %lf\n", iter, H, PartitionH(part, linC));
+      break;
+    }
+
+    /* Save the partition */
+    partList[iter] = CopyPartition(part);
+    MapPartToNet(part, net);
+
+  }  /* End of iter loop */
+
+  /* Done */
+  RemovePartition(part);
+  free(glist);
+  free(nlist);
+  free_i_mat(G2G, nnod);
+  free_i_vec(n2gList);
+  FreeFastLogChoose(LogChooseList, LogChooseListSize);
+  
+  return partList;
+}

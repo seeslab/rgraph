@@ -428,7 +428,7 @@ RemoveGraph(struct node_gra *p)
 // Removes the link between nodes n1 and n2 (and frees the memory). If
 // symmetric_sw != 0, RemoveLink will also remove the link from n2 to
 // n1. CAUTION: RemoveLink will crash if there is no link between n1
-// and n2 (or between n2 and n1 when symmetric_sq != 0).
+// and n2 (or between n2 and n1 when symmetric_sw != 0).
 // ---------------------------------------------------------------------
 void
 RemoveLink(struct node_gra *n1, struct node_gra *n2,

@@ -5,9 +5,13 @@ INCLUDES = -I$(top_builddir) -I$(top_srcdir) \
 	-I$(top_srcdir)/lib -I$(top_srcdir)/src
 AM_LDFLAGS = -static
 
-bin_PROGRAMS = recommend_2
+bin_PROGRAMS = recommend_2 multi_recommend_2
+
 recommend_2_SOURCES = main_recommend_2.c
 recommend_2_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
+
+multi_recommend_2_SOURCES = main_multi_recommend_2.c
+multi_recommend_2_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
 
 #CLEANFILES = modules_bipart.dat
 #EXTRA_DIST = women.dat
