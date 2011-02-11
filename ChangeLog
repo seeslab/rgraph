@@ -1,4 +1,12 @@
 ------------------------------------------------------------------------
+r226 | rguimera | 2011-02-11 13:19:55 +0100 (Fri, 11 Feb 2011) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+   M /trunk/src/recommend.c
+
+Bug fixed in MultiLinkScore2State (scores where not properly calculated).
+
+------------------------------------------------------------------------
 r225 | rguimera | 2011-02-09 10:04:57 +0100 (Wed, 09 Feb 2011) | 2 lines
 Changed paths:
    A /trunk/lib/search.in.h

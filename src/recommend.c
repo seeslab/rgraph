@@ -1063,7 +1063,7 @@ MultiLinkScore2State(struct binet *ratings,
       l = G1G2[querySet[q]->n1->inGroup][querySet[q]->n2->inGroup];
       r = glist1[querySet[q]->n1->inGroup]->size *
 	glist2[querySet[q]->n2->inGroup]->size;
-      /* discount unobserved ignore links */
+      /* discount ignored links (unobserved + queries) */
       for (qq=0; qq<nignore; qq++) {
 	if ((ignoreSet[qq]->n1)->inGroup == querySet[q]->n1->inGroup &&
 	    (ignoreSet[qq]->n2)->inGroup == querySet[q]->n2->inGroup) {
