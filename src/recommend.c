@@ -856,12 +856,9 @@ IsQueryInSet(struct query *q, struct query **set, int nset)
 
 /*
   -----------------------------------------------------------------------------
-  Return the score p(A_ij=1|A^O) of a collection querySet of
-  unobserved links, for a 2-state system. Besides the links in
-  querySet, those in unobservedSet are also unobserved. Links in the
-  bipartite network indicate links with value 1, and non-links in the
-  bipartite network (other than those in the querySet and those in the
-  unobservedSet) indicate links with value 0.
+  Return the score p(A_ij=1|A^O) of a collection {(i,j)} querySet of
+  links, for a 2-state system. The ratings are a bipartite network
+  with links (corresponding to observations) that have values 0 or 1.
 
   CAUTION: NEEDS TESTING!!!
   -----------------------------------------------------------------------------
@@ -895,8 +892,8 @@ MultiLinkScore2State(struct binet *ratings,
   int r, l;
   double mutualInfo;
   struct query **ignoreSet;
-  int nignore, q;
-  int *query_linked;
+  int nignore, q, qq;
+  int *ignore_linked;
   struct query **unobservedSet;
   int nunobserved;
   struct binet *binet=NULL; 
@@ -920,23 +917,27 @@ MultiLinkScore2State(struct binet *ratings,
     querySet[q]->n2 = GetNodeDict(querySet[q]->n2->label, dict2);
   }
 
-
   /* Initialize scores */
   score = allocate_d_vec(nquery);
   for (q=0; q<nquery; q++)
     score[q] = 0.0;
 
-  /* The ignore set (allocate maximum possibly needed space) */
+  /* The ignore set (we allocate the maximum possibly needed space) */
   ignoreSet = (struct query **) calloc(nunobserved + nquery,
 				       sizeof(struct query *));
-  query_linked = allocate_i_vec(nquery);
+  ignore_linked = allocate_i_vec(nunobserved + nquery);
   nignore = 0;
-  for (q=0; q<nunobserved; q++)
-    ignoreSet[nignore++] = unobservedSet[q];
+  for (q=0; q<nunobserved; q++) {
+    ignoreSet[nignore] = unobservedSet[q];
+    ignore_linked[nignore] = 0;
+    nignore++;
+  }
   for (q=0; q<nquery; q++) {
-    if (IsQueryInSet(querySet[q], unobservedSet, nunobserved) == 0)
-      ignoreSet[nignore++] = querySet[q];
-    query_linked[q] = IsThereLink(querySet[q]->n1, querySet[q]->n2);
+    if (IsQueryInSet(querySet[q], unobservedSet, nunobserved) == 0) {
+      ignoreSet[nignore] = querySet[q];
+      ignore_linked[nignore] = IsThereLink(querySet[q]->n1, querySet[q]->n2);
+      nignore++;
+    }
   }
 
   /* Map nodes and groups to a list for faster access */
@@ -1048,8 +1049,8 @@ MultiLinkScore2State(struct binet *ratings,
     case 'd':
       fprintf(stderr, "%d %lf %lf\n", iter, H, H2State(part1, part2,
 						       ignoreSet, nignore));
-/*       FPrintPartition(stderr, part1, 0); */
-/*       FPrintPartition(stderr, part2, 0); */
+      FPrintPartition(stderr, part1, 0);
+      FPrintPartition(stderr, part2, 0);
       break;
     }
 
@@ -1058,13 +1059,22 @@ MultiLinkScore2State(struct binet *ratings,
     Z += weight;
 
     /* Update the scores */
-    for (q=0; q<nquery; q++){
-      l = G1G2[querySet[q]->n1->inGroup][querySet[q]->n2->inGroup] - 
-	query_linked[q];
+    for (q=0; q<nquery; q++) {
+      l = G1G2[querySet[q]->n1->inGroup][querySet[q]->n2->inGroup];
       r = glist1[querySet[q]->n1->inGroup]->size *
-	glist2[querySet[q]->n2->inGroup]->size - 1;
+	glist2[querySet[q]->n2->inGroup]->size;
+      /* discount unobserved ignore links */
+      for (qq=0; qq<nignore; qq++) {
+	if ((ignoreSet[qq]->n1)->inGroup == querySet[q]->n1->inGroup &&
+	    (ignoreSet[qq]->n2)->inGroup == querySet[q]->n2->inGroup) {
+	  r--;
+	  l -= ignore_linked[qq];
+	}
+      }
       contrib = weight * (float)(l + 1) / (float)(r + 2);
       score[q] += contrib;
+/*       fprintf(stderr, "n1=%s n2=%s l=%d r=%d score=%lf\n", */
+/* 	      querySet[q]->n1->label, querySet[q]->n2->label, l, r, score[q]); */
     }
 
   }  /* End of iter loop */
@@ -1100,7 +1110,7 @@ MultiLinkScore2State(struct binet *ratings,
   for (i=0; i<nunobserved; i++)
     FreeQuery(unobservedSet[i]);
   free(unobservedSet);
-  free_i_vec(query_linked);
+  free_i_vec(ignore_linked);
   RemoveBipart(binet);
 
   return score;

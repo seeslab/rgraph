@@ -1,4 +1,56 @@
 ------------------------------------------------------------------------
+r225 | rguimera | 2011-02-09 10:04:57 +0100 (Wed, 09 Feb 2011) | 2 lines
+Changed paths:
+   A /trunk/lib/search.in.h
+
+Added gnulib file required for compilation.
+
+------------------------------------------------------------------------
+r224 | rguimera | 2011-02-08 17:17:17 +0100 (Tue, 08 Feb 2011) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+   M /trunk/Makefile.am
+   A /trunk/arg-nonnull.h
+   A /trunk/c++defs.h
+   M /trunk/configure.in
+   M /trunk/lib/Makefile.am
+   M /trunk/lib/dummy.c
+   D /trunk/lib/search_.h
+   M /trunk/lib/tsearch.c
+   D /trunk/link-warning.h
+   A /trunk/m4/00gnulib.m4
+   D /trunk/m4/absolute-header.m4
+   M /trunk/m4/gnulib-cache.m4
+   M /trunk/m4/gnulib-common.m4
+   M /trunk/m4/gnulib-comp.m4
+   M /trunk/m4/gnulib-tool.m4
+   A /trunk/m4/include_next.m4
+   A /trunk/m4/onceonly.m4
+   D /trunk/m4/onceonly_2_57.m4
+   M /trunk/m4/search_h.m4
+   M /trunk/m4/tsearch.m4
+   A /trunk/m4/warn-on-use.m4
+   A /trunk/warn-on-use.h
+
+gnulib-update to try and compile this crap in windowz.
+
+------------------------------------------------------------------------
+r223 | rguimera | 2011-02-08 15:45:25 +0100 (Tue, 08 Feb 2011) | 3 lines
+Changed paths:
+   M /trunk/recommender/Makefile.am
+   A /trunk/recommender/main_multi_recommend_2.c
+   M /trunk/src/graph.c
+   M /trunk/src/missing.c
+   M /trunk/src/missing.h
+   M /trunk/src/recommend.c
+   M /trunk/src/recommend.h
+   M /trunk/src/tools.c
+   M /trunk/src/tools.h
+
+First compilable version of the 2-state multi-recommender (that is, several recommendations at a time).
+WARNING: NEEDS TESTING SINCE IT MAY BE BUGGY!!!!!!
+
+------------------------------------------------------------------------
 r221 | rguimera | 2010-05-07 14:52:55 +0200 (Fri, 07 May 2010) | 2 lines
 Changed paths:
    M /trunk/configure.in
