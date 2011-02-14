@@ -262,9 +262,11 @@ H2State(struct group *part1, struct group *part2,
   return H;
 }
 
+
 /*
   -----------------------------------------------------------------------------
-  Do a Monte Carlo step for the 2-state recommender system.
+  Do a Monte Carlo step for the 2-state recommender system (faster
+  than earlier versions by calculating rig and lig only twice).
   -----------------------------------------------------------------------------
 */
 void
@@ -292,10 +294,16 @@ MCStep2State(int factor,
   int i, nnod, ngroup;
   int j; 
   int move_in;
+  int **rig, **lig, nn1, nn2;
 
   /* Ratio of moves in each of the sets */
   set_ratio = (double)(nnod1*nnod1-1) / (double)(nnod1*nnod1+nnod2*nnod2-2);
 
+  /* Discounted (unobserved or ignored) links for each group pair */
+  rig = allocate_i_mat(nnod1, nnod2);
+  lig = allocate_i_mat(nnod1, nnod2);
+
+  /* The moves */
   for (move=0; move<(nnod1+nnod2)*factor; move++) {
     /* The move */
     if (gsl_rng_uniform(gen) < set_ratio) { /* move in first set */
@@ -331,40 +339,41 @@ MCStep2State(int factor,
       g = g2 = part1;
     }
 
-    /* The change of energy */
-    /* Old configuration contribution */
+    /* THE CHANGE OF ENERGY */
+    /* OLD CONFIGURATION CONTRIBUTION */
+
+    /* discounted (unobserved or ignored) links for each group pair */
+    for (nn1=0; nn1<nnod1; nn1++)
+      for (nn2=0; nn2<nnod2; nn2++)
+	rig[nn1][nn2] = lig[nn1][nn2] = 0;
+    for (q=0; q<nignore; q++) {
+      rig[ignore_list[q]->n1->inGroup][ignore_list[q]->n2->inGroup] += 1;
+      lig[ignore_list[q]->n1->inGroup][ignore_list[q]->n2->inGroup] +=
+	IsThereLink(ignore_list[q]->n1, ignore_list[q]->n2);
+    }
+    
     dH = 0.0;
     while ((g=g->next) != NULL) {
       if (g->size > 0) {  /* group is not empty */
       	n2gList[g->label] = NLinksToGroup(node, g);
 	/* old configuration, old group */
-	r = oldg->size * g->size;
-	l = (*G2G)[oldgnum][g->label];
-	for (q=0; q<nignore; q++) {
-	  if ((move_in == 1 &&
-	       ignore_list[q]->n1->inGroup == oldg->label &&
-	       ignore_list[q]->n2->inGroup == g->label) ||
-	      (move_in == 2 &&
-	       ignore_list[q]->n1->inGroup == g->label &&
-	       ignore_list[q]->n2->inGroup == oldg->label)) {
-	    r--;
-	    l -= IsThereLink(ignore_list[q]->n1, ignore_list[q]->n2);
-	  }
+	if (move_in == 1) {
+	  r = oldg->size * g->size - rig[oldgnum][g->label];
+	  l = (*G2G)[oldgnum][g->label]  - lig[oldgnum][g->label];
+	}
+	else {
+	  r = oldg->size * g->size - rig[g->label][oldgnum];
+	  l = (*G2G)[oldgnum][g->label]  - lig[g->label][oldgnum];
 	}
 	dH -= log(r + 1) + LogChoose(r, l);
 	/* old configuration, new group */
-	r = newg->size * g->size;
-	l = (*G2G)[newgnum][g->label];
-	for (q=0; q<nignore; q++) {
-	  if ((move_in == 1 &&
-	       ignore_list[q]->n1->inGroup == newg->label &&
-	       ignore_list[q]->n2->inGroup == g->label) ||
-	      (move_in == 2 &&
-	       ignore_list[q]->n1->inGroup == g->label &&
-	       ignore_list[q]->n2->inGroup == newg->label)) {
-	    r--;
-	    l -= IsThereLink(ignore_list[q]->n1, ignore_list[q]->n2);
-	  }
+	if (move_in == 1) {
+	  r = newg->size * g->size - rig[newgnum][g->label];
+	  l = (*G2G)[newgnum][g->label] - lig[newgnum][g->label];
+	}
+	else {
+	  r = newg->size * g->size - rig[g->label][newgnum];
+	  l = (*G2G)[newgnum][g->label] - lig[g->label][newgnum];
 	}
 	dH -= log(r + 1) + LogChoose(r, l);
       }
@@ -382,37 +391,38 @@ MCStep2State(int factor,
       (*G2Ginv)[i][newgnum] += n2gList[i];
     }
 
-    /* New configuration contribution */
+    /* NEW CONFIGURATION CONTRIBUTION */
+
+    /* discounted (unobserved or ignored) links for each group pair */
+    for (nn1=0; nn1<nnod1; nn1++)
+      for (nn2=0; nn2<nnod2; nn2++)
+	rig[nn1][nn2] = lig[nn1][nn2] = 0;
+    for (q=0; q<nignore; q++) {
+      rig[ignore_list[q]->n1->inGroup][ignore_list[q]->n2->inGroup] += 1;
+      lig[ignore_list[q]->n1->inGroup][ignore_list[q]->n2->inGroup] +=
+	IsThereLink(ignore_list[q]->n1, ignore_list[q]->n2);
+    }
+
     while ((g2=g2->next) != NULL) {
       if (g2->size > 0) {  /* group is not empty */
 	/* new configuration, old group */
-	r = oldg->size * g2->size;
-	l = (*G2G)[oldgnum][g2->label];
-	for (q=0; q<nignore; q++) {
-	  if ((move_in == 1 &&
-	       ignore_list[q]->n1->inGroup == oldg->label &&
-	       ignore_list[q]->n2->inGroup == g2->label) ||
-	      (move_in == 2 &&
-	       ignore_list[q]->n1->inGroup == g2->label &&
-	       ignore_list[q]->n2->inGroup == oldg->label)) {
-	    r--;
-	    l -= IsThereLink(ignore_list[q]->n1, ignore_list[q]->n2);
-	  }
+	if (move_in == 1) {
+	  r = oldg->size * g2->size - rig[oldgnum][g2->label];
+	  l = (*G2G)[oldgnum][g2->label]  - lig[oldgnum][g2->label];
+	}
+	else {
+	  r = oldg->size * g2->size - rig[g2->label][oldgnum];
+	  l = (*G2G)[oldgnum][g2->label]  - lig[g2->label][oldgnum];
 	}
 	dH += log(r + 1) + LogChoose(r, l);
 	/* new configuration, new group */
-	r = newg->size * g2->size;
-	l = (*G2G)[newgnum][g2->label];
-	for (q=0; q<nignore; q++) {
-	  if ((move_in == 1 &&
-	       ignore_list[q]->n1->inGroup == newg->label &&
-	       ignore_list[q]->n2->inGroup == g2->label) ||
-	      (move_in == 2 &&
-	       ignore_list[q]->n1->inGroup == g2->label &&
-	       ignore_list[q]->n2->inGroup == newg->label)) {
-	    r--;
-	    l -= IsThereLink(ignore_list[q]->n1, ignore_list[q]->n2);
-	  }
+	if (move_in == 1) {
+	  r = newg->size * g2->size - rig[newgnum][g2->label];
+	  l = (*G2G)[newgnum][g2->label]  - lig[newgnum][g2->label];
+	}
+	else {
+	  r = newg->size * g2->size - rig[g2->label][newgnum];
+	  l = (*G2G)[newgnum][g2->label]  - lig[g2->label][newgnum];
 	}
 	dH += log(r + 1) + LogChoose(r, l);
       }
@@ -435,6 +445,8 @@ MCStep2State(int factor,
     }
   } /* Moves completed: done! */
 
+  free_i_mat(rig, nnod1);
+  free_i_mat(lig, nnod1);
   return;
 }
 
@@ -489,6 +501,7 @@ GetDecorrelationStep2State(double *H,
     part1Ref = CopyPartition(part1);
     part2Ref = CopyPartition(part2);
     for (step=0; step<=x2; step++) {
+      fprintf(stderr, "# %d / %d\n", step, x2);
       MCStep2State(1, H, ignore_list, nignore, nlist1, nlist2,
 		   glist1, glist2, part1, part2, nnod1, nnod2,
 		   G1G2, G2G1, n2gList, LogChooseList, LogChooseListSize,
