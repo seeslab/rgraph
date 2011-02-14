@@ -147,7 +147,9 @@ ReadRecommenderObservations(FILE *inFile)
   p2 m3
   ...
 
-  representing the pairs (person, movie) that we want to predict.
+  representing the pairs (person, movie) that we want to predict. If a
+  node in a query is missing from the bipartite ratings network, it is
+  added with no links.
   
   -----------------------------------------------------------------------------
 */
@@ -158,7 +160,8 @@ ReadQueries(FILE *inFile, int nQueries, struct binet *binet)
   char node1[MAX_LABEL_LENGTH], node2[MAX_LABEL_LENGTH];
   struct query **querySet;
   struct query *q=NULL;
-  int nq=0;
+  int nq;
+  struct node_gra *n1=NULL, *n2=NULL;
 
   /* Create the search dictionaries */
   dict1 = MakeLabelDict(binet->net1);
@@ -170,14 +173,27 @@ ReadQueries(FILE *inFile, int nQueries, struct binet *binet)
   /* Go through the file and create the queries */
   for (nq=0; nq<nQueries; nq++) {
     fscanf(inFile, "%s %s\n", &node1[0], &node2[0]);
-    GetNodeDict(node1, dict1);
-    q = CreateQuery(GetNodeDict(node1, dict1), GetNodeDict(node2, dict2));
-    if (IsQueryInSet(q, querySet, nq) == 0) {
-      querySet[nq] = q;
+    n1 = GetNodeDict(node1, dict1);
+    /* add to binet if absent */
+    if (n1 == NULL) {
+      n1 = CreateNodeGraph(binet->net1, node1);
+      fprintf(stderr,
+	      "WARNING! query node %s in net1 was never observed: adding!\n",
+	      n1->label);
+      FreeLabelDict(dict1);
+      dict1 = MakeLabelDict(binet->net1);
     }
-    else {
-      FreeQuery(q);
+    n2 = GetNodeDict(node2, dict2);
+    /* add to binet if absent */
+    if (n2 == NULL) {
+      n2 = CreateNodeGraph(binet->net2, node2);
+      fprintf(stderr,
+	      "WARNING! query node %s in net2 was never observed: adding!\n",
+	      n2->label);
+      FreeLabelDict(dict2);
+      dict2 = MakeLabelDict(binet->net2);
     }
+    querySet[nq] = CreateQuery(n1, n2);
   }
 
   /* Free memory */
@@ -859,8 +875,6 @@ IsQueryInSet(struct query *q, struct query **set, int nset)
   Return the score p(A_ij=1|A^O) of a collection {(i,j)} querySet of
   links, for a 2-state system. The ratings are a bipartite network
   with links (corresponding to observations) that have values 0 or 1.
-
-  CAUTION: NEEDS TESTING!!!
   -----------------------------------------------------------------------------
 */
 double *
@@ -903,11 +917,13 @@ MultiLinkScore2State(struct binet *ratings,
     PRELIMINARIES
   */
   /* Build the set of unobserved pairs */
+  fprintf(stderr, ">> Building the set of unobserved pairs...\n");
   nunobserved = CountUnobserved(ratings);
   unobservedSet = BuildUnobservedSet(ratings);
 
   /* Create a network containing only 1-ratings (that is, without the
      0 ratings), and MAP THE QUERYSET TO THE NEW NETWORK */
+  fprintf(stderr, ">> Creating execution binet...\n");
   binet = CopyBipart(ratings);
   RemoveRatings(binet, 0);
   dict1 = MakeLabelDict(binet->net1);
@@ -923,6 +939,7 @@ MultiLinkScore2State(struct binet *ratings,
     score[q] = 0.0;
 
   /* The ignore set (we allocate the maximum possibly needed space) */
+  fprintf(stderr, ">> Building the ignored set...\n");
   ignoreSet = (struct query **) calloc(nunobserved + nquery,
 				       sizeof(struct query *));
   ignore_linked = allocate_i_vec(nunobserved + nquery);
@@ -941,6 +958,7 @@ MultiLinkScore2State(struct binet *ratings,
   }
 
   /* Map nodes and groups to a list for faster access */
+  fprintf(stderr, ">> Mapping nodes and groups to lists...\n");
   nlist1 = (struct node_gra **) calloc(nnod1, sizeof(struct node_gra *));
   glist1 = (struct group **) calloc(nnod1, sizeof(struct group *));
   lastg = part1 = CreateHeaderGroup();
@@ -958,7 +976,8 @@ MultiLinkScore2State(struct binet *ratings,
     lastg = glist2[p2->num] = CreateGroup(lastg, p2->num);
   }
 
- /* Place nodes in random partitions */
+  /* Place nodes in random partitions */
+  fprintf(stderr, ">> Placing nodes in random partitions...\n");
   p1 = net1;
   ResetNetGroup(net1);
   while ((p1 = p1->next) != NULL) {
@@ -973,6 +992,7 @@ MultiLinkScore2State(struct binet *ratings,
   }
 
   /* Get the initial group-to-group links matrix */
+  fprintf(stderr, ">> Getting the initial group-to-group links matrix...\n");
   G1G2 = allocate_i_mat(nnod1, nnod2);
   G2G1 = allocate_i_mat(nnod2, nnod1);
   n2gList = allocate_i_vec(max(nnod1, nnod2)); /* This is only used in
@@ -989,6 +1009,7 @@ MultiLinkScore2State(struct binet *ratings,
   /*
     GET READY FOR THE SAMPLING
   */
+  fprintf(stderr, ">> Getting the initial energy (nignore=%d)...\n", nignore);
   H = H2State(part1, part2, ignoreSet, nignore);
 
   /* Get the decorrelation time */

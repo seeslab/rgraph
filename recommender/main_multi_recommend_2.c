@@ -49,6 +49,7 @@ main(int argc, char **argv)
 
   /* Get the number of queries and build the query set */
   nquery = CountLinesInFile(queFile);
+  fprintf(stderr, ">> %d queries\n", nquery);
   infile = fopen(queFile, "r");
   queries = ReadQueries(infile, nquery, ratings);
   fclose(infile);
