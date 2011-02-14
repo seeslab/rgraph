@@ -225,30 +225,40 @@ H2State(struct group *part1, struct group *part2,
   struct group *g1=NULL, *g2=NULL;
   double r, l, H=0.0;
   int q;
-
+  int n1=NGroups(part1), n2=NGroups(part2), nn1, nn2;
+  int **rig=NULL, **lig=NULL;
+  
+  /* Discounted (unobserved or ignored) links for each group pair */
+  rig = allocate_i_mat(n1, n2);
+  lig = allocate_i_mat(n1, n2);
+  for (nn1=0; nn1<n1; nn1++) {
+    for (nn2=0; nn2<n2; nn2++) {
+      rig[nn1][nn2] = lig[nn1][nn2] = 0;
+    }
+  }
+  for (q=0; q<nignore; q++) {
+    rig[ignore_list[q]->n1->inGroup][ignore_list[q]->n2->inGroup] += 1;
+    lig[ignore_list[q]->n1->inGroup][ignore_list[q]->n2->inGroup] +=
+      IsThereLink(ignore_list[q]->n1, ignore_list[q]->n2);
+  }
+  
   g1 = part1;
   while ((g1 = g1->next) != NULL) {
     if (g1->size > 0) {
       g2 = part2;
       while ((g2 = g2->next) != NULL) {
 	if (g2->size > 0) {
-	  r = g1->size * g2->size;
-	  l = NG2GLinks(g1, g2);
-	  /* Discount unobserved ignore links */
-	  for (q=0; q<nignore; q++) {
-	    if ((ignore_list[q]->n1)->inGroup == g1->label &&
-		(ignore_list[q]->n2)->inGroup == g2->label) {
-	      r--;
-	      l -= IsThereLink(ignore_list[q]->n1, ignore_list[q]->n2);
-	    }
-	  }
-/* 	  fprintf(stderr, "%d-%d: %g/%g\n", g1->label+1, g2->label+1, l, r); */
+	  r = g1->size * g2->size - rig[g1->label][g2->label];
+	  l = NG2GLinks(g1, g2) - lig[g1->label][g2->label];
 	  H += log(r + 1) + LogChoose(r, l);
 	}
       }
     }
   }
 
+  /* Free memory and return */
+  free_i_mat(rig, n1);
+  free_i_mat(lig, n1);
   return H;
 }
 
@@ -485,7 +495,7 @@ GetDecorrelationStep2State(double *H,
 		   gen);
       if (step == x1)
 	y11 = MutualInformation(part1Ref, part1);
-	y12 = MutualInformation(part2Ref, part2);
+      y12 = MutualInformation(part2Ref, part2);
     }
     y21 = MutualInformation(part1Ref, part1);
     y22 = MutualInformation(part2Ref, part2);
@@ -886,6 +896,7 @@ MultiLinkScore2State(struct binet *ratings,
 		     int decorStep)
 {
   int nnod1=CountNodes(ratings->net1), nnod2=CountNodes(ratings->net2);
+  int nn1, nn2;
   struct node_gra *net1=NULL, *net2=NULL;
   struct group *part1=NULL, *part2=NULL;
   struct node_gra *p1=NULL, *p2=NULL, *node=NULL;
@@ -912,7 +923,8 @@ MultiLinkScore2State(struct binet *ratings,
   int nunobserved;
   struct binet *binet=NULL; 
   void *dict1=NULL, *dict2=NULL;
-
+  int **rig=NULL, **lig=NULL;
+  
   /*
     PRELIMINARIES
   */
@@ -922,7 +934,8 @@ MultiLinkScore2State(struct binet *ratings,
   unobservedSet = BuildUnobservedSet(ratings);
 
   /* Create a network containing only 1-ratings (that is, without the
-     0 ratings), and MAP THE QUERYSET TO THE NEW NETWORK */
+     0 ratings), and MAP THE QUERYSET AND THE UNOBSERVEDSET TO THE NEW
+     NETWORK */
   fprintf(stderr, ">> Creating execution binet...\n");
   binet = CopyBipart(ratings);
   RemoveRatings(binet, 0);
@@ -931,6 +944,10 @@ MultiLinkScore2State(struct binet *ratings,
   for (q=0; q<nquery; q++) {
     querySet[q]->n1 = GetNodeDict(querySet[q]->n1->label, dict1);
     querySet[q]->n2 = GetNodeDict(querySet[q]->n2->label, dict2);
+  }
+  for (q=0; q<nunobserved; q++) {
+    unobservedSet[q]->n1 = GetNodeDict(unobservedSet[q]->n1->label, dict1);
+    unobservedSet[q]->n2 = GetNodeDict(unobservedSet[q]->n2->label, dict2);
   }
 
   /* Initialize scores */
@@ -1006,6 +1023,10 @@ MultiLinkScore2State(struct binet *ratings,
     }
   }
 
+  /* Discounted (unobserved or ignored) links for each group pair */
+  rig = allocate_i_mat(nnod1, nnod2);
+  lig = allocate_i_mat(nnod1, nnod2);
+
   /*
     GET READY FOR THE SAMPLING
   */
@@ -1080,22 +1101,24 @@ MultiLinkScore2State(struct binet *ratings,
     Z += weight;
 
     /* Update the scores */
-    for (q=0; q<nquery; q++) {
-      l = G1G2[querySet[q]->n1->inGroup][querySet[q]->n2->inGroup];
-      r = glist1[querySet[q]->n1->inGroup]->size *
-	glist2[querySet[q]->n2->inGroup]->size;
-      /* discount ignored links (unobserved + queries) */
-      for (qq=0; qq<nignore; qq++) {
-	if ((ignoreSet[qq]->n1)->inGroup == querySet[q]->n1->inGroup &&
-	    (ignoreSet[qq]->n2)->inGroup == querySet[q]->n2->inGroup) {
-	  r--;
-	  l -= ignore_linked[qq];
-	}
+    for (nn1=0; nn1<nnod1; nn1++) {
+      for (nn2=0; nn2<nnod2; nn2++) {
+	rig[nn1][nn2] = lig[nn1][nn2] = 0;
       }
+    }
+    for (q=0; q<nignore; q++) {
+      rig[ignoreSet[q]->n1->inGroup][ignoreSet[q]->n2->inGroup] += 1;
+      lig[ignoreSet[q]->n1->inGroup][ignoreSet[q]->n2->inGroup] +=
+	IsThereLink(ignoreSet[q]->n1, ignoreSet[q]->n2);
+    }
+    for (q=0; q<nquery; q++) {
+      l = G1G2[querySet[q]->n1->inGroup][querySet[q]->n2->inGroup] -
+	lig[querySet[q]->n1->inGroup][querySet[q]->n2->inGroup];
+      r = glist1[querySet[q]->n1->inGroup]->size *
+	glist2[querySet[q]->n2->inGroup]->size -
+	rig[querySet[q]->n1->inGroup][querySet[q]->n2->inGroup];
       contrib = weight * (float)(l + 1) / (float)(r + 2);
       score[q] += contrib;
-/*       fprintf(stderr, "n1=%s n2=%s l=%d r=%d score=%lf\n", */
-/* 	      querySet[q]->n1->label, querySet[q]->n2->label, l, r, score[q]); */
     }
 
   }  /* End of iter loop */
@@ -1125,6 +1148,8 @@ MultiLinkScore2State(struct binet *ratings,
   free(nlist2);
   free_i_mat(G1G2, nnod1);
   free_i_mat(G2G1, nnod2);
+  free_i_mat(rig, n1);
+  free_i_mat(lig, n1);
   free_i_vec(n2gList);
   FreeFastLogChoose(LogChooseList, LogChooseListSize);
   free(ignoreSet);
