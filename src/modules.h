@@ -88,9 +88,11 @@ double **BlockModel(struct group *part,
 		    char type_sw,
 		    int list_sw);
 int NLinksToGroup(struct node_gra* node, struct group *g);
+int NWeightLinksToGroup(struct node_gra* node, struct group *g, double w);
 int NLinksToGroupByNum(struct node_gra* node, int gLabel);
 double StrengthToGroup(struct node_gra* node, struct group *g);
 int NG2GLinks(struct group *g1, struct group *g2);
+int NWeightG2GLinks(struct group *g1, struct group *g2, double w);
 double NG2GLinksWeight(struct group *g1, struct group *g2);
 void MergeGroups(struct group *g1, struct group *g2);
 struct group *CopyGroup(struct group *copy_root, struct group *g);

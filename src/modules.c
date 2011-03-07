@@ -703,6 +703,25 @@ NLinksToGroup(struct node_gra* node, struct group *g)
 
 /*
   ---------------------------------------------------------------------
+  Count the number of links *with a certain weight* from a node to a
+  given group
+  ---------------------------------------------------------------------
+*/
+int
+NWeightLinksToGroup(struct node_gra* node, struct group *g, double w)
+{
+  struct node_lis *nei = node->neig;
+  int inlink = 0;
+
+  while ((nei = nei->next) != NULL)
+    if (nei->weight == w && (nei->ref)->inGroup == g->label)
+      inlink++;
+
+  return inlink;
+}
+
+/*
+  ---------------------------------------------------------------------
   Count the number of links from a node to a given group, based on the
   label of the group only
   ---------------------------------------------------------------------
@@ -751,6 +770,27 @@ NG2GLinks(struct group *g1, struct group *g2)
 
   while ((p = p->next) != NULL)
     nlink += NLinksToGroup(p->ref, g2);
+ 
+  if (g1 == g2)
+    return nlink / 2;
+  else
+    return nlink;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Count the number of links with a certain weight between a pair of
+  groups
+  ---------------------------------------------------------------------
+*/
+int
+NWeightG2GLinks(struct group *g1, struct group *g2, double w)
+{
+  struct node_lis *p = g1->nodeList;
+  int nlink = 0;
+
+  while ((p = p->next) != NULL)
+    nlink += NWeightLinksToGroup(p->ref, g2, w);
  
   if (g1 == g2)
     return nlink / 2;

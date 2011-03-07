@@ -265,6 +265,42 @@ H2State(struct group *part1, struct group *part2,
 
 /*
   -----------------------------------------------------------------------------
+  Hamiltoninan H for 2-state recommender. The part1 and part2
+  partitions must be mapped onto a bipartite network whose links
+  represent observed ratings. The weight of the link represents the
+  rating. CAUTION!! ALL LINKS IN THE RATINGS BIPARTITE NETWORK ARE
+  CONSIDERED OBSERVED--IF SOME ARE IN THE QUERY SET, THEY SHOULD BE
+  REMOVED BEFORE GETTING HERE!!!
+  -----------------------------------------------------------------------------
+*/
+double
+H2StateFast(struct group *part1, struct group *part2)
+{
+  struct group *g1=NULL, *g2=NULL;
+  double r, l, H=0.0;
+
+  /* Go through all group pairs */
+  g1 = part1;
+  while ((g1 = g1->next) != NULL) {
+    if (g1->size > 0) {
+      g2 = part2;
+      while ((g2 = g2->next) != NULL) {
+	if (g2->size > 0) {
+	  r = NG2GLinks(g1, g2);  /* The total number of observations */
+	  l = NWeightG2GLinks(g1, g2, (double)1);  /* The 1s */
+	  H += log(r + 1) + LogChoose(r, l);
+	}
+      }
+    }
+  }
+
+  /* Done */
+  return H;
+}
+
+
+/*
+  -----------------------------------------------------------------------------
   Do a Monte Carlo step for the 2-state recommender system (faster
   than earlier versions by calculating rig and lig only twice).
   -----------------------------------------------------------------------------
