@@ -572,11 +572,15 @@ MCStep2StateFast(int factor,
 	/* old configuration, old group */
 	r = (*G2G_0)[oldgnum][g->label] + (*G2G_1)[oldgnum][g->label];
 	l = (*G2G_1)[oldgnum][g->label];
-	dH -= log(r + 1) + LogChoose(r, l);
+	dH -= log(r + 1) + FastLogChoose(r, l,
+					 LogChooseList, LogChooseListSize);
+/* 	dH -= log(r + 1) + LogChoose(r, l); */
 	/* old configuration, new group */
 	r = (*G2G_0)[newgnum][g->label] + (*G2G_1)[newgnum][g->label];
 	l = (*G2G_1)[newgnum][g->label];
-	dH -= log(r + 1) + LogChoose(r, l);
+	dH -= log(r + 1) + FastLogChoose(r, l,
+					 LogChooseList, LogChooseListSize);
+/* 	dH -= log(r + 1) + LogChoose(r, l); */
       }
       else { /* group is empty */
 	n2gList_0[g->label] = n2gList_1[g->label] = 0;
@@ -603,11 +607,15 @@ MCStep2StateFast(int factor,
 	/* new configuration, old group */
 	r = (*G2G_0)[oldgnum][g2->label] + (*G2G_1)[oldgnum][g2->label];
 	l = (*G2G_1)[oldgnum][g2->label];
-	dH += log(r + 1) + LogChoose(r, l);
+	dH += log(r + 1) + FastLogChoose(r, l,
+				     LogChooseList, LogChooseListSize);
+/* 	dH += log(r + 1) + LogChoose(r, l); */
 	/* new configuration, new group */
 	r = (*G2G_0)[newgnum][g2->label] + (*G2G_1)[newgnum][g2->label];
 	l = (*G2G_1)[newgnum][g2->label];
-	dH += log(r + 1) + LogChoose(r, l);
+	dH += log(r + 1) + FastLogChoose(r, l,
+					 LogChooseList, LogChooseListSize);
+/* 	dH += log(r + 1) + LogChoose(r, l); */
       }
     }
     

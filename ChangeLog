@@ -1,4 +1,35 @@
 ------------------------------------------------------------------------
+r230 | rguimera | 2011-02-14 16:29:35 +0100 (Mon, 14 Feb 2011) | 2 lines
+Changed paths:
+   M /trunk/src/recommend.c
+
+A slightly faster version of multi-recommend. Still needs to be faster, probably by passing the matrix of ignored values of r and l, the same way that G2G is passed...
+
+------------------------------------------------------------------------
+r229 | rguimera | 2011-02-14 13:50:16 +0100 (Mon, 14 Feb 2011) | 2 lines
+Changed paths:
+   M /trunk/recommender/main_multi_recommend_2.c
+   M /trunk/src/recommend.c
+
+New version of multi-recommender. Some issues fixed, but needs to be MUCH faster...
+
+------------------------------------------------------------------------
+r228 | rguimera | 2011-02-11 13:42:23 +0100 (Fri, 11 Feb 2011) | 2 lines
+Changed paths:
+   M /trunk/README
+
+Trying to get LastChangedDate to work.
+
+------------------------------------------------------------------------
+r227 | rguimera | 2011-02-11 13:41:24 +0100 (Fri, 11 Feb 2011) | 2 lines
+Changed paths:
+   M /trunk/ChangeLog
+   M /trunk/README
+   M /trunk/src/recommend.c
+
+Minor changes.
+
+------------------------------------------------------------------------
 r226 | rguimera | 2011-02-11 13:19:55 +0100 (Fri, 11 Feb 2011) | 2 lines
 Changed paths:
    M /trunk/ChangeLog

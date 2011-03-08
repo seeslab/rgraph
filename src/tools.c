@@ -385,6 +385,7 @@ FreeFastLogChoose(double **LogChooseList, int LogChooseListSize)
 double
 FastLogChoose(int r, int l, double **LogChooseList, int LogChooseListSize)
 {
+/*   fprintf(stderr, "Using fast logchoose\n"); */
   if (r < LogChooseListSize) {
     if (LogChooseList[r][l] < 0.) {
       LogChooseList[r][l] = LogChoose(r, l);
