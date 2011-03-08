@@ -2,7 +2,7 @@
   -----------------------------------------------------------------------------
   Use:
 
-  recommend_2.out network_file_name query_file_name seed
+  multi_recommend_2.out ratings_file_name query_file_name seed
 
   seed is an integer, used to get the random number generator started
   -----------------------------------------------------------------------------
@@ -55,9 +55,9 @@ main(int argc, char **argv)
   fclose(infile);
 
   /* Get the scores of the queries and print them */
-  scores = MultiLinkScore2State(ratings,
-				queries, nquery,
-				10000, rand_gen, 'v', -1);
+  scores = MultiLinkScore2StateFast(ratings,
+				    queries, nquery,
+				    10000, rand_gen, 'v', -1);
   fprintf(stdout, "\n\n>>> RESULTS\n\n");
   for (q=0; q<nquery; q++) {
     fprintf(stdout, "%s %s %lf\n",

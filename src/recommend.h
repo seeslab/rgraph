@@ -106,4 +106,51 @@ double *MultiLinkScore2State(struct binet *ratings,
 			     int decorStep);
 
 
+double H2StateFast(struct group *part1, struct group *part2);
+void MCStep2StateFast(int factor,
+		      double *H,
+		      struct node_gra **nlist1, struct node_gra **nlist2,
+		      struct group **glist1, struct group **glist2,
+		      struct group *part1, struct group *part2,
+		      int nnod1, int nnod2,
+		      int **G1G2_0, int **G2G1_0,
+		      int **G1G2_1, int **G2G1_1,
+		      int *n2gList_0, int *n2gList_1,
+		      double **LogChooseList,
+		      int LogChooseListSize,
+		      gsl_rng *gen);
+int GetDecorrelationStep2StateFast(double *H,
+				   struct node_gra **nlist1,
+				   struct node_gra **nlist2,
+				   struct group **glist1, struct group **glist2,
+				   struct group *part1, struct group *part2,
+				   int nnod1, int nnod2,
+				   int **G1G2_0, int **G2G1_0,
+				   int **G1G2_1, int **G2G1_1,
+				   int *n2gList_0, int *n2gList_1,
+				   double **LogChooseList,
+				   int LogChooseListSize,
+				   gsl_rng *gen,
+				   char verbose_sw);
+void ThermalizeMC2StateFast(int decorStep,
+			    double *H,
+			    struct node_gra **nlist1, struct node_gra **nlist2,
+			    struct group **glist1, struct group **glist2,
+			    struct group *part1, struct group *part2,
+			    int nnod1, int nnod2,
+			    int **G1G2_0, int **G2G1_0,
+			    int **G1G2_1, int **G2G1_1,
+			    int *n2gList_0, int *n2gList_1,
+			    double **LogChooseList,
+			    int LogChooseListSize,
+			    gsl_rng *gen,
+			char verbose_sw);
+double *MultiLinkScore2StateFast(struct binet *ratings,
+				 struct query **querySet, int nquery,
+				 int nIter,
+				 gsl_rng *gen,
+				 char verbose_sw,
+				 int decorStep);
+
+
 #endif /* !RGRAPH_RECOMMEND_H */
