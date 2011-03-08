@@ -688,7 +688,13 @@ GetDecorrelationStep2State(double *H,
     part1Ref = CopyPartition(part1);
     part2Ref = CopyPartition(part2);
     for (step=0; step<=x2; step++) {
-      fprintf(stderr, "# %d / %d\n", step, x2);
+      switch (verbose_sw) {
+      case 'd':
+	fprintf(stderr, "# %d / %d\n", step, x2);
+	break;
+      default:
+	break;
+      }
       MCStep2State(1, H, ignore_list, nignore, nlist1, nlist2,
 		   glist1, glist2, part1, part2, nnod1, nnod2,
 		   G1G2, G2G1, n2gList, LogChooseList, LogChooseListSize,
@@ -841,7 +847,13 @@ GetDecorrelationStep2StateFast(double *H,
     part1Ref = CopyPartition(part1);
     part2Ref = CopyPartition(part2);
     for (step=0; step<=x2; step++) {
-      fprintf(stderr, "# %d / %d\n", step, x2);
+      switch (verbose_sw) {
+      case 'd':
+	fprintf(stderr, "# %d / %d\n", step, x2);
+	break;
+      default:
+	break;
+      }
       MCStep2StateFast(1, H, nlist1, nlist2,
 		       glist1, glist2, part1, part2, nnod1, nnod2,
 		       G1G2_0, G2G1_0, G1G2_1, G2G1_1,
