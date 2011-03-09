@@ -502,6 +502,8 @@ MCStep2StateFast(int factor,
 		 int nnod1, int nnod2,
 		 int **G1G2_0, int **G2G1_0, int **G1G2_1, int **G2G1_1,
 		 int *n2gList_0, int *n2gList_1,
+		 double *LogList,
+		 int LogListSize,
 		 double **LogChooseList,
 		 int LogChooseListSize,
 		 gsl_rng *gen)
@@ -572,14 +574,14 @@ MCStep2StateFast(int factor,
 	/* old configuration, old group */
 	r = (*G2G_0)[oldgnum][g->label] + (*G2G_1)[oldgnum][g->label];
 	l = (*G2G_1)[oldgnum][g->label];
-	dH -= log(r + 1) + FastLogChoose(r, l,
-					 LogChooseList, LogChooseListSize);
+	dH -= FastLog(r + 1, LogList, LogListSize) +
+	  FastLogChoose(r, l, LogChooseList, LogChooseListSize);
 /* 	dH -= log(r + 1) + LogChoose(r, l); */
 	/* old configuration, new group */
 	r = (*G2G_0)[newgnum][g->label] + (*G2G_1)[newgnum][g->label];
 	l = (*G2G_1)[newgnum][g->label];
-	dH -= log(r + 1) + FastLogChoose(r, l,
-					 LogChooseList, LogChooseListSize);
+	dH -= FastLog(r + 1, LogList, LogListSize) + 
+	  FastLogChoose(r, l, LogChooseList, LogChooseListSize);
 /* 	dH -= log(r + 1) + LogChoose(r, l); */
       }
       else { /* group is empty */
@@ -607,14 +609,14 @@ MCStep2StateFast(int factor,
 	/* new configuration, old group */
 	r = (*G2G_0)[oldgnum][g2->label] + (*G2G_1)[oldgnum][g2->label];
 	l = (*G2G_1)[oldgnum][g2->label];
-	dH += log(r + 1) + FastLogChoose(r, l,
-				     LogChooseList, LogChooseListSize);
+	dH += FastLog(r + 1, LogList, LogListSize) + 
+	  FastLogChoose(r, l, LogChooseList, LogChooseListSize);
 /* 	dH += log(r + 1) + LogChoose(r, l); */
 	/* new configuration, new group */
 	r = (*G2G_0)[newgnum][g2->label] + (*G2G_1)[newgnum][g2->label];
 	l = (*G2G_1)[newgnum][g2->label];
-	dH += log(r + 1) + FastLogChoose(r, l,
-					 LogChooseList, LogChooseListSize);
+	dH += FastLog(r + 1, LogList, LogListSize) + 
+	  FastLogChoose(r, l, LogChooseList, LogChooseListSize);
 /* 	dH += log(r + 1) + LogChoose(r, l); */
       }
     }
@@ -821,6 +823,8 @@ GetDecorrelationStep2StateFast(double *H,
 			       int **G1G2_0, int **G2G1_0,
 			       int **G1G2_1, int **G2G1_1,
 			       int *n2gList_0, int *n2gList_1,
+			       double *LogList,
+			       int LogListSize,
 			       double **LogChooseList,
 			       int LogChooseListSize,
 			       gsl_rng *gen,
@@ -866,6 +870,7 @@ GetDecorrelationStep2StateFast(double *H,
 		       glist1, glist2, part1, part2, nnod1, nnod2,
 		       G1G2_0, G2G1_0, G1G2_1, G2G1_1,
 		       n2gList_0, n2gList_1,
+		       LogList, LogListSize,
 		       LogChooseList, LogChooseListSize,
 		       gen);
       if (step == x1)
@@ -1061,6 +1066,8 @@ ThermalizeMC2StateFast(int decorStep,
 		       int **G1G2_0, int **G2G1_0,
 		       int **G1G2_1, int **G2G1_1,
 		       int *n2gList_0, int *n2gList_1,
+		       double *LogList,
+		       int LogListSize,
 		       double **LogChooseList,
 		       int LogChooseListSize,
 		       gsl_rng *gen,
@@ -1079,6 +1086,7 @@ ThermalizeMC2StateFast(int decorStep,
       MCStep2StateFast(decorStep, H, nlist1, nlist2,
 		       glist1, glist2, part1, part2, nnod1, nnod2,
 		       G1G2_0, G2G1_0, G1G2_1, G2G1_1, n2gList_0, n2gList_1,
+		       LogList, LogListSize,
 		       LogChooseList, LogChooseListSize,
 		       gen);
       switch (verbose_sw) {
@@ -1654,6 +1662,8 @@ MultiLinkScore2StateFast(struct binet *ratings,
   int *n2gList_1=NULL;
   int LogChooseListSize = 500;
   double **LogChooseList=InitializeFastLogChoose(LogChooseListSize);
+  int LogListSize = 5000;
+  double *LogList=InitializeFastLog(LogListSize);
   struct node_lis *n1=NULL, *n2=NULL;
   double weight, contrib;
   int dice;
@@ -1761,6 +1771,7 @@ MultiLinkScore2StateFast(struct binet *ratings,
 					       part1, part2, nnod1, nnod2,
 					       G1G2_0, G2G1_0, G1G2_1, G2G1_1,
 					       n2gList_0, n2gList_1,
+					       LogList, LogListSize,
 					       LogChooseList, LogChooseListSize,
 					       gen, verbose_sw);
   }
@@ -1778,7 +1789,9 @@ MultiLinkScore2StateFast(struct binet *ratings,
 			 nlist1, nlist2, glist1, glist2,
 			 part1, part2, nnod1, nnod2,
 			 G1G2_0, G2G1_0, G1G2_1, G2G1_1, n2gList_0, n2gList_1,
-			 LogChooseList, LogChooseListSize, gen, verbose_sw);
+			 LogList, LogListSize,
+			 LogChooseList, LogChooseListSize,
+			 gen, verbose_sw);
   
   /*
     SAMPLIN' ALONG
@@ -1794,6 +1807,7 @@ MultiLinkScore2StateFast(struct binet *ratings,
     MCStep2StateFast(decorStep, &H, nlist1, nlist2,
 		     glist1, glist2, part1, part2, nnod1, nnod2,
 		     G1G2_0, G2G1_0, G1G2_1, G2G1_1, n2gList_0, n2gList_1,
+		     LogList, LogListSize,
 		     LogChooseList, LogChooseListSize,
 		     gen);
     switch (verbose_sw) {
@@ -1851,6 +1865,7 @@ MultiLinkScore2StateFast(struct binet *ratings,
   free_i_mat(G2G1_1, nnod2);
   free_i_vec(n2gList_0);
   free_i_vec(n2gList_1);
+  FreeFastLog(LogList);
   FreeFastLogChoose(LogChooseList, LogChooseListSize);
   RemoveBipart(ratingsClean);
 

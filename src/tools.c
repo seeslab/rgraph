@@ -398,6 +398,55 @@ FastLogChoose(int r, int l, double **LogChooseList, int LogChooseListSize)
 }
 
 /*
+  ---------------------------------------------------------------------
+  Initialize a matrix to be used by FastLog
+  ---------------------------------------------------------------------
+*/
+double *
+InitializeFastLog(int LogListSize)
+{
+  double *LogList;
+  int i;
+
+  LogList = allocate_d_vec(LogListSize);
+  for (i=0; i<LogListSize; i++)
+    LogList[i] = log((double)i);
+
+  return LogList;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Free a used by FastLog
+  ---------------------------------------------------------------------
+*/
+void
+FreeFastLog(double *LogList)
+{
+  free_d_vec(LogList);
+  return;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Fast log: if r is small enough, it returns the result from
+  previously tabulated values, otherwise, it calculates the
+  value. CAUTION!!!! At the begining, the LogList vector MUST BE
+  initialized to log(i) values (RECOMMENDED: Use InitializeFastLog for
+  that purpose).
+  ---------------------------------------------------------------------
+*/
+double
+FastLog(int r, double *LogList, int LogListSize)
+{
+  if (r < LogListSize)
+    return LogList[r];
+  else
+    return log((double)r);
+}
+
+
+/*
   -----------------------------------------------------------------------------
   -----------------------------------------------------------------------------
   File operations

@@ -55,6 +55,9 @@ double FastLogChoose(int a,
 		     int b,
 		     double **LogChooseList,
 		     int LogChooseListSize);
+double *InitializeFastLog(int LogListSize);
+void FreeFastLog(double *LogList);
+double FastLog(int a, double *LogList, int LogListSize);
 
 /*
   ---------------------------------------------------------------------
