@@ -500,20 +500,20 @@ MCStep2StateFast(int factor,
 		 struct group **glist1, struct group **glist2,
 		 struct group *part1, struct group *part2,
 		 int nnod1, int nnod2,
+		 int **N1G2_0, int **N2G1_0, int **N1G2_1, int **N2G1_1,
 		 int **G1G2_0, int **G2G1_0, int **G1G2_1, int **G2G1_1,
-		 int *n2gList_0, int *n2gList_1,
-		 double *LogList,
-		 int LogListSize,
-		 double **LogChooseList,
-		 int LogChooseListSize,
+		 double *LogList, int LogListSize,
+		 double **LogChooseList, int LogChooseListSize,
 		 gsl_rng *gen)
 {
   double dH;
   struct group *oldg, *newg, *g, *g2;
+  int ***N2G_0, ***N2Ginv_0, ***N2G_1, ***N2Ginv_1;
   int ***G2G_0, ***G2Ginv_0, ***G2G_1, ***G2Ginv_1;
   int move;
   double set_ratio;
   struct node_gra *node=NULL;
+  struct node_lis *nei=NULL;
   int dice, r, l;
   int oldgnum, newgnum, q;
   int i, nnod, ngroup;
@@ -529,10 +529,14 @@ MCStep2StateFast(int factor,
     /* The move */
     if (gsl_rng_uniform(gen) < set_ratio) { /* move in first set */
       move_in = 1;
-      G2G_0 = &G1G2_0;
+      G2G_0 = &G1G2_0;    /* Group-to-group links */
       G2Ginv_0 = &G2G1_0;
       G2G_1 = &G1G2_1;
       G2Ginv_1 = &G2G1_1;
+      N2G_0 = &N1G2_0;    /* Node-to-group links */
+      N2Ginv_0 = &N2G1_0;
+      N2G_1 = &N1G2_1;
+      N2Ginv_1 = &N2G1_1;
       nnod = nnod1;
       ngroup = nnod2;
       dice = floor(gsl_rng_uniform(gen) * (double)nnod1);
@@ -547,10 +551,14 @@ MCStep2StateFast(int factor,
     }
     else {                                /* move in second set */
       move_in = 2;
-      G2G_0 = &G2G1_0;
+      G2G_0 = &G2G1_0;    /* Group-to-group links */
       G2Ginv_0 = &G1G2_0;
       G2G_1 = &G2G1_1;
       G2Ginv_1 = &G1G2_1;
+      N2G_0 = &N2G1_0;    /* Node-to-group links */
+      N2Ginv_0 = &N1G2_0;
+      N2G_1 = &N2G1_1;
+      N2Ginv_1 = &N1G2_1;
       nnod = nnod2;
       ngroup = nnod1;
       dice = floor(gsl_rng_uniform(gen) * (double)nnod2);
@@ -569,37 +577,45 @@ MCStep2StateFast(int factor,
 
     while ((g=g->next) != NULL) {
       if (g->size > 0) {  /* group is not empty */
-      	n2gList_0[g->label] = NWeightLinksToGroup(node, g, (double)0);
-      	n2gList_1[g->label] = NWeightLinksToGroup(node, g, (double)1);
 	/* old configuration, old group */
 	r = (*G2G_0)[oldgnum][g->label] + (*G2G_1)[oldgnum][g->label];
 	l = (*G2G_1)[oldgnum][g->label];
 	dH -= FastLog(r + 1, LogList, LogListSize) +
 	  FastLogChoose(r, l, LogChooseList, LogChooseListSize);
-/* 	dH -= log(r + 1) + LogChoose(r, l); */
 	/* old configuration, new group */
 	r = (*G2G_0)[newgnum][g->label] + (*G2G_1)[newgnum][g->label];
 	l = (*G2G_1)[newgnum][g->label];
 	dH -= FastLog(r + 1, LogList, LogListSize) + 
 	  FastLogChoose(r, l, LogChooseList, LogChooseListSize);
-/* 	dH -= log(r + 1) + LogChoose(r, l); */
-      }
-      else { /* group is empty */
-	n2gList_0[g->label] = n2gList_1[g->label] = 0;
       }
     }
 
-    /* Tentatively move the node to the new group and update G2G matrices */
+    /* Tentatively move the node to the new group and update G2G and
+       N2Ginv matrices */
     MoveNode(node, oldg, newg);
-    for (i=0; i<ngroup; i++) {
-      (*G2G_0)[oldgnum][i] -= n2gList_0[i];
-      (*G2G_0)[newgnum][i] += n2gList_0[i];
-      (*G2Ginv_0)[i][oldgnum] -= n2gList_0[i];
-      (*G2Ginv_0)[i][newgnum] += n2gList_0[i];
-      (*G2G_1)[oldgnum][i] -= n2gList_1[i];
-      (*G2G_1)[newgnum][i] += n2gList_1[i];
-      (*G2Ginv_1)[i][oldgnum] -= n2gList_1[i];
-      (*G2Ginv_1)[i][newgnum] += n2gList_1[i];
+    for (i=0; i<ngroup; i++) {   /* update G2G links */
+      (*G2G_0)[oldgnum][i] -= (*N2G_0)[node->num][i];
+      (*G2G_0)[newgnum][i] += (*N2G_0)[node->num][i];
+      (*G2Ginv_0)[i][oldgnum] -= (*N2G_0)[node->num][i];
+      (*G2Ginv_0)[i][newgnum] += (*N2G_0)[node->num][i];
+      (*G2G_1)[oldgnum][i] -= (*N2G_1)[node->num][i];
+      (*G2G_1)[newgnum][i] += (*N2G_1)[node->num][i];
+      (*G2Ginv_1)[i][oldgnum] -= (*N2G_1)[node->num][i];
+      (*G2Ginv_1)[i][newgnum] += (*N2G_1)[node->num][i];
+    }
+    nei = node->neig;            /* update N2Ginv links */
+    while ((nei = nei->next) != NULL) {
+      if (nei->weight == (double)0) {
+	(*N2Ginv_0)[nei->ref->num][oldgnum] -= 1;
+	(*N2Ginv_0)[nei->ref->num][newgnum] += 1;
+      }
+      else if (nei->weight == (double)1) {
+	(*N2Ginv_1)[nei->ref->num][oldgnum] -= 1;
+	(*N2Ginv_1)[nei->ref->num][newgnum] += 1;
+      }
+      else {
+	fprintf(stderr, "ERROR!!!");
+      }
     }
 
     /* THE CHANGE OF ENERGY: NEW CONFIGURATION CONTRIBUTION */
@@ -611,13 +627,11 @@ MCStep2StateFast(int factor,
 	l = (*G2G_1)[oldgnum][g2->label];
 	dH += FastLog(r + 1, LogList, LogListSize) + 
 	  FastLogChoose(r, l, LogChooseList, LogChooseListSize);
-/* 	dH += log(r + 1) + LogChoose(r, l); */
 	/* new configuration, new group */
 	r = (*G2G_0)[newgnum][g2->label] + (*G2G_1)[newgnum][g2->label];
 	l = (*G2G_1)[newgnum][g2->label];
 	dH += FastLog(r + 1, LogList, LogListSize) + 
 	  FastLogChoose(r, l, LogChooseList, LogChooseListSize);
-/* 	dH += log(r + 1) + LogChoose(r, l); */
       }
     }
     
@@ -625,21 +639,30 @@ MCStep2StateFast(int factor,
     if ((dH <= 0.0) || (gsl_rng_uniform(gen) < exp(-dH))) {
       /* accept move: update energy */
       *H += dH;
-/*       fprintf(stderr, "Moving %s from %d to %d\n", */
-/* 	      node->label, oldgnum+1, newgnum+1); */
     }
     else { 
       /* undo the move */
       MoveNode(node, newg, oldg);
-      for (i=0; i<ngroup; i++) {
-	(*G2G_0)[oldgnum][i] += n2gList_0[i];
-	(*G2G_0)[newgnum][i] -= n2gList_0[i];
-	(*G2Ginv_0)[i][oldgnum] += n2gList_0[i];
-	(*G2Ginv_0)[i][newgnum] -= n2gList_0[i];
-	(*G2G_1)[oldgnum][i] += n2gList_1[i];
-	(*G2G_1)[newgnum][i] -= n2gList_1[i];
-	(*G2Ginv_1)[i][oldgnum] += n2gList_1[i];
-	(*G2Ginv_1)[i][newgnum] -= n2gList_1[i];
+      for (i=0; i<ngroup; i++) {   /* update G2G links */
+	(*G2G_0)[oldgnum][i] += (*N2G_0)[node->num][i];
+	(*G2G_0)[newgnum][i] -= (*N2G_0)[node->num][i];
+	(*G2Ginv_0)[i][oldgnum] += (*N2G_0)[node->num][i];
+	(*G2Ginv_0)[i][newgnum] -= (*N2G_0)[node->num][i];
+	(*G2G_1)[oldgnum][i] += (*N2G_1)[node->num][i];
+	(*G2G_1)[newgnum][i] -= (*N2G_1)[node->num][i];
+	(*G2Ginv_1)[i][oldgnum] += (*N2G_1)[node->num][i];
+	(*G2Ginv_1)[i][newgnum] -= (*N2G_1)[node->num][i];
+      }
+      nei = node->neig;            /* update N2Ginv links */
+      while ((nei = nei->next) != NULL) {
+	if (nei->weight == (double)0) {
+	  (*N2Ginv_0)[nei->ref->num][oldgnum] += 1;
+	  (*N2Ginv_0)[nei->ref->num][newgnum] -= 1;
+	}
+	else if (nei->weight == (double)1) {
+	  (*N2Ginv_1)[nei->ref->num][oldgnum] += 1;
+	  (*N2Ginv_1)[nei->ref->num][newgnum] -= 1;
+	}
       }
     }
   } /* Moves completed: done! */
@@ -820,9 +843,10 @@ GetDecorrelationStep2StateFast(double *H,
 			       struct group **glist1, struct group **glist2,
 			       struct group *part1, struct group *part2,
 			       int nnod1, int nnod2,
+			       int **N1G2_0, int **N2G1_0,
+			       int **N1G2_1, int **N2G1_1,
 			       int **G1G2_0, int **G2G1_0,
 			       int **G1G2_1, int **G2G1_1,
-			       int *n2gList_0, int *n2gList_1,
 			       double *LogList,
 			       int LogListSize,
 			       double **LogChooseList,
@@ -868,8 +892,8 @@ GetDecorrelationStep2StateFast(double *H,
       }
       MCStep2StateFast(1, H, nlist1, nlist2,
 		       glist1, glist2, part1, part2, nnod1, nnod2,
+		       N1G2_0, N2G1_0, N1G2_1, N2G1_1,
 		       G1G2_0, G2G1_0, G1G2_1, G2G1_1,
-		       n2gList_0, n2gList_1,
 		       LogList, LogListSize,
 		       LogChooseList, LogChooseListSize,
 		       gen);
@@ -1063,9 +1087,10 @@ ThermalizeMC2StateFast(int decorStep,
 		       struct group **glist1, struct group **glist2,
 		       struct group *part1, struct group *part2,
 		       int nnod1, int nnod2,
+		       int **N1G2_0, int **N2G1_0,
+		       int **N1G2_1, int **N2G1_1,
 		       int **G1G2_0, int **G2G1_0,
 		       int **G1G2_1, int **G2G1_1,
-		       int *n2gList_0, int *n2gList_1,
 		       double *LogList,
 		       int LogListSize,
 		       double **LogChooseList,
@@ -1085,7 +1110,8 @@ ThermalizeMC2StateFast(int decorStep,
     for (rep=0; rep<nrep; rep++) {
       MCStep2StateFast(decorStep, H, nlist1, nlist2,
 		       glist1, glist2, part1, part2, nnod1, nnod2,
-		       G1G2_0, G2G1_0, G1G2_1, G2G1_1, n2gList_0, n2gList_1,
+		       N1G2_0, N2G1_0, N1G2_1, N2G1_1,
+		       G1G2_0, G2G1_0, G1G2_1, G2G1_1,
 		       LogList, LogListSize,
 		       LogChooseList, LogChooseListSize,
 		       gen);
@@ -1656,10 +1682,10 @@ MultiLinkScore2StateFast(struct binet *ratings,
   int iter;
   double *score, Z=0.0;
   int i, j;
+  int **N1G2_0=NULL, **N2G1_0=NULL;
+  int **N1G2_1=NULL, **N2G1_1=NULL;
   int **G1G2_0=NULL, **G2G1_0=NULL;
   int **G1G2_1=NULL, **G2G1_1=NULL;
-  int *n2gList_0=NULL;
-  int *n2gList_1=NULL;
   int LogChooseListSize = 500;
   double **LogChooseList=InitializeFastLogChoose(LogChooseListSize);
   int LogListSize = 5000;
@@ -1737,17 +1763,27 @@ MultiLinkScore2StateFast(struct binet *ratings,
   G2G1_0 = allocate_i_mat(nnod2, nnod1);
   G1G2_1 = allocate_i_mat(nnod1, nnod2);
   G2G1_1 = allocate_i_mat(nnod2, nnod1);
-  n2gList_0 = allocate_i_vec(max(nnod1, nnod2));
-  n2gList_1 = allocate_i_vec(max(nnod1, nnod2)); /* These are only used in
-						    subroutines, but
-						    allocated here for
-						    convenience */
   for (i=0; i<nnod1; i++) {
     for (j=0; j<nnod2; j++) {
       G1G2_0[i][j] = G2G1_0[j][i] = 
 	NWeightG2GLinks(glist1[i], glist2[j], (double)0);
       G1G2_1[i][j] = G2G1_1[j][i] = 
 	NWeightG2GLinks(glist1[i], glist2[j], (double)1);
+    }
+  }
+
+  /* Get the initial node-to-group links matrix */
+  fprintf(stderr, ">> Getting the initial node-to-group links matrix...\n");
+  N1G2_0 = allocate_i_mat(nnod1, nnod2);
+  N2G1_0 = allocate_i_mat(nnod2, nnod1);
+  N1G2_1 = allocate_i_mat(nnod1, nnod2);
+  N2G1_1 = allocate_i_mat(nnod2, nnod1);
+  for (i=0; i<nnod1; i++) {
+    for (j=0; j<nnod2; j++) {
+      N1G2_0[i][j] = NWeightLinksToGroup(nlist1[i], glist2[j], (double)0);
+      N2G1_0[j][i] = NWeightLinksToGroup(nlist2[j], glist1[i], (double)0);
+      N1G2_1[i][j] = NWeightLinksToGroup(nlist1[i], glist2[j], (double)1);
+      N2G1_1[j][i] = NWeightLinksToGroup(nlist2[j], glist1[i], (double)1);
     }
   }
   
@@ -1769,8 +1805,8 @@ MultiLinkScore2StateFast(struct binet *ratings,
     decorStep = GetDecorrelationStep2StateFast(&H,
 					       nlist1, nlist2, glist1, glist2,
 					       part1, part2, nnod1, nnod2,
+					       N1G2_0, N2G1_0, N1G2_1, N2G1_1,
 					       G1G2_0, G2G1_0, G1G2_1, G2G1_1,
-					       n2gList_0, n2gList_1,
 					       LogList, LogListSize,
 					       LogChooseList, LogChooseListSize,
 					       gen, verbose_sw);
@@ -1788,7 +1824,8 @@ MultiLinkScore2StateFast(struct binet *ratings,
   ThermalizeMC2StateFast(decorStep, &H,
 			 nlist1, nlist2, glist1, glist2,
 			 part1, part2, nnod1, nnod2,
-			 G1G2_0, G2G1_0, G1G2_1, G2G1_1, n2gList_0, n2gList_1,
+			 N1G2_0, N2G1_0, N1G2_1, N2G1_1,
+			 G1G2_0, G2G1_0, G1G2_1, G2G1_1,
 			 LogList, LogListSize,
 			 LogChooseList, LogChooseListSize,
 			 gen, verbose_sw);
@@ -1806,7 +1843,8 @@ MultiLinkScore2StateFast(struct binet *ratings,
   for (iter=0; iter<nIter; iter++) {
     MCStep2StateFast(decorStep, &H, nlist1, nlist2,
 		     glist1, glist2, part1, part2, nnod1, nnod2,
-		     G1G2_0, G2G1_0, G1G2_1, G2G1_1, n2gList_0, n2gList_1,
+		     N1G2_0, N2G1_0, N1G2_1, N2G1_1,
+		     G1G2_0, G2G1_0, G1G2_1, G2G1_1,
 		     LogList, LogListSize,
 		     LogChooseList, LogChooseListSize,
 		     gen);
@@ -1863,8 +1901,10 @@ MultiLinkScore2StateFast(struct binet *ratings,
   free_i_mat(G2G1_0, nnod2);
   free_i_mat(G1G2_1, nnod1);
   free_i_mat(G2G1_1, nnod2);
-  free_i_vec(n2gList_0);
-  free_i_vec(n2gList_1);
+  free_i_mat(N1G2_0, nnod1);
+  free_i_mat(N2G1_0, nnod2);
+  free_i_mat(N1G2_1, nnod1);
+  free_i_mat(N2G1_1, nnod2);
   FreeFastLog(LogList);
   FreeFastLogChoose(LogChooseList, LogChooseListSize);
   RemoveBipart(ratingsClean);
