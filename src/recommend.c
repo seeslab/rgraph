@@ -732,9 +732,10 @@ GetDecorrelationStep2State(double *H,
 		   glist1, glist2, part1, part2, nnod1, nnod2,
 		   G1G2, G2G1, n2gList, LogChooseList, LogChooseListSize,
 		   gen);
-      if (step == x1)
+      if (step == x1) {
 	y11 = MutualInformation(part1Ref, part1);
-      y12 = MutualInformation(part2Ref, part2);
+	y12 = MutualInformation(part2Ref, part2);
+      }
     }
     y21 = MutualInformation(part1Ref, part1);
     y22 = MutualInformation(part2Ref, part2);
@@ -897,9 +898,10 @@ GetDecorrelationStep2StateFast(double *H,
 		       LogList, LogListSize,
 		       LogChooseList, LogChooseListSize,
 		       gen);
-      if (step == x1)
+      if (step == x1) {
 	y11 = MutualInformation(part1Ref, part1);
-      y12 = MutualInformation(part2Ref, part2);
+	y12 = MutualInformation(part2Ref, part2);
+      }
     }
     y21 = MutualInformation(part1Ref, part1);
     y22 = MutualInformation(part2Ref, part2);
