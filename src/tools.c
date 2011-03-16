@@ -9,6 +9,7 @@
 #include <math.h>
 
 #include <gsl/gsl_rng.h>
+#include <gsl/gsl_sf_gamma.h>
 
 #include "tools.h"
 
@@ -443,6 +444,55 @@ FastLog(int r, double *LogList, int LogListSize)
     return LogList[r];
   else
     return log((double)r);
+}
+
+
+/*
+  ---------------------------------------------------------------------
+  Initialize a vector to be used by FastLogFact
+  ---------------------------------------------------------------------
+*/
+double *
+InitializeFastLogFact(int LogFactListSize)
+{
+  double *LogFactList;
+  int i;
+
+  LogFactList = allocate_d_vec(LogFactListSize);
+  for (i=0; i<LogFactListSize; i++)
+    LogFactList[i] = gsl_sf_lnfact(i);
+
+  return LogFactList;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Free a vector used by FastLogFact
+  ---------------------------------------------------------------------
+*/
+void
+FreeFastLogFact(double *LogFactList)
+{
+  free_d_vec(LogFactList);
+  return;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Fast log of the factorial: if r is small enough, it returns the
+  result from previously tabulated values, otherwise, it calculates
+  the value. CAUTION!!!! At the begining, the LogFactList vector MUST
+  BE initialized to log(i!) values (RECOMMENDED: Use
+  InitializeFastLogFact for that purpose).
+  ---------------------------------------------------------------------
+*/
+double
+FastLogFact(int r, double *LogFactList, int LogFactListSize)
+{
+  if (r < LogFactListSize)
+    return LogFactList[r];
+  else
+    return gsl_sf_lnfact(r);
 }
 
 

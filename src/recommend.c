@@ -12,6 +12,7 @@
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_multiroots.h>
 #include <gsl/gsl_rng.h>
+#include <gsl/gsl_sf_gamma.h>
 
 #include "tools.h"
 #include "graph.h"
@@ -1138,12 +1139,6 @@ MultiLinkScore2State(struct binet *ratings,
 }
 
 
-
-
-
-
-
-
 ///////////////////////////
 
 
@@ -1162,11 +1157,15 @@ H2StateUnbiased(struct group *part1, struct group *part2)
 {
   struct group *g1=NULL, *g2=NULL;
   double r, l, H=0.0;
+  int ng1=0, ng2=0;      /* Number of non-empty groups */
+  int nnod1=0, nnod2=0;  /* Number of nodes */
 
   /* Go through all group pairs */
   g1 = part1;
   while ((g1 = g1->next) != NULL) {
     if (g1->size > 0) {
+      ng1++;
+      nnod1 += g1->size;
       g2 = part2;
       while ((g2 = g2->next) != NULL) {
 	if (g2->size > 0) {
@@ -1177,6 +1176,16 @@ H2StateUnbiased(struct group *part1, struct group *part2)
       }
     }
   }
+
+  /* Add the labeled-group sampling corrections */
+  g2 = part2;
+  while ((g2 = g2->next) != NULL) {
+    if (g2->size > 0) {
+      ng2++;
+      nnod2 += g2->size;
+    }
+  }
+  H -= gsl_sf_lnfact(nnod1 - ng1) + gsl_sf_lnfact(nnod2 - ng2);
 
   /* Done */
   return H;
@@ -1191,16 +1200,18 @@ H2StateUnbiased(struct group *part1, struct group *part2)
 */
 void
 MCStep2StateUnbiased(int factor,
-	     double *H,
-	     struct node_gra **nlist1, struct node_gra **nlist2,
-	     struct group **glist1, struct group **glist2,
-	     struct group *part1, struct group *part2,
-	     int nnod1, int nnod2,
-	     int **N1G2_0, int **N2G1_0, int **N1G2_1, int **N2G1_1,
-	     int **G1G2_0, int **G2G1_0, int **G1G2_1, int **G2G1_1,
-	     double *LogList, int LogListSize,
-	     double **LogChooseList, int LogChooseListSize,
-	     gsl_rng *gen)
+		     double *H,
+		     struct node_gra **nlist1, struct node_gra **nlist2,
+		     struct group **glist1, struct group **glist2,
+		     struct group *part1, struct group *part2,
+		     int nnod1, int nnod2,
+		     int *ng1, int *ng2,
+		     int **N1G2_0, int **N2G1_0, int **N1G2_1, int **N2G1_1,
+		     int **G1G2_0, int **G2G1_0, int **G1G2_1, int **G2G1_1,
+		     double *LogList, int LogListSize,
+		     double **LogChooseList, int LogChooseListSize,
+		     double *LogFactList, int LogFactListSize,
+		     gsl_rng *gen)
 {
   double dH;
   struct group *oldg, *newg, *g, *g2;
@@ -1213,6 +1224,7 @@ MCStep2StateUnbiased(int factor,
   int dice, r, l;
   int oldgnum, newgnum, q;
   int i, nnod, ngroup;
+  int *ng; /* Number of non-empty groups (for labeled-group correction) */
   int j; 
   int move_in;
 
@@ -1234,6 +1246,7 @@ MCStep2StateUnbiased(int factor,
       N2G_1 = &N1G2_1;
       N2Ginv_1 = &N2G1_1;
       nnod = nnod1;
+      ng = ng1;
       ngroup = nnod2;
       dice = floor(gsl_rng_uniform(gen) * (double)nnod1);
       node = nlist1[dice];
@@ -1256,6 +1269,7 @@ MCStep2StateUnbiased(int factor,
       N2G_1 = &N2G1_1;
       N2Ginv_1 = &N1G2_1;
       nnod = nnod2;
+      ng = ng2;
       ngroup = nnod1;
       dice = floor(gsl_rng_uniform(gen) * (double)nnod2);
       node = nlist2[dice];
@@ -1285,6 +1299,10 @@ MCStep2StateUnbiased(int factor,
 	  FastLogChoose(r, l, LogChooseList, LogChooseListSize);
       }
     }
+    /* labeled-groups sampling correction */
+    if ((oldg->size == 1) || (newg->size == 0)) {
+      dH += FastLogFact(nnod - *ng, LogFactList, LogFactListSize);
+    }
 
     /* Tentatively move the node to the new group and update G2G and
        N2Ginv matrices */
@@ -1313,6 +1331,11 @@ MCStep2StateUnbiased(int factor,
 	fprintf(stderr, "ERROR!!!");
       }
     }
+    if (oldg->size == 0) /* update number of non-empty groups */
+      (*ng) -= 1;
+    if (newg->size == 1)
+      (*ng) +=1;
+   
 
     /* THE CHANGE OF ENERGY: NEW CONFIGURATION CONTRIBUTION */
 
@@ -1330,8 +1353,13 @@ MCStep2StateUnbiased(int factor,
 	  FastLogChoose(r, l, LogChooseList, LogChooseListSize);
       }
     }
+    /* labeled-groups sampling correction */
+    if ((oldg->size == 0) || (newg->size == 1)) {
+      dH -= FastLogFact(nnod - *ng, LogFactList, LogFactListSize);
+    }
     
-    /* Metropolis acceptance */
+
+    /* METROPOLIS ACCEPTANCE */
     if ((dH <= 0.0) || (gsl_rng_uniform(gen) < exp(-dH))) {
       /* accept move: update energy */
       *H += dH;
@@ -1360,6 +1388,10 @@ MCStep2StateUnbiased(int factor,
 	  (*N2Ginv_1)[nei->ref->num][newgnum] -= 1;
 	}
       }
+      if (oldg->size == 1) /* update number of non-empty groups */
+	(*ng) += 1;
+      if (newg->size == 0)
+	(*ng) -= 1;
     }
   } /* Moves completed: done! */
 
@@ -1376,21 +1408,23 @@ MCStep2StateUnbiased(int factor,
 */
 int
 GetDecorrelationStep2StateUnbiased(double *H,
-			   struct node_gra **nlist1,
-			   struct node_gra **nlist2,
-			   struct group **glist1, struct group **glist2,
-			   struct group *part1, struct group *part2,
-			   int nnod1, int nnod2,
-			   int **N1G2_0, int **N2G1_0,
-			   int **N1G2_1, int **N2G1_1,
-			   int **G1G2_0, int **G2G1_0,
-			   int **G1G2_1, int **G2G1_1,
-			   double *LogList,
-			   int LogListSize,
-			   double **LogChooseList,
-			   int LogChooseListSize,
-			   gsl_rng *gen,
-			   char verbose_sw)
+				   struct node_gra **nlist1,
+				   struct node_gra **nlist2,
+				   struct group **glist1, struct group **glist2,
+				   struct group *part1, struct group *part2,
+				   int nnod1, int nnod2,
+				   int *ng1, int *ng2,
+				   int **N1G2_0, int **N2G1_0,
+				   int **N1G2_1, int **N2G1_1,
+				   int **G1G2_0, int **G2G1_0,
+				   int **G1G2_1, int **G2G1_1,
+				   double *LogList,
+				   int LogListSize,
+				   double **LogChooseList,
+				   int LogChooseListSize,
+				   double *LogFactList, int LogFactListSize,
+				   gsl_rng *gen,
+				   char verbose_sw)
 {
   struct group *part1Ref, *part2Ref;
   int step, x1, x2;
@@ -1429,12 +1463,14 @@ GetDecorrelationStep2StateUnbiased(double *H,
 	break;
       }
       MCStep2StateUnbiased(1, H, nlist1, nlist2,
-		   glist1, glist2, part1, part2, nnod1, nnod2,
-		   N1G2_0, N2G1_0, N1G2_1, N2G1_1,
-		   G1G2_0, G2G1_0, G1G2_1, G2G1_1,
-		   LogList, LogListSize,
-		   LogChooseList, LogChooseListSize,
-		   gen);
+			   glist1, glist2, part1, part2,
+			   nnod1, nnod2, ng1, ng2,
+			   N1G2_0, N2G1_0, N1G2_1, N2G1_1,
+			   G1G2_0, G2G1_0, G1G2_1, G2G1_1,
+			   LogList, LogListSize,
+			   LogChooseList, LogChooseListSize,
+			   LogFactList, LogFactListSize,
+			   gen);
       if (step == x1) {
 	y11 = MutualInformation(part1Ref, part1);
 	y12 = MutualInformation(part2Ref, part2);
@@ -1540,21 +1576,23 @@ GetDecorrelationStep2StateUnbiased(double *H,
 */
 void
 ThermalizeMC2StateUnbiased(int decorStep,
-		   double *H,
-		   struct node_gra **nlist1, struct node_gra **nlist2,
-		   struct group **glist1, struct group **glist2,
-		   struct group *part1, struct group *part2,
-		   int nnod1, int nnod2,
-		   int **N1G2_0, int **N2G1_0,
-		   int **N1G2_1, int **N2G1_1,
-		   int **G1G2_0, int **G2G1_0,
-		   int **G1G2_1, int **G2G1_1,
-		   double *LogList,
-		   int LogListSize,
-		   double **LogChooseList,
-		   int LogChooseListSize,
-		   gsl_rng *gen,
-		   char verbose_sw)
+			   double *H,
+			   struct node_gra **nlist1, struct node_gra **nlist2,
+			   struct group **glist1, struct group **glist2,
+			   struct group *part1, struct group *part2,
+			   int nnod1, int nnod2,
+			   int *ng1, int *ng2,
+			   int **N1G2_0, int **N2G1_0,
+			   int **N1G2_1, int **N2G1_1,
+			   int **G1G2_0, int **G2G1_0,
+			   int **G1G2_1, int **G2G1_1,
+			   double *LogList,
+			   int LogListSize,
+			   double **LogChooseList,
+			   int LogChooseListSize,
+			   double *LogFactList, int LogFactListSize,
+			   gsl_rng *gen,
+			   char verbose_sw)
 {
   double HMean0=1.e10, HStd0=1.e-10, HMean1, HStd1, *Hvalues;
   int rep, nrep=20;
@@ -1567,12 +1605,14 @@ ThermalizeMC2StateUnbiased(int decorStep,
     /* MC steps */
     for (rep=0; rep<nrep; rep++) {
       MCStep2StateUnbiased(decorStep, H, nlist1, nlist2,
-		   glist1, glist2, part1, part2, nnod1, nnod2,
-		   N1G2_0, N2G1_0, N1G2_1, N2G1_1,
-		   G1G2_0, G2G1_0, G1G2_1, G2G1_1,
-		   LogList, LogListSize,
-		   LogChooseList, LogChooseListSize,
-		   gen);
+			   glist1, glist2, part1, part2,
+			   nnod1, nnod2, ng1, ng2,
+			   N1G2_0, N2G1_0, N1G2_1, N2G1_1,
+			   G1G2_0, G2G1_0, G1G2_1, G2G1_1,
+			   LogList, LogListSize,
+			   LogChooseList, LogChooseListSize,
+			   LogFactList, LogFactListSize,
+			   gen);
       switch (verbose_sw) {
       case 'q':
 	break;
@@ -1655,6 +1695,8 @@ MultiLinkScore2StateUnbiased(struct binet *ratings,
   double **LogChooseList=InitializeFastLogChoose(LogChooseListSize);
   int LogListSize = 5000;
   double *LogList=InitializeFastLog(LogListSize);
+  int LogFactListSize = 2000;
+  double *LogFactList=InitializeFastLogFact(LogFactListSize);
   struct node_lis *n1=NULL, *n2=NULL;
   double weight, contrib;
   int dice;
@@ -1662,6 +1704,7 @@ MultiLinkScore2StateUnbiased(struct binet *ratings,
   void *dict1=NULL, *dict2=NULL;
   struct binet *ratingsClean=NULL;
   int q;
+  int ng1, ng2;
   
   /*
     PRELIMINARIES
@@ -1751,7 +1794,11 @@ MultiLinkScore2StateUnbiased(struct binet *ratings,
       N2G1_1[j][i] = NWeightLinksToGroup(nlist2[j], glist1[i], (double)1);
     }
   }
-  
+
+  /* Get the initial number of non-empty groups */
+  ng1 = NNonEmptyGroups(part1);
+  ng2 = NNonEmptyGroups(part2);
+
   /*
     GET READY FOR THE SAMPLING
   */
@@ -1768,13 +1815,20 @@ MultiLinkScore2StateUnbiased(struct binet *ratings,
   }
   if (decorStep <= 0) {
     decorStep = GetDecorrelationStep2StateUnbiased(&H,
-					       nlist1, nlist2, glist1, glist2,
-					       part1, part2, nnod1, nnod2,
-					       N1G2_0, N2G1_0, N1G2_1, N2G1_1,
-					       G1G2_0, G2G1_0, G1G2_1, G2G1_1,
-					       LogList, LogListSize,
-					       LogChooseList, LogChooseListSize,
-					       gen, verbose_sw);
+						   nlist1, nlist2,
+						   glist1, glist2,
+						   part1, part2,
+						   nnod1, nnod2,
+						   &ng1, &ng2,
+						   N1G2_0, N2G1_0,
+						   N1G2_1, N2G1_1,
+						   G1G2_0, G2G1_0,
+						   G1G2_1, G2G1_1,
+						   LogList, LogListSize,
+						   LogChooseList,
+						   LogChooseListSize,
+						   LogFactList, LogFactListSize,
+						   gen, verbose_sw);
   }
 
   /* Thermalization */
@@ -1787,13 +1841,15 @@ MultiLinkScore2StateUnbiased(struct binet *ratings,
     break;
   }
   ThermalizeMC2StateUnbiased(decorStep, &H,
-		     nlist1, nlist2, glist1, glist2,
-		     part1, part2, nnod1, nnod2,
-		     N1G2_0, N2G1_0, N1G2_1, N2G1_1,
-		     G1G2_0, G2G1_0, G1G2_1, G2G1_1,
-		     LogList, LogListSize,
-		     LogChooseList, LogChooseListSize,
-		     gen, verbose_sw);
+			     nlist1, nlist2, glist1, glist2,
+			     part1, part2,
+			     nnod1, nnod2, &ng1, &ng2,
+			     N1G2_0, N2G1_0, N1G2_1, N2G1_1,
+			     G1G2_0, G2G1_0, G1G2_1, G2G1_1,
+			     LogList, LogListSize,
+			     LogChooseList, LogChooseListSize,
+			     LogFactList, LogFactListSize,
+			     gen, verbose_sw);
   
   /*
     SAMPLIN' ALONG
@@ -1807,12 +1863,14 @@ MultiLinkScore2StateUnbiased(struct binet *ratings,
   }
   for (iter=0; iter<nIter; iter++) {
     MCStep2StateUnbiased(decorStep, &H, nlist1, nlist2,
-		 glist1, glist2, part1, part2, nnod1, nnod2,
-		 N1G2_0, N2G1_0, N1G2_1, N2G1_1,
-		 G1G2_0, G2G1_0, G1G2_1, G2G1_1,
-		 LogList, LogListSize,
-		 LogChooseList, LogChooseListSize,
-		 gen);
+			 glist1, glist2, part1, part2,
+			 nnod1, nnod2, &ng1, &ng2,
+			 N1G2_0, N2G1_0, N1G2_1, N2G1_1,
+			 G1G2_0, G2G1_0, G1G2_1, G2G1_1,
+			 LogList, LogListSize,
+			 LogChooseList, LogChooseListSize,
+			 LogFactList, LogFactListSize,
+			 gen);
     switch (verbose_sw) {
     case 'q':
       break;
@@ -1872,6 +1930,7 @@ MultiLinkScore2StateUnbiased(struct binet *ratings,
   free_i_mat(N2G1_1, nnod2);
   FreeFastLog(LogList);
   FreeFastLogChoose(LogChooseList, LogChooseListSize);
+  FreeFastLogFact(LogFactList);
   RemoveBipart(ratingsClean);
 
   /* Done */
