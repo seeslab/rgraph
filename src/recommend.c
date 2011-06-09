@@ -1705,6 +1705,7 @@ MultiLinkScore2StateUnbiased(struct binet *ratings,
   struct binet *ratingsClean=NULL;
   int q;
   int ng1, ng2;
+  FILE *outfile=NULL;
   
   /*
     PRELIMINARIES
@@ -1755,14 +1756,17 @@ MultiLinkScore2StateUnbiased(struct binet *ratings,
   p1 = net1;
   ResetNetGroup(net1);
   while ((p1 = p1->next) != NULL) {
-    dice = floor(gsl_rng_uniform(gen) * (double)nnod1);
-    AddNodeToGroup(glist1[dice], p1);
+/*     dice = floor(gsl_rng_uniform(gen) * (double)nnod1); */
+/*     AddNodeToGroup(glist1[dice], p1); */
+    AddNodeToGroup(glist1[p1->num], p1);
+
   }
   p2 = net2;
   ResetNetGroup(net2);
   while ((p2 = p2->next) != NULL) {
-    dice = floor(gsl_rng_uniform(gen) * (double)nnod2);
-    AddNodeToGroup(glist2[dice], p2);
+/*     dice = floor(gsl_rng_uniform(gen) * (double)nnod2); */
+/*     AddNodeToGroup(glist2[dice], p2); */
+    AddNodeToGroup(glist2[p2->num], p2);
   }
 
   /* Get the initial group-to-group links matrix */
@@ -1884,6 +1888,25 @@ MultiLinkScore2StateUnbiased(struct binet *ratings,
       break;
     }
 
+    /* Check if the energy has gone below a certain threshold and, if
+       so, reset energies and start over */
+    if (H < -400.0) {
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr,
+		"# System was not properly thermalized: starting over :(\n\n");
+	break;
+      }
+      iter = 0;
+      H = 0.0;
+      Z = 0.0;
+      for (q=0; q<nquery; q++) {
+	score[q] = 0.0;
+      }
+    }
+
     /* Update partition function */
     weight = exp(-H);
     Z += weight;
@@ -1897,6 +1920,29 @@ MultiLinkScore2StateUnbiased(struct binet *ratings,
       score[q] += contrib;
     }
 
+    /* Output temporary scores and partitions */
+    if (iter % 100 == 0) {
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	outfile = fopen('scores.tmp', "w");
+	for (q=0; q<nquery; q++) {
+	  fprintf(outfile, "%s %s %lf\n",
+		  ((querySet[q])->n1)->label,
+		  ((querySet[q])->n2)->label,
+		  score[q]/Z);
+	}
+	fclose(outfile);
+	outfile = fopen('part1.tmp', "w");
+	FPrintPartition(outfile, part2, 1);
+	fclose(outfile);
+	outfile = fopen('part2.tmp', "w");
+	FPrintPartition(outfile, part2, 1);
+	fclose(outfile);
+	break;
+      }
+    }
   }  /* End of iter loop */
 
   /* Normalize the scores */
@@ -1936,3 +1982,301 @@ MultiLinkScore2StateUnbiased(struct binet *ratings,
   /* Done */
   return score;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* /\* */
+/*   ----------------------------------------------------------------------------- */
+/*   Return the score p(A_ij=1|A^O) of all pairs of nodes for a 2-state */
+/*   system. The ratings are a bipartite network with links */
+/*   (corresponding to observations) that have values 0 or 1. */
+/*   ----------------------------------------------------------------------------- */
+/* *\/ */
+/* double * */
+/* AllLinkScore2StateUnbiased(struct binet *ratings, */
+/* 			   int nIter, */
+/* 			   gsl_rng *gen, */
+/* 			   char verbose_sw, */
+/* 			   int decorStep) */
+/* { */
+/*   int nnod1=CountNodes(ratings->net1), nnod2=CountNodes(ratings->net2); */
+/*   int nn1, nn2; */
+/*   struct node_gra *net1=NULL, *net2=NULL; */
+/*   struct group *part1=NULL, *part2=NULL; */
+/*   struct node_gra *p1=NULL, *p2=NULL, *node=NULL; */
+/*   struct node_gra **nlist1=NULL, **nlist2=NULL; */
+/*   struct group **glist1=NULL, **glist2=NULL; */
+/*   struct group *lastg=NULL; */
+/*   double H; */
+/*   int iter; */
+/*   double *score, Z=0.0; */
+/*   int i, j; */
+/*   int **N1G2_0=NULL, **N2G1_0=NULL; */
+/*   int **N1G2_1=NULL, **N2G1_1=NULL; */
+/*   int **G1G2_0=NULL, **G2G1_0=NULL; */
+/*   int **G1G2_1=NULL, **G2G1_1=NULL; */
+/*   int LogChooseListSize = 500; */
+/*   double **LogChooseList=InitializeFastLogChoose(LogChooseListSize); */
+/*   int LogListSize = 5000; */
+/*   double *LogList=InitializeFastLog(LogListSize); */
+/*   int LogFactListSize = 2000; */
+/*   double *LogFactList=InitializeFastLogFact(LogFactListSize); */
+/*   struct node_lis *n1=NULL, *n2=NULL; */
+/*   double weight, contrib; */
+/*   int dice; */
+/*   int r, l; */
+/*   void *dict1=NULL, *dict2=NULL; */
+/*   int q; */
+/*   int ng1, ng2; */
+ 
+/*   /\* */
+/*     PRELIMINARIES */
+/*   *\/ */
+
+/*   /\* Initialize scores *\/ */
+/*   score = allocate_d_vec(nquery); */
+/*   for (q=0; q<nquery; q++) */
+/*     score[q] = 0.0; */
+
+/*   /\* Map nodes and groups to a list for faster access *\/ */
+/*   fprintf(stderr, ">> Mapping nodes and groups to lists...\n"); */
+/*   nlist1 = (struct node_gra **) calloc(nnod1, sizeof(struct node_gra *)); */
+/*   glist1 = (struct group **) calloc(nnod1, sizeof(struct group *)); */
+/*   lastg = part1 = CreateHeaderGroup(); */
+/*   p1 = net1 = ratings->net1; */
+/*   while ((p1 = p1->next) != NULL) { */
+/*     nlist1[p1->num] = p1; */
+/*     lastg = glist1[p1->num] = CreateGroup(lastg, p1->num); */
+/*   } */
+/*   nlist2 = (struct node_gra **) calloc(nnod2, sizeof(struct node_gra *)); */
+/*   glist2 = (struct group **) calloc(nnod2, sizeof(struct group *)); */
+/*   lastg = part2 = CreateHeaderGroup(); */
+/*   p2 = net2 = ratings->net2; */
+/*   while ((p2 = p2->next) != NULL) { */
+/*     nlist2[p2->num] = p2; */
+/*     lastg = glist2[p2->num] = CreateGroup(lastg, p2->num); */
+/*   } */
+
+/*   /\* Place nodes in random partitions *\/ */
+/*   fprintf(stderr, ">> Placing nodes in random partitions...\n"); */
+/*   p1 = net1; */
+/*   ResetNetGroup(net1); */
+/*   while ((p1 = p1->next) != NULL) { */
+/* /\*     dice = floor(gsl_rng_uniform(gen) * (double)nnod1); *\/ */
+/* /\*     AddNodeToGroup(glist1[dice], p1); *\/ */
+/*     AddNodeToGroup(glist1[p1->num], p1); */
+
+/*   } */
+/*   p2 = net2; */
+/*   ResetNetGroup(net2); */
+/*   while ((p2 = p2->next) != NULL) { */
+/* /\*     dice = floor(gsl_rng_uniform(gen) * (double)nnod2); *\/ */
+/* /\*     AddNodeToGroup(glist2[dice], p2); *\/ */
+/*     AddNodeToGroup(glist2[p2->num], p2); */
+/*   } */
+
+/*   /\* Get the initial group-to-group links matrix *\/ */
+/*   fprintf(stderr, ">> Getting the initial group-to-group links matrix...\n"); */
+/*   G1G2_0 = allocate_i_mat(nnod1, nnod2); */
+/*   G2G1_0 = allocate_i_mat(nnod2, nnod1); */
+/*   G1G2_1 = allocate_i_mat(nnod1, nnod2); */
+/*   G2G1_1 = allocate_i_mat(nnod2, nnod1); */
+/*   for (i=0; i<nnod1; i++) { */
+/*     for (j=0; j<nnod2; j++) { */
+/*       G1G2_0[i][j] = G2G1_0[j][i] =  */
+/* 	NWeightG2GLinks(glist1[i], glist2[j], (double)0); */
+/*       G1G2_1[i][j] = G2G1_1[j][i] =  */
+/* 	NWeightG2GLinks(glist1[i], glist2[j], (double)1); */
+/*     } */
+/*   } */
+
+/*   /\* Get the initial node-to-group links matrix *\/ */
+/*   fprintf(stderr, ">> Getting the initial node-to-group links matrix...\n"); */
+/*   N1G2_0 = allocate_i_mat(nnod1, nnod2); */
+/*   N2G1_0 = allocate_i_mat(nnod2, nnod1); */
+/*   N1G2_1 = allocate_i_mat(nnod1, nnod2); */
+/*   N2G1_1 = allocate_i_mat(nnod2, nnod1); */
+/*   for (i=0; i<nnod1; i++) { */
+/*     for (j=0; j<nnod2; j++) { */
+/*       N1G2_0[i][j] = NWeightLinksToGroup(nlist1[i], glist2[j], (double)0); */
+/*       N2G1_0[j][i] = NWeightLinksToGroup(nlist2[j], glist1[i], (double)0); */
+/*       N1G2_1[i][j] = NWeightLinksToGroup(nlist1[i], glist2[j], (double)1); */
+/*       N2G1_1[j][i] = NWeightLinksToGroup(nlist2[j], glist1[i], (double)1); */
+/*     } */
+/*   } */
+
+/*   /\* Get the initial number of non-empty groups *\/ */
+/*   ng1 = NNonEmptyGroups(part1); */
+/*   ng2 = NNonEmptyGroups(part2); */
+
+/*   /\* */
+/*     GET READY FOR THE SAMPLING */
+/*   *\/ */
+/*   H = H2StateUnbiased(part1, part2); */
+
+/*   /\* Get the decorrelation time *\/ */
+/*   switch (verbose_sw) { */
+/*   case 'q': */
+/*     break; */
+/*   default: */
+/*     fprintf(stderr, "# CALCULATING DECORRELATION TIME\n"); */
+/*     fprintf(stderr, "# ------------------------------\n"); */
+/*     break; */
+/*   } */
+/*   if (decorStep <= 0) { */
+/*     decorStep = GetDecorrelationStep2StateUnbiased(&H, */
+/* 						   nlist1, nlist2, */
+/* 						   glist1, glist2, */
+/* 						   part1, part2, */
+/* 						   nnod1, nnod2, */
+/* 						   &ng1, &ng2, */
+/* 						   N1G2_0, N2G1_0, */
+/* 						   N1G2_1, N2G1_1, */
+/* 						   G1G2_0, G2G1_0, */
+/* 						   G1G2_1, G2G1_1, */
+/* 						   LogList, LogListSize, */
+/* 						   LogChooseList, */
+/* 						   LogChooseListSize, */
+/* 						   LogFactList, LogFactListSize, */
+/* 						   gen, verbose_sw); */
+/*   } */
+
+/*   /\* Thermalization *\/ */
+/*   switch (verbose_sw) { */
+/*   case 'q': */
+/*     break; */
+/*   default: */
+/*     fprintf(stderr, "#\n#\n# THERMALIZING\n"); */
+/*     fprintf(stderr, "# ------------\n"); */
+/*     break; */
+/*   } */
+/*   ThermalizeMC2StateUnbiased(decorStep, &H, */
+/* 			     nlist1, nlist2, glist1, glist2, */
+/* 			     part1, part2, */
+/* 			     nnod1, nnod2, &ng1, &ng2, */
+/* 			     N1G2_0, N2G1_0, N1G2_1, N2G1_1, */
+/* 			     G1G2_0, G2G1_0, G1G2_1, G2G1_1, */
+/* 			     LogList, LogListSize, */
+/* 			     LogChooseList, LogChooseListSize, */
+/* 			     LogFactList, LogFactListSize, */
+/* 			     gen, verbose_sw); */
+  
+/*   /\* */
+/*     SAMPLIN' ALONG */
+/*   *\/ */
+/*   switch (verbose_sw) { */
+/*   case 'd': */
+/*     break; */
+/*   default: */
+/*     H = 0; /\* Reset the origin of energies to avoid huge exponentials *\/ */
+/*     break; */
+/*   } */
+/*   for (iter=0; iter<nIter; iter++) { */
+/*     MCStep2StateUnbiased(decorStep, &H, nlist1, nlist2, */
+/* 			 glist1, glist2, part1, part2, */
+/* 			 nnod1, nnod2, &ng1, &ng2, */
+/* 			 N1G2_0, N2G1_0, N1G2_1, N2G1_1, */
+/* 			 G1G2_0, G2G1_0, G1G2_1, G2G1_1, */
+/* 			 LogList, LogListSize, */
+/* 			 LogChooseList, LogChooseListSize, */
+/* 			 LogFactList, LogFactListSize, */
+/* 			 gen); */
+/*     switch (verbose_sw) { */
+/*     case 'q': */
+/*       break; */
+/*     case 'v': */
+/*       fprintf(stderr, "%d %lf\n", iter, H); */
+/*       break; */
+/*     case 'd': */
+/*       fprintf(stderr, "%d %lf %lf\n", iter, H, H2StateUnbiased(part1, part2)); */
+/*       FPrintPartition(stderr, part1, 0); */
+/*       FPrintPartition(stderr, part2, 0); */
+/*       break; */
+/*     } */
+
+/*     /\* Check if the energy has gone below a certain threshold and, if */
+/*        so, reset energies and start over *\/ */
+/*     if (H < -400.0) { */
+/*       switch (verbose_sw) { */
+/*       case 'q': */
+/* 	break; */
+/*       default: */
+/* 	fprintf(stderr, */
+/* 		"# System was not properly thermalized: starting over :(\n\n"); */
+/* 	break; */
+/*       } */
+/*       iter = 0; */
+/*       H = 0.0; */
+/*       Z = 0.0; */
+/*       for (q=0; q<nquery; q++) { */
+/* 	score[q] = 0.0; */
+/*       } */
+/*     } */
+
+/*     /\* Update partition function *\/ */
+/*     weight = exp(-H); */
+/*     Z += weight; */
+
+/*     /\* Update the scores *\/ */
+/*     for (q=0; q<nquery; q++) { */
+/*       l = G1G2_1[querySet[q]->n1->inGroup][querySet[q]->n2->inGroup]; */
+/*       r = G1G2_0[querySet[q]->n1->inGroup][querySet[q]->n2->inGroup] + */
+/* 	G1G2_1[querySet[q]->n1->inGroup][querySet[q]->n2->inGroup]; */
+/*       contrib = weight * (float)(l + 1) / (float)(r + 2); */
+/*       score[q] += contrib; */
+/*     } */
+
+/*   }  /\* End of iter loop *\/ */
+
+/*   /\* Normalize the scores *\/ */
+/*   for (q=0; q<nquery; q++) */
+/*     score[q] /= Z; */
+
+/*   /\* Remap the queries to the original network *\/ */
+/*   dict1 = MakeLabelDict(ratings->net1); */
+/*   dict2 = MakeLabelDict(ratings->net2); */
+/*   for (q=0; q<nquery; q++) { */
+/*     querySet[q]->n1 = GetNodeDict(querySet[q]->n1->label, dict1); */
+/*     querySet[q]->n2 = GetNodeDict(querySet[q]->n2->label, dict2); */
+/*   } */
+/*   FreeLabelDict(dict1); */
+/*   FreeLabelDict(dict2); */
+
+/*   /\* Free dynamically allocated memory *\/ */
+/*   RemovePartition(part1); */
+/*   RemovePartition(part2); */
+/*   free(glist1); */
+/*   free(glist2); */
+/*   free(nlist1); */
+/*   free(nlist2); */
+/*   free_i_mat(G1G2_0, nnod1); */
+/*   free_i_mat(G2G1_0, nnod2); */
+/*   free_i_mat(G1G2_1, nnod1); */
+/*   free_i_mat(G2G1_1, nnod2); */
+/*   free_i_mat(N1G2_0, nnod1); */
+/*   free_i_mat(N2G1_0, nnod2); */
+/*   free_i_mat(N1G2_1, nnod1); */
+/*   free_i_mat(N2G1_1, nnod2); */
+/*   FreeFastLog(LogList); */
+/*   FreeFastLogChoose(LogChooseList, LogChooseListSize); */
+/*   FreeFastLogFact(LogFactList); */
+
+/*   /\* Done *\/ */
+/*   return score; */
+/* } */
