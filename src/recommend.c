@@ -1926,7 +1926,7 @@ MultiLinkScore2StateUnbiased(struct binet *ratings,
       case 'q':
 	break;
       default:
-	outfile = fopen('scores.tmp', "w");
+ 	outfile = fopen("scores.tmp", "w");
 	for (q=0; q<nquery; q++) {
 	  fprintf(outfile, "%s %s %lf\n",
 		  ((querySet[q])->n1)->label,
@@ -1934,10 +1934,10 @@ MultiLinkScore2StateUnbiased(struct binet *ratings,
 		  score[q]/Z);
 	}
 	fclose(outfile);
-	outfile = fopen('part1.tmp', "w");
-	FPrintPartition(outfile, part2, 1);
+	outfile = fopen("part1.tmp", "w");
+	FPrintPartition(outfile, part1, 1);
 	fclose(outfile);
-	outfile = fopen('part2.tmp', "w");
+	outfile = fopen("part2.tmp", "w");
 	FPrintPartition(outfile, part2, 1);
 	fclose(outfile);
 	break;
