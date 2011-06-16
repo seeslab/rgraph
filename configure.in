@@ -53,5 +53,6 @@ AC_CONFIG_FILES(lib/Makefile
 		utils/Makefile
 		reliability/Makefile
 		recommender/Makefile
+		conflict/Makefile
 		Makefile)
 AC_OUTPUT()

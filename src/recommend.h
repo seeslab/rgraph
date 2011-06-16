@@ -24,6 +24,7 @@ struct query
 {
   struct node_gra *n1;
   struct node_gra *n2;
+  double score;
 };
 
 
