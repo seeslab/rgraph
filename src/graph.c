@@ -3097,7 +3097,7 @@ CompareTwoNetworks(struct node_gra *netA, struct node_gra *netB,
     }
   }
 
-  /* Calculate node conditional node probabilities*/
+  /* Calculate conditional node probabilities*/
   *p_nAB = (double)(*ncom_nod) / (double)(*nB_nod);
   *p_nBA = (double)(*ncom_nod) / (double)(*nA_nod);
 
@@ -3116,6 +3116,9 @@ CompareTwoNetworks(struct node_gra *netA, struct node_gra *netB,
 	if (IsThereLink(n1, n2) == 1) {
 	  (*ncom_lin) += 1;
 	}
+	else {
+	  fprintf(stderr, ">> %s %s\n", n1->label, n2->label);
+	}
       }
     }
   }
@@ -3130,6 +3133,7 @@ CompareTwoNetworks(struct node_gra *netA, struct node_gra *netB,
 	(*nB_lin) += 1;
 	if (IsThereLink(n1, n2) != 1) {
 	  ntot_lin++;
+	  fprintf(stderr, "<< %s %s\n", n1->label, n2->label);
 	}
       }
     }
