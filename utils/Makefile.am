@@ -6,7 +6,7 @@ INCLUDES = -I$(top_builddir) -I$(top_srcdir) \
 AM_LDFLAGS = -static
 
 bin_PROGRAMS = netcompare netprop nodeprop countlinks netrandomize \
-	modularbipart lapspec netlayout multinetlayout
+	modularbipart lapspec netlayout multinetlayout getgiant
 
 netcompare_SOURCES = main_netcompare.c
 netcompare_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
@@ -34,3 +34,6 @@ netlayout_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
 
 multinetlayout_SOURCES = main_multinetlayout.c
 multinetlayout_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
+
+getgiant_SOURCES = main_getgiant.c
+getgiant_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
