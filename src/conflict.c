@@ -32,7 +32,7 @@
   -----------------------------------------------------------------------------
 */
 struct query **
-AllLinkScore2StateUnbiased(struct binet *ratings,
+AllLinkScore2State(struct binet *ratings,
 			   int nIter,
 			   gsl_rng *gen,
 			   char verbose_sw,
@@ -166,7 +166,7 @@ AllLinkScore2StateUnbiased(struct binet *ratings,
   /*
     GET READY FOR THE SAMPLING
   */
-  H = H2StateUnbiased(part1, part2);
+  H = H2State(part1, part2);
 
   /* Get the decorrelation time */
   switch (verbose_sw) {
@@ -178,7 +178,7 @@ AllLinkScore2StateUnbiased(struct binet *ratings,
     break;
   }
   if (decorStep <= 0) {
-    decorStep = GetDecorrelationStep2StateUnbiased(&H,
+    decorStep = GetDecorrelationStep2State(&H,
 						   nlist1, nlist2,
 						   glist1, glist2,
 						   part1, part2,
@@ -204,7 +204,7 @@ AllLinkScore2StateUnbiased(struct binet *ratings,
     fprintf(stderr, "# ------------\n");
     break;
   }
-  ThermalizeMC2StateUnbiased(decorStep, &H,
+  ThermalizeMC2State(decorStep, &H,
 			     nlist1, nlist2, glist1, glist2,
 			     part1, part2,
 			     nnod1, nnod2, &ng1, &ng2,
@@ -226,7 +226,7 @@ AllLinkScore2StateUnbiased(struct binet *ratings,
     break;
   }
   for (iter=0; iter<nIter; iter++) {
-    MCStep2StateUnbiased(decorStep, &H, nlist1, nlist2,
+    MCStep2State(decorStep, &H, nlist1, nlist2,
 			 glist1, glist2, part1, part2,
 			 nnod1, nnod2, &ng1, &ng2,
 			 N1G2_0, N2G1_0, N1G2_1, N2G1_1,
@@ -242,7 +242,7 @@ AllLinkScore2StateUnbiased(struct binet *ratings,
       fprintf(stderr, "%d %lf\n", iter, H);
       break;
     case 'd':
-      fprintf(stderr, "%d %lf %lf\n", iter, H, H2StateUnbiased(part1, part2));
+      fprintf(stderr, "%d %lf %lf\n", iter, H, H2State(part1, part2));
       FPrintPartition(stderr, part1, 0);
       FPrintPartition(stderr, part2, 0);
       break;

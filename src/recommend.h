@@ -52,69 +52,8 @@ struct query **ReadQueries(FILE *inFile, int nQueries, struct binet *binet);
   Recommender functions
   -----------------------------------------------------------------------------
 */
-/* double LinkScore2State(struct binet *binet, */
-/* 		       struct query *the_query, */
-/* 		       int nIter, */
-/* 		       gsl_rng *gen, */
-/* 		       char verbose_sw, */
-/* 		       int decorStep); */
 double H2State(struct group *part1, struct group *part2);
 void MCStep2State(int factor,
-		  double *H,
-		  struct node_gra **nlist1, struct node_gra **nlist2,
-		  struct group **glist1, struct group **glist2,
-		  struct group *part1, struct group *part2,
-		  int nnod1, int nnod2,
-		  int **N1G2_0, int **N2G1_0,
-		  int **N1G2_1, int **N2G1_1,
-		  int **G1G2_0, int **G2G1_0,
-		  int **G1G2_1, int **G2G1_1,
-		  double *LogList,
-		  int LogListSize,
-		  double **LogChooseList,
-		  int LogChooseListSize,
-		  gsl_rng *gen);
-int GetDecorrelationStep2State(double *H,
-			       struct node_gra **nlist1,
-			       struct node_gra **nlist2,
-			       struct group **glist1, struct group **glist2,
-			       struct group *part1, struct group *part2,
-			       int nnod1, int nnod2,
-			       int **N1G2_0, int **N2G1_0,
-			       int **N1G2_1, int **N2G1_1,
-			       int **G1G2_0, int **G2G1_0,
-			       int **G1G2_1, int **G2G1_1,
-			       double *LogList,
-			       int LogListSize,
-			       double **LogChooseList,
-			       int LogChooseListSize,
-			       gsl_rng *gen,
-			       char verbose_sw);
-void ThermalizeMC2State(int decorStep,
-			double *H,
-			struct node_gra **nlist1, struct node_gra **nlist2,
-			struct group **glist1, struct group **glist2,
-			struct group *part1, struct group *part2,
-			int nnod1, int nnod2,
-			int **N1G2_0, int **N2G1_0,
-			int **N1G2_1, int **N2G1_1,
-			int **G1G2_0, int **G2G1_0,
-			int **G1G2_1, int **G2G1_1,
-			double *LogList,
-			int LogListSize,
-			double **LogChooseList,
-			int LogChooseListSize,
-			gsl_rng *gen,
-			char verbose_sw);
-double *MultiLinkScore2State(struct binet *ratings,
-			     struct query **querySet, int nquery,
-			     int nIter,
-			     gsl_rng *gen,
-			     char verbose_sw,
-			     int decorStep);
-
-double H2StateUnbiased(struct group *part1, struct group *part2);
-void MCStep2StateUnbiased(int factor,
 			  double *H,
 			  struct node_gra **nlist1, struct node_gra **nlist2,
 			  struct group **glist1, struct group **glist2,
@@ -132,7 +71,7 @@ void MCStep2StateUnbiased(int factor,
 			  double *LogFactList,
 			  int LogFactListSize,
 			  gsl_rng *gen);
-int GetDecorrelationStep2StateUnbiased(double *H,
+int GetDecorrelationStep2State(double *H,
 				       struct node_gra **nlist1,
 				       struct node_gra **nlist2,
 				       struct group **glist1,
@@ -152,7 +91,7 @@ int GetDecorrelationStep2StateUnbiased(double *H,
 				       int LogFactListSize,
 				       gsl_rng *gen,
 				       char verbose_sw);
-void ThermalizeMC2StateUnbiased(int decorStep,
+void ThermalizeMC2State(int decorStep,
 				double *H,
 				struct node_gra **nlist1,
 				struct node_gra **nlist2,
@@ -172,7 +111,7 @@ void ThermalizeMC2StateUnbiased(int decorStep,
 				int LogFactListSize,
 				gsl_rng *gen,
 				char verbose_sw);
-double *MultiLinkScore2StateUnbiased(struct binet *ratings,
+double *MultiLinkScore2State(struct binet *ratings,
 				     struct query **querySet, int nquery,
 				     int nIter,
 				     gsl_rng *gen,

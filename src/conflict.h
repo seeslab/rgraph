@@ -13,10 +13,10 @@
 #include "bipartite.h"
 #include "recommend.h"
 
-struct query **AllLinkScore2StateUnbiased(struct binet *ratings,
-					  int nIter,
-					  gsl_rng *gen,
-					  char verbose_sw,
-					  int decorStep);
+struct query **AllLinkScore2State(struct binet *ratings,
+				  int nIter,
+				  gsl_rng *gen,
+				  char verbose_sw,
+				  int decorStep);
 
 #endif /* !RGRAPH_CONFLICT_H */
