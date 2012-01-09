@@ -48,7 +48,6 @@ AllLinkScore2State(struct binet *ratings,
   struct group *lastg=NULL;
   double H;
   int iter;
-  double Z=0.0;
   int i, j;
   int **N1G2_0=NULL, **N2G1_0=NULL;
   int **N1G2_1=NULL, **N2G1_1=NULL;
@@ -61,7 +60,8 @@ AllLinkScore2State(struct binet *ratings,
   int LogFactListSize = 2000;
   double *LogFactList=InitializeFastLogFact(LogFactListSize);
   struct node_lis *n1=NULL, *n2=NULL;
-  double weight, contrib;
+  double contrib;
+  int norm = 0;
   int dice;
   int r, l;
   int ng1, ng2;
@@ -261,22 +261,21 @@ AllLinkScore2State(struct binet *ratings,
       }
       iter = 0;
       H = 0.0;
-      Z = 0.0;
+      norm = 0;
       for (q=0; q<nquery; q++) {
 	querySet[q]->score = 0.0;
       }
     }
 
-    /* Update partition function */
-    weight = exp(-H);
-    Z += weight;
+    /* Update normalization */
+    norm += 1;
 
     /* Update the scores */
     for (q=0; q<nquery; q++) {
       l = G1G2_1[querySet[q]->n1->inGroup][querySet[q]->n2->inGroup];
       r = G1G2_0[querySet[q]->n1->inGroup][querySet[q]->n2->inGroup] +
 	G1G2_1[querySet[q]->n1->inGroup][querySet[q]->n2->inGroup];
-      contrib = weight * (float)(l + 1) / (float)(r + 2);
+      contrib = (float)(l + 1) / (float)(r + 2);
       querySet[q]->score += contrib;
     }
 
@@ -284,7 +283,7 @@ AllLinkScore2State(struct binet *ratings,
 
   /* Normalize the scores */
   for (q=0; q<nquery; q++)
-    querySet[q]->score /= Z;
+    querySet[q]->score /= (double)norm;
 
   /* Free dynamically allocated memory */
   RemovePartition(part1);

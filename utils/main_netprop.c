@@ -71,8 +71,8 @@ main(int argc, char **argv)
 
   /* Synchronizability */
   printf("Synchronizability %lf\n", Synchronizability(net));
-  
-  printf("K_K2 %lf\n",  AverageDegree(net, 1)/ AverageSquaredDegree(net));
+
+  printf("K_K2 %.10lf\n",  AverageDegree(net, 1)/ AverageSquaredDegree(net));
 
 /*   /\* Modularity *\/ */
 /*   struct group *part; */
