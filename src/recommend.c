@@ -1909,7 +1909,8 @@ MultiLinkScore2StateUnbiased(struct binet *ratings,
     }
 
     /* Update partition function */
-    weight = exp(-H);
+    /* weight = exp(-H); */
+    weight = 1.0;
     Z += weight;
 
     /* Update the scores */
