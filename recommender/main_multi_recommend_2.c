@@ -58,9 +58,9 @@ main(int argc, char **argv)
 /*   scores = MultiLinkScore2State(ratings, */
 /* 				queries, nquery, */
 /* 				10000, rand_gen, 'v', -1); */
-  scores = MultiLinkScore2StateUnbiased(ratings,
-					queries, nquery,
-					10000, rand_gen, 'v', -1);
+  scores = MultiLinkScore2State(ratings,
+				queries, nquery,
+				10000, rand_gen, 'v', -1);
   fprintf(stdout, "\n\n>>> RESULTS\n\n");
   for (q=0; q<nquery; q++) {
     fprintf(stdout, "%s %s %lf\n",

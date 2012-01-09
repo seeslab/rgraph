@@ -47,8 +47,8 @@ main(int argc, char **argv)
   nquery = CountNodes(ratings->net1) * CountNodes(ratings->net2);
 
   /* Get the scores and print them */
-  querySet = AllLinkScore2StateUnbiased(ratings,
-					10000, rand_gen, 'v', -1);
+  querySet = AllLinkScore2State(ratings,
+				10000, rand_gen, 'v', -1);
   outfile = fopen("link_scores.dat", "w");
   for (q=0; q<nquery; q++) {
     if (strcmp(querySet[q]->n1->label, querySet[q]->n2->label) != 0) {
