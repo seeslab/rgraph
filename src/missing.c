@@ -474,15 +474,16 @@ LinkScore(struct node_gra *net,
   struct group *lastg=NULL;
   double H;
   int iter, decorStep;
-  double **predA=NULL, Z=0.0;
+  double **predA=NULL;
   int i, j;
   int **G2G=NULL;
   int *n2gList=NULL;
   int LogChooseListSize = 500;
   double **LogChooseList=InitializeFastLogChoose(LogChooseListSize);
   struct node_lis *p1=NULL, *p2=NULL;
-  double weight, contrib;
+  double contrib;
   int dice;
+  int norm = 0;
   int r, l;
   double mutualInfo;
 
@@ -575,8 +576,7 @@ LinkScore(struct node_gra *net,
     }
 
     /* Update partition function */
-    weight = exp(-H);
-    Z += weight;
+    norm += 1;
 
     /* Update the predicted adjacency matrix by going through all
        group pairs */
@@ -586,7 +586,7 @@ LinkScore(struct node_gra *net,
 	/* update the within-group pairs */
 	r = glist[i]->size * (glist[i]->size - 1) / 2;
 	l = glist[i]->inlinks;
-	contrib = weight * (float)(l + 1) / (float)(r + 2);
+	contrib = (float)(l + 1) / (float)(r + 2);
 	p1 = glist[i]->nodeList;
 	while ((p1 = p1->next) != NULL) {
 	  p2 = p1;
@@ -601,7 +601,7 @@ LinkScore(struct node_gra *net,
 	  if (glist[j]->size > 0) {
 	    l = G2G[i][j];
 	    r = glist[i]->size * glist[j]->size;
-	    contrib = weight * (float)(l + 1) / (float)(r + 2);
+	    contrib = (float)(l + 1) / (float)(r + 2);
 	    p1 = glist[i]->nodeList;
 	    while ((p1 = p1->next) != NULL) {
 	      p2 = glist[j]->nodeList;
@@ -620,7 +620,7 @@ LinkScore(struct node_gra *net,
   /* Normalize the predicted adjacency matrix */
   for (i=0; i<nnod; i++) {
     for (j=0; j<nnod; j++) {
-      predA[i][j] /= Z;
+      predA[i][j] /= (double)norm;
     }
   }
 
@@ -789,14 +789,14 @@ NetworkScore(struct node_gra *netTar,
   struct group *lastg=NULL;
   double H;
   int iter, decorStep;
-  double Z=0.0;
+  int norm=0;
   int **G2G=NULL;
   int *n2gList=NULL;
   int LogChooseListSize = 500;
   double **LogChooseList=InitializeFastLogChoose(LogChooseListSize);
   struct node_lis *p1=NULL, *p2=NULL;
   double scoreTar=0.0, scoreObs=0.0;
-  double weight, contribObs, contribTar, contribBase;
+  double contribObs, contribTar, contribBase;
   int contribBase_sw=0;
   int i, j, dice;
   int r, lObs, lTar;
@@ -890,8 +890,7 @@ NetworkScore(struct node_gra *netTar,
     }
 
     /* Update the partition function */
-    weight = exp(-H);
-    Z += weight;
+    norm += 1;
 
     /* Copy the partition and map it to the target network */
     partCopy = CopyPartition(part);
@@ -935,15 +934,15 @@ NetworkScore(struct node_gra *netTar,
       contribBase = contribObs;
       contribBase_sw = 1;
     }      
-    scoreTar += weight * exp(contribTar - contribBase);
-    scoreObs += weight * exp(contribObs - contribBase);
+    scoreTar += exp(contribTar - contribBase);
+    scoreObs += exp(contribObs - contribBase);
 
     RemovePartition(partCopy);
   }  /* End of iter loop */
 
   /* Normalize the scores */
-  scoreTar /= Z;
-  scoreObs /= Z;
+  scoreTar /= (double)norm;
+  scoreObs /= (double)norm;
 
   /* Done */
   RemovePartition(part);
