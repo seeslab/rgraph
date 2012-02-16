@@ -1174,3 +1174,679 @@ PartitionSampling(struct node_gra *net,
   
   return partList;
 }
+
+
+
+/*
+  -----------------------------------------------------------------------------
+  -----------------------------------------------------------------------------
+  Link reliability K-state
+  -----------------------------------------------------------------------------
+  -----------------------------------------------------------------------------
+*/
+
+/*
+  -----------------------------------------------------------------------------
+  Hamiltoninan H for K-state reliability estimation. The part
+  partition must be mapped onto a network whose links represent
+  observed ratings. The weight of the link represents the
+  rating. CAUTION!! ALL LINKS IN THE NETWORK ARE CONSIDERED
+  OBSERVED
+  -----------------------------------------------------------------------------
+*/
+double
+LSHKState(int K, struct group *part)
+{
+  struct group *g1=NULL, *g2=NULL;
+  double n, nk, H=0.0;
+  int ng=0;      /* Number of non-empty groups */
+  int nnod=0;  /* Number of nodes */
+  int k;
+
+  /* Go through all group pairs */
+  g1 = part;
+  while (g1->next != NULL) {
+    g2 = g1;
+    g1 = g1->next;
+    if (g1->size > 0)
+      ng++;
+    nnod += g1->size;
+    while ((g2 = g2->next) != NULL) {
+      n = NG2GLinks(g1, g2);  /* The total number of observations */
+      H += gsl_sf_lnfact(n + K - 1);
+      for (k=0; k<K; k++) {
+	nk = NWeightG2GLinks(g1, g2, (double)k);  /* The k ratings */
+	H -= gsl_sf_lnfact(nk);
+      }
+    } /* end of loop over g2 */
+  } /* end of loop over g1 */
+
+  H -= gsl_sf_lnfact(nnod - ng);
+
+  /* Done */
+  return H;
+}
+
+
+/*
+  -----------------------------------------------------------------------------
+  Do a Monte Carlo step for the k-state link score. Fast version for
+  sparse observation matrices.
+  -----------------------------------------------------------------------------
+*/
+void
+LSMCStepKState(int K,
+	       int factor,
+	       double *H,
+	       struct node_gra **nlist,
+	       struct group **glist,
+	       struct group *part,
+	       int nnod,
+	       int *ng,
+	       int **N2G[],
+	       int **G2G[],
+	       double *LogList, int LogListSize,
+	       double *LogFactList, int LogFactListSize,
+	       gsl_rng *gen)
+{
+  double dH;
+  struct group *oldg, *newg, *g, *g2;
+  int move;
+  struct node_gra *node=NULL;
+  struct node_lis *nei=NULL;
+  int dice, n, nk;
+  int oldgnum, newgnum, q;
+  int i, ngroup;
+  int j; 
+  int move_in;
+  int k;
+
+  /* The moves */
+  for (move=0; move<nnod*factor; move++) {
+
+    /* The move */
+    dice = floor(gsl_rng_uniform(gen) * (double)nnod);
+    node = nlist[dice];
+    oldgnum = node->inGroup;
+    do {
+      newgnum = floor(gsl_rng_uniform(gen) * (double)nnod);
+    } while (newgnum == oldgnum);
+    oldg = glist[oldgnum];
+    newg = glist[newgnum];
+    g = g2 = part;
+
+    /* THE CHANGE OF ENERGY: OLD CONFIGURATION CONTRIBUTION */
+    dH = 0.0;
+
+    while ((g=g->next) != NULL) {
+      if (g->size > 0) {  /* group is not empty */
+	/* old configuration, old group */
+	n = 0;
+	for (k=0; k<K; k++)
+	  n += G2G[k][oldgnum][g->label];
+	dH -= FastLogFact(n + K - 1, LogFactList, LogFactListSize);
+	for (k=0; k<K; k++) {
+	  nk = G2G[k][oldgnum][g->label];
+	  dH -= -FastLogFact(nk, LogFactList, LogFactListSize);
+	}
+	/* old configuration, new group */
+	n = 0;
+	for (k=0; k<K; k++)
+	  n += G2G[k][newgnum][g->label];
+	dH -= FastLogFact(n + K - 1, LogFactList, LogFactListSize);
+	for (k=0; k<K; k++) {
+	  nk = G2G[k][newgnum][g->label];
+	  dH -= -FastLogFact(nk, LogFactList, LogFactListSize);
+	}
+      }
+    }
+    /* labeled-groups sampling correction */
+    if ((oldg->size == 1) || (newg->size == 0)) {
+      dH += FastLogFact(nnod - *ng, LogFactList, LogFactListSize);
+    }
+
+    /* Tentatively move the node to the new group and update G2G
+       matrix */
+    MoveNode(node, oldg, newg);
+    for (i=0; i<ngroup; i++) {   /* update G2G links */
+      for (k=0; k<K; k++) {
+	G2G[k][oldgnum][i] -= N2G[k][node->num][i];
+	G2G[k][newgnum][i] += N2G[k][node->num][i];
+      }
+    }
+    if (oldg->size == 0) /* update number of non-empty groups */
+      (*ng) -= 1;
+    if (newg->size == 1)
+      (*ng) +=1;
+   
+
+    /* THE CHANGE OF ENERGY: NEW CONFIGURATION CONTRIBUTION */
+
+    while ((g2=g2->next) != NULL) {
+      if (g2->size > 0) {  /* group is not empty */
+	/* new configuration, old group */
+	n = 0;
+	for (k=0; k<K; k++)
+	  n += G2G[k][oldgnum][g2->label];
+	dH += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
+	for (k=0; k<K; k++) {
+	  nk = G2G[k][oldgnum][g2->label];
+	  dH += -FastLogFact(nk, LogFactList, LogFactListSize);
+	}
+	/* new configuration, new group */
+	n = 0;
+	for (k=0; k<K; k++)
+	  n += G2G[k][newgnum][g2->label];
+	dH += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
+	for (k=0; k<K; k++) {
+	  nk = G2G[k][newgnum][g2->label];
+	  dH += -FastLogFact(nk, LogFactList, LogFactListSize);
+	}
+      }
+    }
+    /* labeled-groups sampling correction */
+    if ((oldg->size == 0) || (newg->size == 1)) {
+      dH -= FastLogFact(nnod - *ng, LogFactList, LogFactListSize);
+    }
+
+    /* METROPOLIS ACCEPTANCE */
+    if ((dH <= 0.0) || (gsl_rng_uniform(gen) < exp(-dH))) {
+      /* accept move: update energy */
+      *H += dH;
+    }
+    else { 
+      /* undo the move */
+      MoveNode(node, newg, oldg);
+      for (i=0; i<ngroup; i++) {   /* update G2G links */
+	for (k=0; k<K; k++) {
+	  G2G[k][oldgnum][i] += N2G[k][node->num][i];
+	  G2G[k][newgnum][i] -= N2G[k][node->num][i];
+	}
+      }
+      if (oldg->size == 1) /* update number of non-empty groups */
+	(*ng) += 1;
+      if (newg->size == 0)
+	(*ng) -= 1;
+    }
+  } /* Moves completed: done! */
+  
+  return;
+}
+
+
+/*
+  -----------------------------------------------------------------------------
+  Get the decorrelation step necessary to sample decorrelated
+  partitions.
+  -----------------------------------------------------------------------------
+*/
+int
+LSGetDecorrelationStepKState(int K,
+			     double *H,
+			     struct node_gra **nlist,
+			     struct group **glist,
+			     struct group *part,
+			     int nnod,
+			     int *ng,
+			     int **N2G[],
+			     int **G2G[],
+			     double *LogList, int LogListSize,
+			     double *LogFactList, int LogFactListSize,
+			     gsl_rng *gen,
+			     char verbose_sw)
+{
+  struct group *partRef;
+  int step, x1, x2;
+  double y1, y2;
+  double mutualInfo;
+  int rep, nrep=10;
+  double *decay, meanDecay, sigmaDecay, result;
+  int norm=0;
+
+  x2 = nnod / 5;
+  if (x2 < 10)
+    x2 = 10;
+  x1 = x2 / 4;
+
+  /* Get the nrep initial estimates */
+  decay = allocate_d_vec(nrep);
+  for (rep=0; rep<nrep; rep++) {
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    default:
+      fprintf(stderr, "#\n# Estimating decorrelation time (%d/%d)\n",
+	      rep + 1, nrep);
+      break;
+    }
+    partRef = CopyPartition(part);
+    for (step=0; step<=x2; step++) {
+      switch (verbose_sw) {
+      case 'd':
+	fprintf(stderr, "# %d / %d\n", step, x2);
+	break;
+      default:
+	break;
+      }
+      LSMCStepKState(K, 1, H, nlist,
+		     glist, part,
+		     nnod, ng,
+		     N2G,
+		     G2G,
+		     LogList, LogListSize,
+		     LogFactList, LogFactListSize,
+		     gen);
+      if (step == x1) {
+	y1 = MutualInformation(partRef, part);
+      }
+    }
+    y2 = MutualInformation(partRef, part);
+    decay[rep] = 2. * CalculateDecay(nnod, x1, y1, x2, y2);
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    default:
+      fprintf(stderr, "# Decorrelation time (estimate %d) = %g\n",
+	      rep + 1, decay[rep]);
+      break;
+    }
+    if (decay[rep] < 0.) {
+      rep--;
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "#\tignoring...\n");
+	break;
+      }
+    }
+    /* Free memory */
+    RemovePartition(partRef);
+  }
+  
+  /* Get rid of bad estimates (Chauvenet criterion)  */
+  meanDecay = mean(decay, nrep);
+  sigmaDecay = stddev(decay, nrep);
+  result = meanDecay * nrep;
+  for (rep=0; rep<nrep; rep++) {
+    if (fabs(decay[rep] - meanDecay) / sigmaDecay > 2) {
+      result -= decay[rep];
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "# Disregarding estimate %d\n", rep + 1);
+	break;
+      }
+    }
+    else {
+      norm++;
+    }
+  }
+  
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "# Decorrelation step: %d\n", (int)(result / norm + 0.5));
+    break;
+  }
+
+  /* Clean up */
+  free_d_vec(decay);
+
+  return (int)(result / norm + 0.5);
+}
+
+
+/*
+  ---------------------------------------------------------------------
+  
+  ---------------------------------------------------------------------
+*/
+void
+LSThermalizeMCKState(int K,
+		     int decorStep,
+		     double *H,
+		     struct node_gra **nlist,
+		     struct group **glist,
+		     struct group *part,
+		     int nnod,
+		     int *ng,
+		     int **N2G[],
+		     int **G2G[],
+		     double *LogList, int LogListSize,
+		     double *LogFactList, int LogFactListSize,
+		     gsl_rng *gen,
+		     char verbose_sw)
+{
+  double HMean0=1.e10, HStd0=1.e-10, HMean1, HStd1, *Hvalues;
+  int rep, nrep=20;
+  int equilibrated=0;
+
+  Hvalues = allocate_d_vec(nrep);
+  
+  do {
+    /* MC steps */
+    for (rep=0; rep<nrep; rep++) {
+      LSMCStepKState(K, decorStep, H, nlist,
+		     glist, part,
+		     nnod, ng,
+		     N2G,
+		     G2G,
+		     LogList, LogListSize,
+		     LogFactList, LogFactListSize,
+		     gen);
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "%lf\n", *H);
+	break;
+      }
+      Hvalues[rep] = *H;
+    }
+
+    /* Check for equilibration */
+    HMean1 = mean(Hvalues, nrep);
+    HStd1 = stddev(Hvalues, nrep);
+    if (HMean0 - HStd0 / sqrt(nrep) < HMean1 + HStd1 / sqrt(nrep)) {
+      equilibrated++;
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "#\tequilibrated (%d/5) H=%lf\n",
+		equilibrated, HMean1);
+	break;
+      }
+    }
+    else {
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "#\tnot equilibrated yet H0=%g+-%g H1=%g+-%g\n",
+		HMean0, HStd0 / sqrt(nrep), HMean1, HStd1 / sqrt(nrep));
+	break;
+      }
+      HMean0 = HMean1;
+      HStd0 = HStd1;
+      equilibrated = 0;
+    }
+    
+  } while (equilibrated < 5);
+  
+  /* Clean up */
+  free_d_vec(Hvalues);
+  
+  return;
+}
+
+
+/*
+  -----------------------------------------------------------------------------
+  Return the score p(A_ij=k|A^O) of a collection {(i,j)} querySet of
+  links, for a k-state system. The ratings are a bipartite network
+  with links (corresponding to observations) that have values 0 or 1.
+  -----------------------------------------------------------------------------
+*/
+double **
+LSMultiLinkScoreKState(int K,
+		       struct node_gra *observed,
+		       int nIter,
+		       gsl_rng *gen,
+		       char verbose_sw,
+		       int decorStep)
+{
+  int nnod=CountNodes(observed);
+  struct group *part=NULL;
+  struct node_gra *p=NULL, *p2=NULL;
+  struct node_gra **nlist=NULL;
+  struct group **glist=NULL;
+  struct group *lastg=NULL;
+  double H;
+  int iter;
+  double **score;
+  int i, j;
+  int **N2G[K];
+  int **G2G[K];
+  int LogListSize = 5000;
+  double *LogList=InitializeFastLog(LogListSize);
+  int LogFactListSize = 10000;
+  double *LogFactList=InitializeFastLogFact(LogFactListSize);
+  int norm = 0;
+  int dice;
+  int n, nk;
+  int q;
+  int ng;
+  FILE *outfile=NULL;
+  int k, k2;
+  struct query **querySet;
+  int nq=0, nquery;
+
+  /*
+    PRELIMINARIES
+  */
+
+  /* Map nodes and groups to a list for faster access */
+  fprintf(stderr, ">> Mapping nodes and groups to lists...\n");
+  nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
+  glist = (struct group **) calloc(nnod, sizeof(struct group *));
+  lastg = part = CreateHeaderGroup();
+  p = observed;
+  while ((p = p->next) != NULL) {
+    nlist[p->num] = p;
+    lastg = glist[p->num] = CreateGroup(lastg, p->num);
+  }
+
+  /* Create the queries: all pairs of nodes are queries */
+  nquery = (nnod * (nnod - 1)) / 2;
+  querySet = (struct query **) calloc(nquery, sizeof(struct query *));
+  p = observed;
+  while ((p = p->next) != NULL) {
+    p2 = p;
+    while ((p2 = p2->next) != NULL) {
+      querySet[nq++] = CreateQuery(p, p2);
+    }
+  }
+
+  /* Initialize scores */
+  score = allocate_d_mat(K, nquery);
+  for (k=0; k<K; k++)
+    for (q=0; q<nquery; q++)
+      score[k][q] = 0.0;
+
+  /* Create initial partition (each node in a separate group) */
+  fprintf(stderr, ">> Placing nodes in initial partition...\n");
+  p = observed;
+  ResetNetGroup(observed);
+  while ((p = p->next) != NULL) {
+    AddNodeToGroup(glist[p->num], p);
+  }
+
+  /* Get the initial group-to-group links matrix */
+  fprintf(stderr, ">> Getting the initial group-to-group links matrix...\n");
+  for (k=0; k<K; k++) {
+    G2G[k] = allocate_i_mat(nnod, nnod);
+    for (i=0; i<nnod; i++) {
+      for (j=0; j<nnod; j++) {
+	G2G[k][i][j] = G2G[k][j][i] = 
+	  NWeightG2GLinks(glist[i], glist[j], (double)k);
+      }
+    }
+  }
+
+  /* Get the initial node-to-group links matrix */
+  fprintf(stderr, ">> Getting the initial node-to-group links matrix...\n");
+  for (k=0; k<K; k++) {
+    N2G[k] = allocate_i_mat(nnod, nnod);
+    for (i=0; i<nnod; i++) {
+      for (j=0; j<nnod; j++) {
+	N2G[k][i][j] = NWeightLinksToGroup(nlist[i], glist[j], (double)k);
+      }
+    }
+  }
+
+  /* Get the initial number of non-empty groups */
+  ng = NNonEmptyGroups(part);
+
+  /*
+    GET READY FOR THE SAMPLING
+  */
+  H = LSHKState(K, part);
+
+  /* Get the decorrelation time */
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "# CALCULATING DECORRELATION TIME\n");
+    fprintf(stderr, "# ------------------------------\n");
+    break;
+  }
+  if (decorStep <= 0) {
+    decorStep = LSGetDecorrelationStepKState(K, &H,
+					     nlist,
+					     glist,
+					     part,
+					     nnod,
+					     &ng,
+					     N2G,
+					     G2G,
+					     LogList, LogListSize,
+					     LogFactList, LogFactListSize,
+					     gen, verbose_sw);
+  }
+  
+  /* Thermalization */
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "#\n#\n# THERMALIZING\n");
+    fprintf(stderr, "# ------------\n");
+    break;
+  }
+  LSThermalizeMCKState(K, decorStep, &H,
+		       nlist, glist,
+		       part,
+		       nnod, &ng,
+		       N2G,
+		       G2G,
+		       LogList, LogListSize,
+		       LogFactList, LogFactListSize,
+		       gen, verbose_sw);
+  
+  /*
+    SAMPLIN' ALONG
+  */
+  switch (verbose_sw) {
+  case 'd':
+    break;
+  default:
+    H = 0; /* Reset the origin of energies to avoid huge exponentials */
+    break;
+  }
+  for (iter=0; iter<nIter; iter++) {
+    LSMCStepKState(K, decorStep, &H, nlist,
+		   glist, part,
+		   nnod, &ng,
+		   N2G,
+		   G2G,
+		   LogList, LogListSize,
+		   LogFactList, LogFactListSize,
+		   gen);
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    case 'v':
+      fprintf(stderr, "%d %lf\n", iter, H);
+      break;
+    case 'd':
+      fprintf(stderr, "%d %lf %lf\n", iter, H, LSHKState(K, part));
+      FPrintPartition(stderr, part, 0);
+      break;
+    }
+
+    /* Check if the energy has gone below a certain threshold and, if
+       so, reset energies and start over */
+    if (H < -400.0) {
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr,
+		"# System was not properly thermalized: starting over :(\n\n");
+	break;
+      }
+      iter = 0;
+      H = 0.0;
+      norm = 0;
+      for (k=0; k<K; k++) {
+	for (q=0; q<nquery; q++) {
+	  score[k][q] = 0.0;
+	}
+      }
+    }
+
+    /* Update normalization */
+    norm += 1;
+
+    /* Update the scores */
+    for (k=0; k<K; k++) {
+      for (q=0; q<nquery; q++) {
+	printf("%d\n", (querySet[q])->n1->inGroup);
+	nk = G2G[k][querySet[q]->n1->inGroup][querySet[q]->n2->inGroup];
+	n = 0;
+	for (k2=0; k2<K; k2++)
+	  n += G2G[k2][querySet[q]->n1->inGroup][querySet[q]->n2->inGroup];
+	score[k][q] += (float)(nk + 1) / (float)(n + K);
+      }
+    }
+
+    /* Output temporary scores and partitions */
+    if (iter % 100 == 0) {
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+ 	outfile = fopen("scores.tmp", "w");
+	for (q=0; q<nquery; q++) {
+	  fprintf(outfile, "%s %s",
+		  ((querySet[q])->n1)->label,
+		  ((querySet[q])->n2)->label);
+	  for (k=0; k<K; k++) {
+	    fprintf(outfile, " %lf",
+		    score[k][q]/(double)norm);
+	  }
+	  fprintf(outfile, "\n");
+	}
+	fclose(outfile);
+	outfile = fopen("part.tmp", "w");
+	FPrintPartition(outfile, part, 1);
+	fclose(outfile);
+	break;
+      }
+    }
+  }  /* End of iter loop */
+
+  /* Normalize the scores */
+  for (k=0; k<K; k++)
+    for (q=0; q<nquery; q++)
+      score[k][q] /= (double)norm;
+
+  /* Free dynamically allocated memory */
+  RemovePartition(part);
+  free(glist);
+  free(nlist);
+  for (k=0; k<K; k++) {
+    free_i_mat(G2G[k], nnod);
+    free_i_mat(N2G[k], nnod);
+  }
+  FreeFastLog(LogList);
+  FreeFastLogFact(LogFactList);
+
+  /* Done */
+  return score;
+}

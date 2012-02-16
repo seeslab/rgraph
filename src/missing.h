@@ -80,6 +80,58 @@ struct group **PartitionSampling(struct node_gra *net,
 				 gsl_rng *gen,
 				 char verbose_sw);
 
+/*
+  ---------------------------------------------------------------------
+  Link reliability K-state
+  ---------------------------------------------------------------------
+*/
+double LSHKState(int K, struct group *part);
+void LSMCStepKState(int K,
+		    int factor,
+		    double *H,
+		    struct node_gra **nlist,
+		    struct group **glist,
+		    struct group *part,
+		    int nnod,
+		    int *ng,
+		    int **N2G[],
+		    int **G2G[],
+		    double *LogList, int LogListSize,
+		    double *LogFactList, int LogFactListSize,
+		    gsl_rng *gen);
+int LSGetDecorrelationStepKState(int K,
+				 double *H,
+				 struct node_gra **nlist,
+				 struct group **glist,
+				 struct group *part,
+				 int nnod,
+				 int *ng,
+				 int **N2G[],
+				 int **G2G[],
+				 double *LogList, int LogListSize,
+				 double *LogFactList, int LogFactListSize,
+				 gsl_rng *gen,
+				 char verbose_sw);
+void LSThermalizeMCKState(int K,
+			  int decorStep,
+			  double *H,
+			  struct node_gra **nlist,
+			  struct group **glist,
+			  struct group *part,
+			  int nnod,
+			  int *ng,
+			  int **N2G[],
+			  int **G2G[],
+			  double *LogList, int LogListSize,
+			  double *LogFactList,int LogFactListSize,
+			  gsl_rng *gen,
+			  char verbose_sw);
+double **LSMultiLinkScoreKState(int K,
+				struct binet *ratings,
+				int nIter,
+				gsl_rng *gen,
+				char verbose_sw,
+				int decorStep);
 
 
 
