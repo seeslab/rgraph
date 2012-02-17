@@ -15,6 +15,7 @@
 #include <stdlib.h>
 
 #include <gsl/gsl_rng.h>
+#include "tools.h"
 #include "graph.h"
 #include "missing.h"
 

@@ -11,6 +11,7 @@
 #include <gsl/gsl_multiroots.h>
 
 #include <gsl/gsl_rng.h>
+#include "tools.h"
 #include "graph.h"
 #include "modules.h"
 #include "recommend.h"

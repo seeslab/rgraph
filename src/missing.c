@@ -1282,7 +1282,7 @@ LSMCStepKState(int K,
     dH = 0.0;
 
     while ((g=g->next) != NULL) {
-      if (g->size > 0) {  /* group is not empty */
+      /* if (g->size > 0) {  /\* group is not empty *\/ */
 	/* old configuration, old group */
 	n = 0;
 	for (k=0; k<K; k++) {
@@ -1299,15 +1299,16 @@ LSMCStepKState(int K,
 	  dH -= -FastLogFact(nk, LogFactList, LogFactListSize);
 	}
 	dH -= FastLogFact(n + K - 1, LogFactList, LogFactListSize);
-      }
+	/* fprintf(stderr, "OLD: %d %g\n", g->size, dH); */
+      /* } */
     }
     /* labeled-groups sampling correction */
     if ((oldg->size == 1) || (newg->size == 0)) {
       dH += FastLogFact(nnod - *ng, LogFactList, LogFactListSize);
     }
 
-    /* Tentatively move the node to the new group and update G2G
-       matrix */
+    /* Tentatively move the node to the new group and update G2G and N2G
+       matrices */
     MoveNode(node, oldg, newg);
     for (i=0; i<ngroup; i++) {   /* update G2G links */
       for (k=0; k<K; k++) {
@@ -1317,35 +1318,41 @@ LSMCStepKState(int K,
 	G2G[k][i][newgnum] = G2G[k][newgnum][i];
       }
     }
+    nei = node->neig;            /* update N2G links */
+    while ((nei = nei->next) != NULL) {
+      for (k=0; k<K; k++) {
+	if (nei->weight == (double)k) {
+	  N2G[k][nei->ref->num][oldgnum] -= 1;
+	  N2G[k][nei->ref->num][newgnum] += 1;
+	}
+      }
+    }
     if (oldg->size == 0) /* update number of non-empty groups */
       (*ng) -= 1;
     if (newg->size == 1)
       (*ng) +=1;
-   
 
     /* THE CHANGE OF ENERGY: NEW CONFIGURATION CONTRIBUTION */
-
     while ((g2=g2->next) != NULL) {
-      if (g2->size > 0) {  /* group is not empty */
+      /* if (g2->size > 0) {  /\* group is not empty *\/ */
 	/* new configuration, old group */
 	n = 0;
-	for (k=0; k<K; k++)
-	  n += G2G[k][oldgnum][g2->label];
-	dH += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
 	for (k=0; k<K; k++) {
+	  n += G2G[k][oldgnum][g2->label];
 	  nk = G2G[k][oldgnum][g2->label];
 	  dH += -FastLogFact(nk, LogFactList, LogFactListSize);
 	}
+	dH += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
 	/* new configuration, new group */
 	n = 0;
-	for (k=0; k<K; k++)
-	  n += G2G[k][newgnum][g2->label];
-	dH += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
 	for (k=0; k<K; k++) {
+	  n += G2G[k][newgnum][g2->label];
 	  nk = G2G[k][newgnum][g2->label];
 	  dH += -FastLogFact(nk, LogFactList, LogFactListSize);
 	}
-      }
+	dH += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
+	/* fprintf(stderr, "NEW: %d %g\n", g2->size, dH); */
+      /* } */
     }
     /* labeled-groups sampling correction */
     if ((oldg->size == 0) || (newg->size == 1)) {
@@ -1366,6 +1373,15 @@ LSMCStepKState(int K,
 	  G2G[k][newgnum][i] -= N2G[k][node->num][i];
 	  G2G[k][i][oldgnum] = G2G[k][oldgnum][i];
 	  G2G[k][i][newgnum] = G2G[k][newgnum][i];
+	}
+      }
+      nei = node->neig;            /* update N2G links */
+      while ((nei = nei->next) != NULL) {
+	for (k=0; k<K; k++) {
+	  if (nei->weight == (double)k) {
+	    N2G[k][nei->ref->num][oldgnum] += 1;
+	    N2G[k][nei->ref->num][newgnum] -= 1;
+	  }
 	}
       }
       if (oldg->size == 1) /* update number of non-empty groups */
@@ -1773,6 +1789,11 @@ LSMultiLinkScoreKState(int K,
     case 'd':
       fprintf(stderr, "%d %lf %lf\n", iter, H, LSHKState(K, part));
       FPrintPartition(stderr, part, 0);
+      int r, c;
+      for (k=0; k<K; k++)
+	for (r=0; r<nnod; r++)
+	  for (c=0; c<nnod; c++)
+	    fprintf(stderr, "(%d,%d,%d) %d\n", k, r+1, c+1, G2G[k][r][c]);
       fprintf(stderr, "\n");
       break;
     }
