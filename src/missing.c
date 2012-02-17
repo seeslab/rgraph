@@ -11,6 +11,7 @@
 
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_multiroots.h>
+#include <gsl/gsl_sf_gamma.h>
 
 #include <gsl/gsl_rng.h>
 
@@ -18,6 +19,7 @@
 #include "graph.h"
 #include "modules.h"
 #include "models.h"
+#include "recommend.h"
 
 #define EPSILON 1.e-6
 
@@ -1198,7 +1200,8 @@ double
 LSHKState(int K, struct group *part)
 {
   struct group *g1=NULL, *g2=NULL;
-  double n, nk, H=0.0;
+  int n, nk;
+  double H=0.0;
   int ng=0;      /* Number of non-empty groups */
   int nnod=0;  /* Number of nodes */
   int k;
@@ -1282,22 +1285,20 @@ LSMCStepKState(int K,
       if (g->size > 0) {  /* group is not empty */
 	/* old configuration, old group */
 	n = 0;
-	for (k=0; k<K; k++)
-	  n += G2G[k][oldgnum][g->label];
-	dH -= FastLogFact(n + K - 1, LogFactList, LogFactListSize);
 	for (k=0; k<K; k++) {
+	  n += G2G[k][oldgnum][g->label];
 	  nk = G2G[k][oldgnum][g->label];
 	  dH -= -FastLogFact(nk, LogFactList, LogFactListSize);
 	}
+	dH -= FastLogFact(n + K - 1, LogFactList, LogFactListSize);
 	/* old configuration, new group */
 	n = 0;
-	for (k=0; k<K; k++)
-	  n += G2G[k][newgnum][g->label];
-	dH -= FastLogFact(n + K - 1, LogFactList, LogFactListSize);
 	for (k=0; k<K; k++) {
+	  n += G2G[k][newgnum][g->label];
 	  nk = G2G[k][newgnum][g->label];
 	  dH -= -FastLogFact(nk, LogFactList, LogFactListSize);
 	}
+	dH -= FastLogFact(n + K - 1, LogFactList, LogFactListSize);
       }
     }
     /* labeled-groups sampling correction */
@@ -1312,6 +1313,8 @@ LSMCStepKState(int K,
       for (k=0; k<K; k++) {
 	G2G[k][oldgnum][i] -= N2G[k][node->num][i];
 	G2G[k][newgnum][i] += N2G[k][node->num][i];
+	G2G[k][i][oldgnum] = G2G[k][oldgnum][i];
+	G2G[k][i][newgnum] = G2G[k][newgnum][i];
       }
     }
     if (oldg->size == 0) /* update number of non-empty groups */
@@ -1361,6 +1364,8 @@ LSMCStepKState(int K,
 	for (k=0; k<K; k++) {
 	  G2G[k][oldgnum][i] += N2G[k][node->num][i];
 	  G2G[k][newgnum][i] -= N2G[k][node->num][i];
+	  G2G[k][i][oldgnum] = G2G[k][oldgnum][i];
+	  G2G[k][i][newgnum] = G2G[k][newgnum][i];
 	}
       }
       if (oldg->size == 1) /* update number of non-empty groups */
@@ -1597,7 +1602,9 @@ LSMultiLinkScoreKState(int K,
 		       int nIter,
 		       gsl_rng *gen,
 		       char verbose_sw,
-		       int decorStep)
+		       int decorStep,
+		       struct query ***querySet,
+		       int *nquery)
 {
   int nnod=CountNodes(observed);
   struct group *part=NULL;
@@ -1622,8 +1629,7 @@ LSMultiLinkScoreKState(int K,
   int ng;
   FILE *outfile=NULL;
   int k, k2;
-  struct query **querySet;
-  int nq=0, nquery;
+  int nq=0;
 
   /*
     PRELIMINARIES
@@ -1641,20 +1647,20 @@ LSMultiLinkScoreKState(int K,
   }
 
   /* Create the queries: all pairs of nodes are queries */
-  nquery = (nnod * (nnod - 1)) / 2;
-  querySet = (struct query **) calloc(nquery, sizeof(struct query *));
+  *nquery = (nnod * (nnod - 1)) / 2;
+  (*querySet) = (struct query **) calloc(*nquery, sizeof(struct query *));
   p = observed;
   while ((p = p->next) != NULL) {
     p2 = p;
     while ((p2 = p2->next) != NULL) {
-      querySet[nq++] = CreateQuery(p, p2);
+      (*querySet)[nq++] = CreateQuery(p, p2);
     }
   }
 
   /* Initialize scores */
-  score = allocate_d_mat(K, nquery);
+  score = allocate_d_mat(K, *nquery);
   for (k=0; k<K; k++)
-    for (q=0; q<nquery; q++)
+    for (q=0; q<*nquery; q++)
       score[k][q] = 0.0;
 
   /* Create initial partition (each node in a separate group) */
@@ -1697,46 +1703,47 @@ LSMultiLinkScoreKState(int K,
   H = LSHKState(K, part);
 
   /* Get the decorrelation time */
-  switch (verbose_sw) {
-  case 'q':
-    break;
-  default:
-    fprintf(stderr, "# CALCULATING DECORRELATION TIME\n");
-    fprintf(stderr, "# ------------------------------\n");
-    break;
-  }
-  if (decorStep <= 0) {
-    decorStep = LSGetDecorrelationStepKState(K, &H,
-					     nlist,
-					     glist,
-					     part,
-					     nnod,
-					     &ng,
-					     N2G,
-					     G2G,
-					     LogList, LogListSize,
-					     LogFactList, LogFactListSize,
-					     gen, verbose_sw);
-  }
+  /* switch (verbose_sw) { */
+  /* case 'q': */
+  /*   break; */
+  /* default: */
+  /*   fprintf(stderr, "# CALCULATING DECORRELATION TIME\n"); */
+  /*   fprintf(stderr, "# ------------------------------\n"); */
+  /*   break; */
+  /* } */
+  decorStep=1;
+  /* if (decorStep <= 0) { */
+  /*   decorStep = LSGetDecorrelationStepKState(K, &H, */
+  /* 					     nlist, */
+  /* 					     glist, */
+  /* 					     part, */
+  /* 					     nnod, */
+  /* 					     &ng, */
+  /* 					     N2G, */
+  /* 					     G2G, */
+  /* 					     LogList, LogListSize, */
+  /* 					     LogFactList, LogFactListSize, */
+  /* 					     gen, verbose_sw); */
+  /* } */
   
-  /* Thermalization */
-  switch (verbose_sw) {
-  case 'q':
-    break;
-  default:
-    fprintf(stderr, "#\n#\n# THERMALIZING\n");
-    fprintf(stderr, "# ------------\n");
-    break;
-  }
-  LSThermalizeMCKState(K, decorStep, &H,
-		       nlist, glist,
-		       part,
-		       nnod, &ng,
-		       N2G,
-		       G2G,
-		       LogList, LogListSize,
-		       LogFactList, LogFactListSize,
-		       gen, verbose_sw);
+  /* /\* Thermalization *\/ */
+  /* switch (verbose_sw) { */
+  /* case 'q': */
+  /*   break; */
+  /* default: */
+  /*   fprintf(stderr, "#\n#\n# THERMALIZING\n"); */
+  /*   fprintf(stderr, "# ------------\n"); */
+  /*   break; */
+  /* } */
+  /* LSThermalizeMCKState(K, decorStep, &H, */
+  /* 		       nlist, glist, */
+  /* 		       part, */
+  /* 		       nnod, &ng, */
+  /* 		       N2G, */
+  /* 		       G2G, */
+  /* 		       LogList, LogListSize, */
+  /* 		       LogFactList, LogFactListSize, */
+  /* 		       gen, verbose_sw); */
   
   /*
     SAMPLIN' ALONG
@@ -1766,6 +1773,7 @@ LSMultiLinkScoreKState(int K,
     case 'd':
       fprintf(stderr, "%d %lf %lf\n", iter, H, LSHKState(K, part));
       FPrintPartition(stderr, part, 0);
+      fprintf(stderr, "\n");
       break;
     }
 
@@ -1784,7 +1792,7 @@ LSMultiLinkScoreKState(int K,
       H = 0.0;
       norm = 0;
       for (k=0; k<K; k++) {
-	for (q=0; q<nquery; q++) {
+	for (q=0; q<*nquery; q++) {
 	  score[k][q] = 0.0;
 	}
       }
@@ -1795,12 +1803,11 @@ LSMultiLinkScoreKState(int K,
 
     /* Update the scores */
     for (k=0; k<K; k++) {
-      for (q=0; q<nquery; q++) {
-	printf("%d\n", (querySet[q])->n1->inGroup);
-	nk = G2G[k][querySet[q]->n1->inGroup][querySet[q]->n2->inGroup];
+      for (q=0; q<*nquery; q++) {
+	nk = G2G[k][(*querySet)[q]->n1->inGroup][(*querySet)[q]->n2->inGroup];
 	n = 0;
 	for (k2=0; k2<K; k2++)
-	  n += G2G[k2][querySet[q]->n1->inGroup][querySet[q]->n2->inGroup];
+	  n += G2G[k2][(*querySet)[q]->n1->inGroup][(*querySet)[q]->n2->inGroup];
 	score[k][q] += (float)(nk + 1) / (float)(n + K);
       }
     }
@@ -1812,10 +1819,10 @@ LSMultiLinkScoreKState(int K,
 	break;
       default:
  	outfile = fopen("scores.tmp", "w");
-	for (q=0; q<nquery; q++) {
+	for (q=0; q<*nquery; q++) {
 	  fprintf(outfile, "%s %s",
-		  ((querySet[q])->n1)->label,
-		  ((querySet[q])->n2)->label);
+		  (((*querySet)[q])->n1)->label,
+		  (((*querySet)[q])->n2)->label);
 	  for (k=0; k<K; k++) {
 	    fprintf(outfile, " %lf",
 		    score[k][q]/(double)norm);
@@ -1833,9 +1840,9 @@ LSMultiLinkScoreKState(int K,
 
   /* Normalize the scores */
   for (k=0; k<K; k++)
-    for (q=0; q<nquery; q++)
+    for (q=0; q<*nquery; q++)
       score[k][q] /= (double)norm;
-
+  
   /* Free dynamically allocated memory */
   RemovePartition(part);
   free(glist);

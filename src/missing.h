@@ -13,6 +13,7 @@
 #include <gsl/gsl_rng.h>
 #include "graph.h"
 #include "modules.h"
+#include "recommend.h"
 
 /*
   ---------------------------------------------------------------------
@@ -127,11 +128,13 @@ void LSThermalizeMCKState(int K,
 			  gsl_rng *gen,
 			  char verbose_sw);
 double **LSMultiLinkScoreKState(int K,
-				struct binet *ratings,
+				struct node_gra *ratings,
 				int nIter,
 				gsl_rng *gen,
 				char verbose_sw,
-				int decorStep);
+				int decorStep,
+				struct query ***queries,
+				int *nquery);
 
 
 
