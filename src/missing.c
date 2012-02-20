@@ -1292,14 +1292,16 @@ LSMCStepKState(int K,
 	}
 	dH -= FastLogFact(n + K - 1, LogFactList, LogFactListSize);
 	/* old configuration, new group */
-	n = 0;
-	for (k=0; k<K; k++) {
-	  n += G2G[k][newgnum][g->label];
-	  nk = G2G[k][newgnum][g->label];
-	  dH -= -FastLogFact(nk, LogFactList, LogFactListSize);
-	}
-	dH -= FastLogFact(n + K - 1, LogFactList, LogFactListSize);
+	if (g->label != oldgnum) {
+	  n = 0;
+	  for (k=0; k<K; k++) {
+	    n += G2G[k][newgnum][g->label];
+	    nk = G2G[k][newgnum][g->label];
+	    dH -= -FastLogFact(nk, LogFactList, LogFactListSize);
+	  }
+	  dH -= FastLogFact(n + K - 1, LogFactList, LogFactListSize);
 	/* fprintf(stderr, "OLD: %d %g\n", g->size, dH); */
+	}
       /* } */
     }
     /* labeled-groups sampling correction */
@@ -1313,6 +1315,7 @@ LSMCStepKState(int K,
     for (i=0; i<ngroup; i++) {   /* update G2G links */
       for (k=0; k<K; k++) {
 	G2G[k][oldgnum][i] -= N2G[k][node->num][i];
+	///// ??????????????
 	G2G[k][newgnum][i] += N2G[k][node->num][i];
 	G2G[k][i][oldgnum] = G2G[k][oldgnum][i];
 	G2G[k][i][newgnum] = G2G[k][newgnum][i];
@@ -1344,14 +1347,16 @@ LSMCStepKState(int K,
 	}
 	dH += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
 	/* new configuration, new group */
-	n = 0;
-	for (k=0; k<K; k++) {
-	  n += G2G[k][newgnum][g2->label];
-	  nk = G2G[k][newgnum][g2->label];
-	  dH += -FastLogFact(nk, LogFactList, LogFactListSize);
+	if (g2->label != oldgnum) {
+	  n = 0;
+	  for (k=0; k<K; k++) {
+	    n += G2G[k][newgnum][g2->label];
+	    nk = G2G[k][newgnum][g2->label];
+	    dH += -FastLogFact(nk, LogFactList, LogFactListSize);
+	  }
+	  dH += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
+	  /* fprintf(stderr, "NEW: %d %g\n", g2->size, dH); */
 	}
-	dH += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
-	/* fprintf(stderr, "NEW: %d %g\n", g2->size, dH); */
       /* } */
     }
     /* labeled-groups sampling correction */
