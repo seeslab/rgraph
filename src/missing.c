@@ -1246,8 +1246,8 @@ LSMCStepKState(int K,
 	       struct group *part,
 	       int nnod,
 	       int *ng,
-	       int **N2G[],
-	       int **G2G[],
+	       int ****N2G,
+	       int ****G2G,
 	       double *LogList, int LogListSize,
 	       double *LogFactList, int LogFactListSize,
 	       gsl_rng *gen)
@@ -1259,7 +1259,7 @@ LSMCStepKState(int K,
   struct node_lis *nei=NULL;
   int dice, n, nk;
   int oldgnum, newgnum, q;
-  int i, ngroup;
+  int i, ngroup=nnod;
   int j; 
   int move_in;
   int k;
@@ -1286,8 +1286,8 @@ LSMCStepKState(int K,
 	/* old configuration, old group */
 	n = 0;
 	for (k=0; k<K; k++) {
-	  n += G2G[k][oldgnum][g->label];
-	  nk = G2G[k][oldgnum][g->label];
+	  n += (*G2G)[k][oldgnum][g->label];
+	  nk = (*G2G)[k][oldgnum][g->label];
 	  dH -= -FastLogFact(nk, LogFactList, LogFactListSize);
 	}
 	dH -= FastLogFact(n + K - 1, LogFactList, LogFactListSize);
@@ -1295,12 +1295,11 @@ LSMCStepKState(int K,
 	if (g->label != oldgnum) {
 	  n = 0;
 	  for (k=0; k<K; k++) {
-	    n += G2G[k][newgnum][g->label];
-	    nk = G2G[k][newgnum][g->label];
+	    n += (*G2G)[k][newgnum][g->label];
+	    nk = (*G2G)[k][newgnum][g->label];
 	    dH -= -FastLogFact(nk, LogFactList, LogFactListSize);
 	  }
 	  dH -= FastLogFact(n + K - 1, LogFactList, LogFactListSize);
-	/* fprintf(stderr, "OLD: %d %g\n", g->size, dH); */
 	}
       /* } */
     }
@@ -1314,19 +1313,18 @@ LSMCStepKState(int K,
     MoveNode(node, oldg, newg);
     for (i=0; i<ngroup; i++) {   /* update G2G links */
       for (k=0; k<K; k++) {
-	G2G[k][oldgnum][i] -= N2G[k][node->num][i];
-	///// ??????????????
-	G2G[k][newgnum][i] += N2G[k][node->num][i];
-	G2G[k][i][oldgnum] = G2G[k][oldgnum][i];
-	G2G[k][i][newgnum] = G2G[k][newgnum][i];
+	(*G2G)[k][oldgnum][i] -= (*N2G)[k][node->num][i];
+	(*G2G)[k][newgnum][i] += (*N2G)[k][node->num][i];
+	(*G2G)[k][i][oldgnum] = (*G2G)[k][oldgnum][i];
+	(*G2G)[k][i][newgnum] = (*G2G)[k][newgnum][i];
       }
     }
     nei = node->neig;            /* update N2G links */
     while ((nei = nei->next) != NULL) {
       for (k=0; k<K; k++) {
 	if (nei->weight == (double)k) {
-	  N2G[k][nei->ref->num][oldgnum] -= 1;
-	  N2G[k][nei->ref->num][newgnum] += 1;
+	  (*N2G)[k][nei->ref->num][oldgnum] -= 1;
+	  (*N2G)[k][nei->ref->num][newgnum] += 1;
 	}
       }
     }
@@ -1341,8 +1339,8 @@ LSMCStepKState(int K,
 	/* new configuration, old group */
 	n = 0;
 	for (k=0; k<K; k++) {
-	  n += G2G[k][oldgnum][g2->label];
-	  nk = G2G[k][oldgnum][g2->label];
+	  n += (*G2G)[k][oldgnum][g2->label];
+	  nk = (*G2G)[k][oldgnum][g2->label];
 	  dH += -FastLogFact(nk, LogFactList, LogFactListSize);
 	}
 	dH += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
@@ -1350,12 +1348,11 @@ LSMCStepKState(int K,
 	if (g2->label != oldgnum) {
 	  n = 0;
 	  for (k=0; k<K; k++) {
-	    n += G2G[k][newgnum][g2->label];
-	    nk = G2G[k][newgnum][g2->label];
+	    n += (*G2G)[k][newgnum][g2->label];
+	    nk = (*G2G)[k][newgnum][g2->label];
 	    dH += -FastLogFact(nk, LogFactList, LogFactListSize);
 	  }
 	  dH += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
-	  /* fprintf(stderr, "NEW: %d %g\n", g2->size, dH); */
 	}
       /* } */
     }
@@ -1369,23 +1366,23 @@ LSMCStepKState(int K,
       /* accept move: update energy */
       *H += dH;
     }
-    else { 
+    else {
       /* undo the move */
       MoveNode(node, newg, oldg);
       for (i=0; i<ngroup; i++) {   /* update G2G links */
 	for (k=0; k<K; k++) {
-	  G2G[k][oldgnum][i] += N2G[k][node->num][i];
-	  G2G[k][newgnum][i] -= N2G[k][node->num][i];
-	  G2G[k][i][oldgnum] = G2G[k][oldgnum][i];
-	  G2G[k][i][newgnum] = G2G[k][newgnum][i];
+	  (*G2G)[k][oldgnum][i] += (*N2G)[k][node->num][i];
+	  (*G2G)[k][newgnum][i] -= (*N2G)[k][node->num][i];
+	  (*G2G)[k][i][oldgnum] = (*G2G)[k][oldgnum][i];
+	  (*G2G)[k][i][newgnum] = (*G2G)[k][newgnum][i];
 	}
       }
       nei = node->neig;            /* update N2G links */
       while ((nei = nei->next) != NULL) {
 	for (k=0; k<K; k++) {
 	  if (nei->weight == (double)k) {
-	    N2G[k][nei->ref->num][oldgnum] += 1;
-	    N2G[k][nei->ref->num][newgnum] -= 1;
+	    (*N2G)[k][nei->ref->num][oldgnum] += 1;
+	    (*N2G)[k][nei->ref->num][newgnum] -= 1;
 	  }
 	}
       }
@@ -1414,8 +1411,8 @@ LSGetDecorrelationStepKState(int K,
 			     struct group *part,
 			     int nnod,
 			     int *ng,
-			     int **N2G[],
-			     int **G2G[],
+			     int ****N2G,
+			     int ****G2G,
 			     double *LogList, int LogListSize,
 			     double *LogFactList, int LogFactListSize,
 			     gsl_rng *gen,
@@ -1539,8 +1536,8 @@ LSThermalizeMCKState(int K,
 		     struct group *part,
 		     int nnod,
 		     int *ng,
-		     int **N2G[],
-		     int **G2G[],
+		     int ****N2G,
+		     int ****G2G,
 		     double *LogList, int LogListSize,
 		     double *LogFactList, int LogFactListSize,
 		     gsl_rng *gen,
@@ -1637,8 +1634,8 @@ LSMultiLinkScoreKState(int K,
   int iter;
   double **score;
   int i, j;
-  int **N2G[K];
-  int **G2G[K];
+  int ***N2G;
+  int ***G2G;
   int LogListSize = 5000;
   double *LogList=InitializeFastLog(LogListSize);
   int LogFactListSize = 10000;
@@ -1655,6 +1652,8 @@ LSMultiLinkScoreKState(int K,
   /*
     PRELIMINARIES
   */
+  N2G = (int ***) calloc(K, sizeof(int **));
+  G2G = (int ***) calloc(K, sizeof(int **));
 
   /* Map nodes and groups to a list for faster access */
   fprintf(stderr, ">> Mapping nodes and groups to lists...\n");
@@ -1724,47 +1723,46 @@ LSMultiLinkScoreKState(int K,
   H = LSHKState(K, part);
 
   /* Get the decorrelation time */
-  /* switch (verbose_sw) { */
-  /* case 'q': */
-  /*   break; */
-  /* default: */
-  /*   fprintf(stderr, "# CALCULATING DECORRELATION TIME\n"); */
-  /*   fprintf(stderr, "# ------------------------------\n"); */
-  /*   break; */
-  /* } */
-  decorStep=1;
-  /* if (decorStep <= 0) { */
-  /*   decorStep = LSGetDecorrelationStepKState(K, &H, */
-  /* 					     nlist, */
-  /* 					     glist, */
-  /* 					     part, */
-  /* 					     nnod, */
-  /* 					     &ng, */
-  /* 					     N2G, */
-  /* 					     G2G, */
-  /* 					     LogList, LogListSize, */
-  /* 					     LogFactList, LogFactListSize, */
-  /* 					     gen, verbose_sw); */
-  /* } */
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "# CALCULATING DECORRELATION TIME\n");
+    fprintf(stderr, "# ------------------------------\n");
+    break;
+  }
+  if (decorStep <= 0) {
+    decorStep = LSGetDecorrelationStepKState(K, &H,
+  					     nlist,
+  					     glist,
+  					     part,
+  					     nnod,
+  					     &ng,
+  					     &N2G,
+  					     &G2G,
+  					     LogList, LogListSize,
+  					     LogFactList, LogFactListSize,
+  					     gen, verbose_sw);
+  }
   
-  /* /\* Thermalization *\/ */
-  /* switch (verbose_sw) { */
-  /* case 'q': */
-  /*   break; */
-  /* default: */
-  /*   fprintf(stderr, "#\n#\n# THERMALIZING\n"); */
-  /*   fprintf(stderr, "# ------------\n"); */
-  /*   break; */
-  /* } */
-  /* LSThermalizeMCKState(K, decorStep, &H, */
-  /* 		       nlist, glist, */
-  /* 		       part, */
-  /* 		       nnod, &ng, */
-  /* 		       N2G, */
-  /* 		       G2G, */
-  /* 		       LogList, LogListSize, */
-  /* 		       LogFactList, LogFactListSize, */
-  /* 		       gen, verbose_sw); */
+  /* Thermalization */
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "#\n#\n# THERMALIZING\n");
+    fprintf(stderr, "# ------------\n");
+    break;
+  }
+  LSThermalizeMCKState(K, decorStep, &H,
+  		       nlist, glist,
+  		       part,
+  		       nnod, &ng,
+  		       &N2G,
+  		       &G2G,
+  		       LogList, LogListSize,
+  		       LogFactList, LogFactListSize,
+  		       gen, verbose_sw);
   
   /*
     SAMPLIN' ALONG
@@ -1780,8 +1778,8 @@ LSMultiLinkScoreKState(int K,
     LSMCStepKState(K, decorStep, &H, nlist,
 		   glist, part,
 		   nnod, &ng,
-		   N2G,
-		   G2G,
+		   &N2G,
+		   &G2G,
 		   LogList, LogListSize,
 		   LogFactList, LogFactListSize,
 		   gen);
@@ -1793,13 +1791,7 @@ LSMultiLinkScoreKState(int K,
       break;
     case 'd':
       fprintf(stderr, "%d %lf %lf\n", iter, H, LSHKState(K, part));
-      FPrintPartition(stderr, part, 0);
-      int r, c;
-      for (k=0; k<K; k++)
-	for (r=0; r<nnod; r++)
-	  for (c=0; c<nnod; c++)
-	    fprintf(stderr, "(%d,%d,%d) %d\n", k, r+1, c+1, G2G[k][r][c]);
-      fprintf(stderr, "\n");
+      /* FPrintPartition(stderr, part, 0); */
       break;
     }
 
@@ -1877,6 +1869,8 @@ LSMultiLinkScoreKState(int K,
     free_i_mat(G2G[k], nnod);
     free_i_mat(N2G[k], nnod);
   }
+  free(G2G);
+  free(N2G);
   FreeFastLog(LogList);
   FreeFastLogFact(LogFactList);
 

@@ -57,7 +57,7 @@ allocate_i_mat(int nrows, int ncolumns)
   -----------------------------------------------------------------------------
 */
 void
-printf_i_mat(FILE *outf, int **mat, int nrows, int ncolumns)
+fprintf_i_mat(FILE *outf, int **mat, int nrows, int ncolumns)
 {
   int r, c;
   for (r=0; r<nrows; r++)
