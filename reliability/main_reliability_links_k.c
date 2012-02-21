@@ -58,7 +58,7 @@ main(int argc, char **argv)
     Get link reliabilities
     ---------------------------------------------------------------------------
   */
-  scores = LSMultiLinkScoreKState(K, net, 10000, rand_gen, 'd', -1,
+  scores = LSMultiLinkScoreKState(K, net, 10000, rand_gen, 'v', -1,
 				  &queries, &nquery);
 
   /*
