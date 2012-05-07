@@ -33,5 +33,5 @@ lapspec_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
 netsum_SOURCES = main_netsum.c
 netsum_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
 
-EXTRA_DIST = test.dat testbinet.dat testbinetpart.dat test_betw.dat
+EXTRA_DIST = test.dat testbinet.dat testbinetpart.dat test_betw.dat test_graph1.dat
 CLEANFILES = *.net
