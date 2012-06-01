@@ -44,6 +44,7 @@
 #   define tfind rpl_tfind
 #   define tdelete rpl_tdelete
 #   define twalk rpl_twalk
+#   define tdestroy rpl_tdestroy
 #  endif
 # endif
 
@@ -67,6 +68,7 @@ extern "C" {
 # endif
 typedef int (*_gl_search_compar_fn) (const void *, const void *);
 typedef void (*_gl_search_action_fn) (const void *, VISIT, int);
+typedef void (*_gl_search_free_fn) (void *__nodep);
 # ifdef __cplusplus
 }
 # endif
@@ -172,6 +174,30 @@ _GL_CXXALIAS_SYS (twalk, void,
 # endif
 _GL_CXXALIASWARN (twalk);
 
+
+
+/** Tdestroy **/
+
+# if @REPLACE_TSEARCH@
+_GL_FUNCDECL_RPL (tdestroy, void,
+                  (const void *vroot, _gl_search_free_fn action)
+                  _GL_ARG_NONNULL ((2)));
+_GL_CXXALIAS_RPL (tdestroy, void,
+                  (const void *vroot, _gl_search_free_fn action));
+# else
+#  if !@HAVE_TSEARCH@
+_GL_FUNCDECL_SYS (tdestroy, void,
+                  (const void *vroot, _gl_search_free_fn action)
+                  _GL_ARG_NONNULL ((2)));
+#  endif
+_GL_CXXALIAS_SYS (tdestroy, void,
+                  (const void *vroot, _gl_search_free_fn action));
+# endif
+_GL_CXXALIASWARN (tdestroy);
+
+
+
+
 #elif defined GNULIB_POSIXCHECK
 # undef tsearch
 # if HAVE_RAW_DECL_TSEARCH
@@ -192,6 +218,11 @@ _GL_WARN_ON_USE (tdelete, "tdelete is unportable - "
 # if HAVE_RAW_DECL_TWALK
 _GL_WARN_ON_USE (twalk, "twalk is unportable - "
                  "use gnulib module tsearch for portability");
+# endif
+# undef tdestroy
+# if HAVE_RAW_DECL_TDESTROY
+_GL_WARN_ON_USE (tdestroy, "tdestroy is unportable - "
+                 "use gnulib module tdestroy for portability");
 # endif
 #endif
 
