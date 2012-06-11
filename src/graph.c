@@ -14,7 +14,7 @@
 #include "tools.h"
 #include "datastruct.h"
 #include "graph.h"
-#include "lib/search.h"
+//#include "lib/search.h"
 
 // ---------------------------------------------------------------------
 // A graph is a collection of nodes. This function creates an empty

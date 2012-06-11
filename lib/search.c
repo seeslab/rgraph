@@ -93,7 +93,7 @@
 
 /* Specification.  */
 //#ifdef IN_LIBINTL
-# include "search.h"
+//# include "search.h"
 //#else
 # include <search.h>
 //#endif
