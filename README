@@ -36,8 +36,8 @@ cd rgraph-version
 
 (In a Windows system, you will first need to install some sort of
 "Unix emulation." I have successfully compiled the libraries using
-either Cygwin or MinGW. See below for the steps of Windows
-installation).
+either Cygwin or MinGW. See below for Windows
+installation steps).
 
 This will install the libraries in your_default_lib_directory/rgraph
 and the executables in your_default_bin_directory. To install in a
@@ -66,7 +66,7 @@ from the installation directory.
 ---- Windows (MinGW) ----
 
 
-1) First of all, you have to download and install MinGW (http://sourceforce.net/projects/mingw/files/latest/download?source=files
+1) First of all, you have to download and install MinGW (http://sourceforce.net/projects/mingw/files/latest/download?source=files)
 
 During the installation, when it prompts you the packages to install, select gcc, msys and mingw base. The other default options are OK.
 
@@ -75,7 +75,7 @@ During the installation, when it prompts you the packages to install, select gcc
 http://www.gnu.org/software/gsl/. In my installation, I've used version 1.15.
 
 
-3) Launch MinGW console (Programs -> MinGW -> MinGW Shell or C:\MinGW\msys\1.0\msys
+3) Launch MinGW console (Programs -> MinGW -> MinGW Shell or C:\MinGW\msys\1.0\msys).
 
 
 4) Unzip the contents of the GSL downloaded file under your msys home which is at C:\MinGW\msys\1.0\home\user\ (it's important to perform step 3 or you won't have the home directory).
