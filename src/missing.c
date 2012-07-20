@@ -1610,8 +1610,9 @@ LSThermalizeMCKState(int K,
 /*
   -----------------------------------------------------------------------------
   Return the score p(A_ij=k|A^O) of a collection {(i,j)} querySet of
-  links, for a k-state system. The ratings are a bipartite network
-  with links (corresponding to observations) that have values 0 or 1.
+  links, for a k-state system. The ratings are in a regular network
+  with links (corresponding to observations) that have values 0 or
+  1.
   -----------------------------------------------------------------------------
 */
 double **
