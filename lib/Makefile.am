@@ -88,7 +88,7 @@ EXTRA_DIST += $(top_srcdir)/./c++defs.h
 ## begin gnulib module search
 
 BUILT_SOURCES += search.h
-
+librgraph_a_SOURCES = search.c
 # We need the following in order to create <search.h> when the system
 # doesn't have one that works with the given compiler.
 search.h: search.in.h $(CXXDEFS_H) $(ARG_NONNULL_H) $(WARN_ON_USE_H)
@@ -116,9 +116,9 @@ EXTRA_DIST += search.in.h
 ## begin gnulib module tsearch
 
 
-EXTRA_DIST += tsearch.c
+#EXTRA_DIST += tsearch.c
 
-EXTRA_libgnu_la_SOURCES += tsearch.c
+#EXTRA_libgnu_la_SOURCES += tsearch.c
 
 ## end   gnulib module tsearch
 

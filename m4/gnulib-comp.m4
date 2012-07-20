@@ -53,7 +53,7 @@ AC_DEFUN([gl_INIT],
   # Code from module search:
   gl_SEARCH_H
   # Code from module tsearch:
-  gl_FUNC_TSEARCH
+  #gl_FUNC_TSEARCH
   gl_SEARCH_MODULE_INDICATOR([tsearch])
   # Code from module warn-on-use:
   # Code from module dummy:
