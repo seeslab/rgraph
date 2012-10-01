@@ -1750,7 +1750,7 @@ MultiLinkScoreKState(int K,
   case 'd':
     break;
   default:
-    H = 0; /* Reset the origin of energies to avoid huge exponentials */
+    /* H = 0; /\* Reset the origin of energies to avoid huge exponentials *\/ */
     break;
   }
   for (iter=0; iter<nIter; iter++) {
