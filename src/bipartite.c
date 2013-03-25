@@ -746,6 +746,34 @@ FPrintPajekFileBipart (char *fname,
   fclose(outF);
 }
 
+/*
+  ---------------------------------------------------------------------
+  Print a bipartite network in two-column format.
+  ---------------------------------------------------------------------
+*/
+void
+FPrintBipart (FILE *outf, struct binet *binet, int weight_sw)
+{
+  struct node_gra *p=NULL;
+  struct node_lis *n=NULL;
+
+  /* Print the links */
+  p = binet->net1;
+  while ((p = p->next) != NULL) {
+    n = p->neig;
+    while ((n = n->next) != NULL) {
+      if (weight_sw == 0)
+        fprintf(outf,
+                "%s %s\n", 
+                p->label, n->ref->label);
+      else
+        fprintf(outf,
+                "%s %s %g\n", 
+                p->label, n->ref->label, n->weight);
+
+    }
+  }
+}
 
 /*
   ---------------------------------------------------------------------
@@ -829,11 +857,11 @@ ModularityBipartWeighted(struct binet *binet, struct group *part)
     n1 = part->nodeList;
     while ((n2 = n1 = n1->next) != NULL) {
       while ((n2 = n2->next) != NULL) {
-  	sww12 = SumProductsOfCommonWeightsBipart(n1->ref, n2->ref);
-	s1 = SumWeights(n1->ref);
-	s2 = SumWeights(n2->ref);
-
-	bimod += sww12 / sWa2  -  (s1 * s2) / s2Wa;
+        sww12 = (double)SumProductsOfCommonWeightsBipart(n1->ref, n2->ref);
+        s1 = (double)SumWeights(n1->ref);
+        s2 = (double)SumWeights(n2->ref);
+        
+        bimod += sww12 / (sWa2 - sWa) - (s1 * s2) / s2Wa;
       }
     }
   }
@@ -1023,6 +1051,7 @@ void
 SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
 		   double Ti, double Tf, double Ts,
 		   double cluster_prob, 
+       double *strength,
 		   double **swwmat, double Wafac,
 		   gsl_rng *gen)
 {
@@ -1132,13 +1161,13 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
 	/* Calculate the change of energy */
 	dE = 0.0;
 	n1 = nlist[target]->num;
-	s1 = SumWeights(nlist[target]);
+	s1 = strength[n1];
 	/* 1-Old group */
 	p = glist[oldg]->nodeList;
 	while ((p = p->next) != NULL) {
 	  n2 = p->node;
 	  if (n2 != n1) {
-	    s2 = SumWeights(p->ref);
+	    s2 = strength[n2];
 	    dE -= 2. * (swwmat[n1][n2] - s1 * s2 * Wafac);
 	  }
 	}
@@ -1146,7 +1175,7 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
 	p = glist[newg]->nodeList;
 	while ((p = p->next) != NULL) {
 	  n2 = p->node;
-	  s2 = SumWeights(p->ref);
+	  s2 = strength[n2];
 	  dE += 2. * (swwmat[n1][n2] - s1 * s2 * Wafac);
 	}
 	
@@ -1602,7 +1631,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
   int i;
   struct node_gra *net1 = binet->net1;
   struct node_gra *net2 = binet->net2;
-  double sWa = 0.0, s2Wa = 0.0, sWa2 = 0.0, Wafac;
+  double sWa = 0.0, s2Wa = 0.0, sWa2 = 0.0, Wafac, s;
   struct node_gra *p, *p2;
   int nnod;
   struct group *part = NULL, *g = NULL, *split = NULL;
@@ -1677,8 +1706,9 @@ SACommunityIdentBipartWeighted(struct binet *binet,
   /* Calculate s2Wa=(sum W_a)^2 and sWa2=sum(W_a^2) */
   p = net2;
   while ((p = p->next) != NULL) {
-    sWa += (double)SumWeights(p);
-    sWa2 += (double)(SumWeights(p) * SumWeights(p));
+    s = (double)SumWeights(p);
+    sWa += s;
+    sWa2 += s * s;
   }
   s2Wa = sWa * sWa;
   Wafac = 1. / s2Wa;
@@ -1690,7 +1720,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
   strength = allocate_d_vec(nnod);
   p = net1;
   while ((p = p->next) != NULL) {
-    strength[p->num] = SumWeights(p);
+    strength[p->num] = (double)SumWeights(p);
     p2 = net1;
     while ((p2 = p2->next) != NULL) {
       swwmat[p->num][p2->num] = SumProductsOfCommonWeightsBipart(p, p2) /
@@ -1872,6 +1902,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 	  SAGroupSplitBipartWeighted(glist[target], glist[empty],
 			     Ti, T, 0.95,
 			     cluster_prob,
+           strength,
 			     swwmat, Wafac, gen);
 
 	  /* Calculate dE for remerging the groups */
