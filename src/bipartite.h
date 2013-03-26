@@ -73,6 +73,7 @@ void FPrintPajekFileBipart(char *fname,
 			   int coor_sw,
 			   int weight_sw);
 
+void FPrintBipart (FILE *outf, struct binet *binet, int weight_sw);
 
 /*
   ---------------------------------------------------------------------
@@ -89,7 +90,8 @@ void SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 void SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
 			double Ti, double Tf, double Ts,
 			double cluster_prob, 
-			double **swwmat, double Wafac,
+      double *strength,
+      double **swwmat, double Wafac,
 			gsl_rng *gen);
 struct group *SACommunityIdentBipart(struct binet *binet,
 				     double Ti, double Tf, double Ts,
