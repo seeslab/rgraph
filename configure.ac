@@ -2,7 +2,9 @@
 AC_INIT(rgraph, [2.0.0], [roger.guimera@gmail.com])
 AC_REVISION($Revision$)
 AM_INIT_AUTOMAKE
-LT_INIT(disable-static)
+LT_INIT
+AC_DISABLE_STATIC
+AC_PROG_LIBTOOL
 
 # Create the config.h.in
 AC_CONFIG_SRCDIR([config.h.in])
