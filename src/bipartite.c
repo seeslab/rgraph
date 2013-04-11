@@ -1049,11 +1049,11 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 */
 void
 SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
-		   double Ti, double Tf, double Ts,
-		   double cluster_prob, 
-       double *strength,
-		   double **swwmat, double Wafac,
-		   gsl_rng *gen)
+			   double Ti, double Tf, double Ts,
+			   double cluster_prob, 
+			   double *strength,
+			   double **swwmat, double Wafac,
+			   gsl_rng *gen)
 {
   struct group *glist[2], *g = NULL, *split = NULL;
   struct node_gra **nlist;
@@ -1091,12 +1091,12 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
     binet->net1 = BuildNetFromGroup(target_g);
     binet->net2 = CreateHeaderGraph();
     net = ProjectBipart(binet); /* This trick to generate the projection
-				  works, although it is not elegant */
+				   works, although it is not elegant */
     /*
-    Note: This projection uses NCommonLinksBipart to determine
-    weights in the projected network, and the original, bipartite
-    weights are disregarded. But that's ok, since the projected
-    network is just used to find clusters.
+      Note: This projection uses NCommonLinksBipart to determine
+      weights in the projected network, and the original, bipartite
+      weights are disregarded. But that's ok, since the projected
+      network is just used to find clusters.
     */
     split = ClustersPartition(net);
   }
@@ -1620,13 +1620,13 @@ SACommunityIdentBipart(struct binet *binet,
 */
 struct group *
 SACommunityIdentBipartWeighted(struct binet *binet,
-		      double Ti, double Tf, double Ts,
-		      double fac,
-		      int ngroup,
-		      char initial_sw,
-		      int collective_sw,
-		      char output_sw,
-		      gsl_rng *gen)
+			       double Ti, double Tf, double Ts,
+			       double fac,
+			       int ngroup,
+			       char initial_sw,
+			       int collective_sw,
+			       char output_sw,
+			       gsl_rng *gen)
 {
   int i;
   struct node_gra *net1 = binet->net1;
@@ -1723,8 +1723,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
     strength[p->num] = (double)SumWeights(p);
     p2 = net1;
     while ((p2 = p2->next) != NULL) {
-      swwmat[p->num][p2->num] = SumProductsOfCommonWeightsBipart(p, p2) /
-	(sWa2);            // Note that swwmat includes the 1/sWa2 factor
+      swwmat[p->num][p2->num] = SumProductsOfCommonWeightsBipart(p, p2) / (sWa2); // Note that swwmat includes the 1/sWa2 factor
     }
   }
 
@@ -1787,7 +1786,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
       target = floor(gsl_rng_uniform(gen) * (double)nnod);
       oldg = nlist[target]->inGroup;
       do {
-	newg = floor(gsl_rng_uniform(gen) * ngroup);
+      	newg = floor(gsl_rng_uniform(gen) * ngroup);
       } while (newg == oldg);
 
       /* Calculate the change of energy */
@@ -1797,34 +1796,31 @@ SACommunityIdentBipartWeighted(struct binet *binet,
       /* Old group contribution */
       nod = glist[oldg]->nodeList;
       while ((nod = nod->next) != NULL) {
-	s2 = strength[nod->ref->num];
-	dE -= 2. * (swwmat[nlist[target]->num][nod->node] -
-		    s1 * s2 * Wafac);
+      	s2 = strength[nod->ref->num];
+        dE -= 2. * (swwmat[nlist[target]->num][nod->node] - s1 * s2 * Wafac);
       }
 
       /* New group contribution */
       nod = glist[newg]->nodeList;
       while ((nod = nod->next) != NULL) {
-	s2 = strength[nod->ref->num];
-	dE += 2. * (swwmat[nlist[target]->num][nod->node] -
-		    s1 * s2 * Wafac);
+      	s2 = strength[nod->ref->num];
+        dE += 2. * (swwmat[nlist[target]->num][nod->node] - s1 * s2 * Wafac);
       }
-      dE += 2. * (swwmat[nlist[target]->num][nlist[target]->num] -
-		  s1 * s1 * Wafac);
+      dE += 2. * (swwmat[nlist[target]->num][nlist[target]->num] - s1 * s1 * Wafac);
 
       /* Accept or reject movement according to Metropolis */ 
       if (gsl_rng_uniform(gen) < exp(dE/T)) {
-	accepted = "ACCEPTED";
-	energy += dE;
-	MoveNode(nlist[target],glist[oldg],glist[newg]);
+      	accepted = "ACCEPTED";
+        energy += dE;
+        MoveNode(nlist[target],glist[oldg],glist[newg]);
       }
       
       switch(output_sw) {
       case 'd':
-	if (dE < 0 && accepted == "ACCEPTED" && (T < Ti/1.0e6)) {  
-	  fprintf(stderr, "Cicle 1 move %s: %i move %i -> %i dE=%g prob=%g T=%g\n",
+      	if (dE < 0 && accepted == "ACCEPTED" && (T < Ti/1.0e6)) {
+          fprintf(stderr, "Cicle 1 move %s: %i move %i -> %i dE=%g prob=%g T=%g\n",
 		  accepted,target, oldg, newg, dE, exp(dE/T),T);
-	}
+        }
 	accepted = "rejected";
       }
     }
@@ -1856,8 +1852,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 	    while ((nod2 = nod2->next) != NULL) {
 	      s1 = strength[nod->ref->num];
 	      s2 = strength[nod2->ref->num];
-	      dE += 2. * (swwmat[nod->node][nod2->node] -
-			  s1 * s2 * Wafac);
+	      dE += 2. * (swwmat[nod->node][nod2->node] - s1 * s2 * Wafac);
 	    }
 	  }
 
@@ -1900,10 +1895,10 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 	  
 	  /* Split the group */
 	  SAGroupSplitBipartWeighted(glist[target], glist[empty],
-			     Ti, T, 0.95,
-			     cluster_prob,
-           strength,
-			     swwmat, Wafac, gen);
+				     Ti, T, 0.95,
+				     cluster_prob,
+				     strength,
+				     swwmat, Wafac, gen);
 
 	  /* Calculate dE for remerging the groups */
 	  dE = 0.0;
@@ -1913,8 +1908,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 	    while ((nod2 = nod2->next) != NULL) {
 	      s1 = strength[nod->ref->num];
 	      s2 = strength[nod2->ref->num];
-	      dE += 2. * (swwmat[nod->node][nod2->node] -
-			  s1 * s2 * Wafac);
+	      dE += 2. * (swwmat[nod->node][nod2->node] - s1 * s2 * Wafac);
 	    }
 	  }
 
@@ -1947,7 +1941,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
     /* Update the no-change counter */
     // condition (T < Ti / 1000.) && removed (stpdescent)
     if ((fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B ||
-	fabs(energyant) < EPSILON_MOD_B)) {
+	 fabs(energyant) < EPSILON_MOD_B)) {
       count++;
       
 
@@ -1955,7 +1949,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 	 partition is not the best one so far, replace the current
 	 partition by the best one and continue from there. */
       if ((count == limit) && (output_sw == 'd')) {
-	  fprintf(stderr, "# Limit reached.\n");
+	fprintf(stderr, "# Limit reached.\n");
       }
 
       if ((count == limit) && (energy + EPSILON_MOD_B < best_E)) {
@@ -1986,11 +1980,11 @@ SACommunityIdentBipartWeighted(struct binet *binet,
       count = 0;
     }
 
-	  if ((T < Ti / 1.0e6) && (output_sw == 'd')) {
-	fprintf(stderr, "En Change %: %g (Last En: %g), count: %i",
-		(fabs(energy - energyant)/fabs(energyant)),
-		fabs(energyant), count);
-      }
+    if ((T < Ti / 1.0e6) && (output_sw == 'd')) {
+      fprintf(stderr, "En Change %: %g (Last En: %g), count: %i",
+	      (fabs(energy - energyant)/fabs(energyant)),
+	      fabs(energyant), count);
+    }
 
     /* Update the last energy */
     energyant = energy;
