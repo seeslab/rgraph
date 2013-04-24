@@ -12,7 +12,6 @@ main(int argc, char **argv)
 {
   FILE *outF, *inF;
   int rgm;
-  char *dbs;
   int seed = 1111;
   struct binet *binet = NULL;
   struct group *part = NULL;
@@ -30,7 +29,7 @@ main(int argc, char **argv)
   rgm = scanf("%d", &seed);
 
   printf("\n# Enter the name of the network file: ");
-  dbs = fgets(file_name, sizeof file_name, stdin);
+  rgm = scanf("%s", &file_name);
 
   printf("\n# Enter iteration factor (recommended 1.0): ");
   rgm = scanf("%lf", &fac);
