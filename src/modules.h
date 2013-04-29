@@ -130,7 +130,7 @@ void FPrintPajekPartitionFile(char *fname, struct node_gra *net);
   Partition comparison
   ---------------------------------------------------------------------
 */
-double MutualInformation(struct group *part1, struct group *part2);
+double MutualInformation(struct group *part1, struct group *part2, int label_sw);
 double CorrectlyClassified(struct group *refpart,
 			   struct group *actpart);
 

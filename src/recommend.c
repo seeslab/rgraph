@@ -543,12 +543,12 @@ GetDecorrelationStep2State(double *H,
 			   LogFactList, LogFactListSize,
 			   gen);
       if (step == x1) {
-	y11 = MutualInformation(part1Ref, part1);
-	y12 = MutualInformation(part2Ref, part2);
+	y11 = MutualInformation(part1Ref, part1, 0);
+	y12 = MutualInformation(part2Ref, part2, 0);
       }
     }
-    y21 = MutualInformation(part1Ref, part1);
-    y22 = MutualInformation(part2Ref, part2);
+    y21 = MutualInformation(part1Ref, part1, 0);
+    y22 = MutualInformation(part2Ref, part2, 0);
     if (nnod1 > 1)
       decay1[rep] = 2. * CalculateDecay(nnod1, x1, y11, x2, y21);
     else
@@ -1381,12 +1381,12 @@ GetDecorrelationStepKState(int K,
 		   LogFactList, LogFactListSize,
 		   gen);
       if (step == x1) {
-	y11 = MutualInformation(part1Ref, part1);
-	y12 = MutualInformation(part2Ref, part2);
+	y11 = MutualInformation(part1Ref, part1, 0);
+	y12 = MutualInformation(part2Ref, part2, 0);
       }
     }
-    y21 = MutualInformation(part1Ref, part1);
-    y22 = MutualInformation(part2Ref, part2);
+    y21 = MutualInformation(part1Ref, part1, 0);
+    y22 = MutualInformation(part2Ref, part2, 0);
     if (nnod1 > 1)
       decay1[rep] = 2. * CalculateDecay(nnod1, x1, y11, x2, y21);
     else

@@ -1,5 +1,4 @@
 /*
-  modules.c
   $LastChangedDate$
   $Revision$
 */
@@ -1308,7 +1307,7 @@ FPrintPartition(FILE *outf, struct group *partition, int list_sw)
       if (list_sw == 0)
 	fprintf(outf, "\n");
       else
-	fprintf(outf, "//\n");
+	fprintf(outf, "///\n");
     }
   } /* End of loop over groups in the partition */
 
@@ -1352,7 +1351,7 @@ FPrintPajekPartitionFile(char *fname, struct node_gra *net)
   ---------------------------------------------------------------------
 */
 double
-MutualInformation(struct group *part1, struct group *part2)
+MutualInformation(struct group *part1, struct group *part2, int label_sw)
 {
   struct group *g1 = NULL, *g2 = NULL;
   struct node_lis *n1 = NULL, *n2 = NULL;
@@ -1407,7 +1406,7 @@ MutualInformation(struct group *part1, struct group *part2)
 	  while ((n1 = n1->next) != NULL) {
 	    n2 = g2->nodeList;
 	    while ((n2 = n2->next) != NULL) {
-	      if (n1->node == n2->node) {
+	      if ((label_sw == 0 && n1->node == n2->node ) || (label_sw == 1 && strcmp(n1->nodeLabel,n2->nodeLabel) == 0)) {
 		S12++;
 		break;
 	      }
