@@ -28,11 +28,11 @@ rgraph-version directory:
 
 cd rgraph-version
 
-./configure
+./autogen.sh
 
-./make
+make
 
-./make install
+[make install]
 
 (In a Windows system, you will first need to install some sort of
 "Unix emulation." I have successfully compiled the libraries using
