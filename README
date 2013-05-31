@@ -30,6 +30,8 @@ cd rgraph-version
 
 ./autogen.sh
 
+./configure
+
 make
 
 [make install]
