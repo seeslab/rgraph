@@ -333,6 +333,50 @@ AddNodeToGroup(struct group *g, struct node_gra *node)
   return p->next;
 }
 
+/* a la DB Stouffer */
+struct node_lis *
+AddNodeToGroupFast(struct group *g, struct node_gra *node)
+{
+  struct node_lis *p = g->nodeList;
+  int totlink, inlink;
+  double totweight, inweight;
+
+  /* Go to the end of the list of nodes in the group */
+  while (p->next != NULL)
+    p = p->next;
+
+  /* Create the node_lis and point it to the node */
+  p->next = (struct node_lis *)calloc(1, sizeof(struct node_lis));
+  (p->next)->node = node->num;
+  (p->next)->nodeLabel = (char *) calloc(MAX_LABEL_LENGTH, sizeof(char));
+  strcpy((p->next)->nodeLabel, node->label);
+  (p->next)->status = 0;
+  (p->next)->next = NULL;
+  (p->next)->ref = node;
+  
+  (p->next)->btw=0.0;  /* initalising rush variable to 0.0; */
+  (p->next)->weight=0.0;  /* initalising rush variable to 0.0; */
+
+  /* Update the properties of the group */
+  g->size++;
+  totlink = CountLinks(node);
+  inlink = NLinksToGroup(node, g);
+  totweight = NodeStrengthFast(node);
+  inweight = StrengthToGroup(node, g);
+  g->totlinks += totlink - inlink;
+  g->inlinks += inlink;
+  g->outlinks = g->totlinks - g->inlinks;
+  g->totlinksW += totweight - inweight;
+  g->inlinksW += inweight;
+  g->outlinksW = g->totlinksW - g->inlinksW;
+
+  /* Update the properties of the node */
+  node->inGroup = g->label;
+
+  /* Done */
+  return p->next;
+}
+
 /*
   ---------------------------------------------------------------------
   Softly add a node to a group. Pointers do NOT point anywhere and
@@ -411,6 +455,45 @@ RemoveNodeFromGroup(struct group *g, struct node_gra *node)
   }
 }
 
+/* a la DB Stouffer */
+int 
+RemoveNodeFromGroupFast(struct group *g, struct node_gra *node)
+{
+  struct node_lis *p = g->nodeList;
+  struct node_lis *temp;
+  int totlink,inlink;
+  double totweight,inweight;
+
+  /* Find the node */
+  while ((p->next != NULL) && ((p->next)->ref != node))
+    p = p->next;
+  
+  if (p->next == NULL)
+    return 0;
+  else{
+    temp = p->next;
+    p->next = (p->next)->next;
+    free(temp->nodeLabel);
+    free(temp);
+
+    /* Update the properties of the group */
+    g->size--;
+    totlink = CountLinks(node);
+    inlink = NLinksToGroup(node, g);
+    totweight = NodeStrengthFast(node);
+    inweight = StrengthToGroup(node, g);
+    g->totlinks -= totlink - inlink;
+    g->inlinks -= inlink;
+    g->outlinks = g->totlinks - g->inlinks;
+    g->totlinksW -= totweight - inweight;
+    g->inlinksW -= inweight;
+    g->outlinksW = g->totlinksW - g->inlinksW;
+
+    /* Done */
+    return 1;
+  }
+}
+
 /*
   ---------------------------------------------------------------------
   Move a node from old group to new group. Returns 1 if successful,
@@ -427,6 +510,16 @@ MoveNode(struct node_gra *node, struct group *old, struct group *new)
   return 1;
 }
 
+/* a la DB Stouffer */
+int
+MoveNodeFast(struct node_gra *node, struct group *old, struct group *new)
+{
+  if (RemoveNodeFromGroupFast(old,node) == 0)
+    return 0;
+
+  AddNodeToGroupFast(new, node);
+  return 1;
+}
 
 /*
   ---------------------------------------------------------------------
@@ -832,6 +925,17 @@ MergeGroups(struct group *g1, struct group *g2)
   return;
 }
 
+/* a la DB Stouffer */
+void
+MergeGroupsFast(struct group *g1, struct group *g2)
+{
+  struct node_lis *p = g1->nodeList;
+
+  while (p->next != NULL)
+    MoveNodeFast((p->next)->ref, g1, g2);
+  return;
+}
+
 /*
   ---------------------------------------------------------------------
   Creates a copy of a group and puts it at the end of the list of
@@ -1096,6 +1200,75 @@ MapPartToNet(struct group *part, struct node_gra *net)
       totlink = CountLinks(nod->ref);
       inlink = NLinksToGroup(nod->ref,g);
       totlinkW = NodeStrength(nod->ref);
+      inlinkW = StrengthToGroup(nod->ref, g);
+      g->totlinks += totlink;
+      g->inlinks += inlink;
+      g->totlinksW += totlinkW;
+      g->inlinksW += inlinkW;
+    }
+    g->inlinks /= 2;
+    g->totlinks -= g->inlinks;
+    g->outlinks = g->totlinks - g->inlinks;
+    g->inlinksW /= 2.0;
+    g->totlinksW -= g->inlinksW;
+    g->outlinksW = g->totlinksW - g->inlinksW;
+  }
+
+  /* Free memory allocated locally */
+  FreeLabelDict(nodeDict);
+
+  // Done
+  return;
+}
+
+/* a la DB Stouffer */
+void
+MapPartToNetFast(struct group *part, struct node_gra *net)
+{
+  struct group *g = NULL;
+  struct node_lis *nod;
+  int totlink, inlink;
+  double totlinkW, inlinkW;
+  void *nodeDict = NULL;
+  struct node_gra *node = NULL;
+
+  /* Reset the group of all nodes */
+  ResetNetGroup(net);
+
+  /* Create the nodeDict for fast access to nodes by label */
+  nodeDict = MakeLabelDict(net);
+
+  /* Go through the groups, reset attributes, and point pointers */
+  g = part;
+  while ((g = g->next) != NULL) {
+    g->totlinks = 0;
+    g->inlinks = 0;
+    g->outlinks = 0;
+    g->totlinksW = 0.0;
+    g->inlinksW = 0.0;
+    g->outlinksW = 0.0;
+
+    nod = g->nodeList;
+    while ((nod = nod->next) != NULL) {
+      /* Get the node_gra by label */
+      node = GetNodeDict(nod->nodeLabel, nodeDict);
+
+      /* Update the properties of the group */
+      nod->ref = node;
+      nod->node = node->num;
+      /* Update the properties of the node */
+      node->inGroup = g->label;
+    }
+  }
+
+  /* Count links in groups */
+  g = part;
+  while ((g = g->next) != NULL) {
+    nod = g->nodeList;
+    while ((nod = nod->next) != NULL) {
+      totlink = CountLinks(nod->ref);
+      inlink = NLinksToGroup(nod->ref,g);
+      totlinkW = NodeStrengthFast(nod->ref);
       inlinkW = StrengthToGroup(nod->ref, g);
       g->totlinks += totlink;
       g->inlinks += inlink;

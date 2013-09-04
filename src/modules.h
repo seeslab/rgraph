@@ -69,8 +69,15 @@ struct node_lis *AddNodeToGroup(struct group *g, struct node_gra *node);
 struct node_lis *AddNodeToGroupSoft(struct group *g, char *label);
 int RemoveNodeFromGroup(struct group *g, struct node_gra *node);
 int MoveNode(struct node_gra *node,
-	     struct group *old,
+      	     struct group *old,
 	     struct group *new);
+
+/* a la DB Stouffer */
+struct node_lis *AddNodeToGroupFast(struct group *g, struct node_gra *node);
+int RemoveNodeFromGroupFast(struct group *g, struct node_gra *node);
+int MoveNodeFast(struct node_gra *node,
+		 struct group *old,
+		 struct group *new);
 
 /*
   ---------------------------------------------------------------------
@@ -116,6 +123,9 @@ void MapPartToNet(struct group *part, struct node_gra *net);
 void MapPartToNetSoft(struct group *part, struct node_gra *net);
 struct group *ClustersPartition(struct node_gra *net);
 void RemoveInterGroupLinks(struct node_gra *net);
+
+/* a la DB Stouffer */
+void MapPartToNetFast(struct group *part, struct node_gra *net);
 
 /*
   ---------------------------------------------------------------------
