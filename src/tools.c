@@ -128,7 +128,7 @@ allocate_d_mat(int nrows, int ncolumns)
       fprintf(stderr, "out of memory\n");
       return NULL;
     }else
-      memset(array[i], 0.0, ncolumns * sizeof(double));
+      memset(array[i], 0, ncolumns * sizeof(double));
   }
 
   return array;
