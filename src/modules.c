@@ -359,7 +359,7 @@ AddNodeToGroupFast(struct group *g, struct node_gra *node)
 
   /* Update the properties of the group */
   g->size++;
-  totlink = CountLinks(node);
+/*  totlink = CountLinks(node);
   inlink = NLinksToGroup(node, g);
   totweight = NodeStrengthFast(node);
   inweight = StrengthToGroup(node, g);
@@ -368,7 +368,7 @@ AddNodeToGroupFast(struct group *g, struct node_gra *node)
   g->outlinks = g->totlinks - g->inlinks;
   g->totlinksW += totweight - inweight;
   g->inlinksW += inweight;
-  g->outlinksW = g->totlinksW - g->inlinksW;
+  g->outlinksW = g->totlinksW - g->inlinksW;*/
 
   /* Update the properties of the node */
   node->inGroup = g->label;
@@ -478,7 +478,7 @@ RemoveNodeFromGroupFast(struct group *g, struct node_gra *node)
 
     /* Update the properties of the group */
     g->size--;
-    totlink = CountLinks(node);
+/*    totlink = CountLinks(node);
     inlink = NLinksToGroup(node, g);
     totweight = NodeStrengthFast(node);
     inweight = StrengthToGroup(node, g);
@@ -487,7 +487,7 @@ RemoveNodeFromGroupFast(struct group *g, struct node_gra *node)
     g->outlinks = g->totlinks - g->inlinks;
     g->totlinksW -= totweight - inweight;
     g->inlinksW -= inweight;
-    g->outlinksW = g->totlinksW - g->inlinksW;
+    g->outlinksW = g->totlinksW - g->inlinksW;*/
 
     /* Done */
     return 1;
@@ -1262,7 +1262,7 @@ MapPartToNetFast(struct group *part, struct node_gra *net)
   }
 
   /* Count links in groups */
-  g = part;
+/*  g = part;
   while ((g = g->next) != NULL) {
     nod = g->nodeList;
     while ((nod = nod->next) != NULL) {
@@ -1281,7 +1281,7 @@ MapPartToNetFast(struct group *part, struct node_gra *net)
     g->inlinksW /= 2.0;
     g->totlinksW -= g->inlinksW;
     g->outlinksW = g->totlinksW - g->inlinksW;
-  }
+  }*/
 
   /* Free memory allocated locally */
   FreeLabelDict(nodeDict);
