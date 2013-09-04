@@ -350,8 +350,8 @@ SumProductsOfCommonWeightsBipart(struct node_gra *n1, struct node_gra *n2)
     l2 = n2->neig;
     while ((l2 = l2->next) != NULL) {
       if (l1->ref == l2->ref) {
-	w_ja = l2->weight;
-	sww += w_ia * w_ja;
+      	w_ja = l2->weight;
+        sww += w_ia * w_ja;
       }
     }
   }
@@ -796,30 +796,26 @@ ModularityBipart(struct binet *binet, struct group *part)
   double bimod = 0.0;
   int c12;
   int t1, t2;
-  double sms, sms2;
-
-  sms = sms2 = 0.0;
+  double sms = 0.0, s2ms = 0.0, sms2 = 0.0;
 
   /* Calculate sms=sum(m_s) and sms2=sum(m_s^2) */
-  while (p->next != NULL) {
-    p = p->next;
+  while ((p = p->next) != NULL) {
     sms += (double)CountLinks(p);
     sms2 += (double)(CountLinks(p) * CountLinks(p));
   }
+  s2ms = sms * sms;
 
   /* Calculate the modularity */
-  while (part->next != NULL){
-    part = part->next;
+  while ((part = part->next) != NULL){
 
     n1 = part->nodeList;
     while ((n2 = n1 = n1->next) != NULL) {
       while ((n2 = n2->next) != NULL) {
-  	c12 = NCommonLinksBipart(n1->ref, n2->ref);
-	t1 = CountLinks(n1->ref);
-	t2 = CountLinks(n2->ref);
+        c12 = NCommonLinksBipart(n1->ref, n2->ref);
+        t1 = CountLinks(n1->ref);
+        t2 = CountLinks(n2->ref);
 
-	bimod += (double)c12 / (sms2 - sms) -
-	  (double)(t1 * t2) / (sms * sms);
+	      bimod += (double)c12 / (sms2 - sms) - (double)(t1 * t2) / s2ms;
       }
     }
   }
@@ -846,8 +842,8 @@ ModularityBipartWeighted(struct binet *binet, struct group *part)
 
   /* Calculate s2Wa=(sum W_a)^2 and sWa2=sum(W_a^2) */
   while ((p = p->next) != NULL) {
-    sWa += (double)SumWeights(p);
-    sWa2 += (double)(SumWeights(p) * SumWeights(p));
+    sWa += (double)NodeStrength(p);
+    sWa2 += (double)(NodeStrength(p) * NodeStrength(p));
   }
   s2Wa = sWa * sWa;
 
@@ -858,8 +854,49 @@ ModularityBipartWeighted(struct binet *binet, struct group *part)
     while ((n2 = n1 = n1->next) != NULL) {
       while ((n2 = n2->next) != NULL) {
         sww12 = (double)SumProductsOfCommonWeightsBipart(n1->ref, n2->ref);
-        s1 = (double)SumWeights(n1->ref);
-        s2 = (double)SumWeights(n2->ref);
+        s1 = (double)NodeStrength(n1->ref);
+        s2 = (double)NodeStrength(n2->ref);
+        
+        bimod += sww12 / (sWa2 - sWa) - (s1 * s2) / s2Wa;
+      }
+    }
+  }
+  bimod *= 2.;
+
+  /* Done */
+  return bimod;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Calculate the modularity of a partition of a weighted bipartite network
+  ---------------------------------------------------------------------
+*/
+double ModularityBipartWeightedFast(struct binet *binet, struct group *part, double *strength, double **swwmat)
+{
+  struct node_gra *p = binet->net2;
+  struct node_lis *n1, *n2;
+  double bimod = 0.0;
+  double sww12;
+  double s1, s2;
+  double sWa = 0.0, s2Wa = 0.0, sWa2 = 0.0;
+
+  /* Calculate s2Wa=(sum W_a)^2 and sWa2=sum(W_a^2) */
+  while ((p = p->next) != NULL) {
+    sWa += (double)NodeStrength(p);
+    sWa2 += (double)(NodeStrength(p) * NodeStrength(p));
+  }
+  s2Wa = sWa * sWa;
+
+  /* Calculate the modularity */
+  while ((part = part->next) != NULL){
+
+    n1 = part->nodeList;
+    while ((n2 = n1 = n1->next) != NULL) {
+      while ((n2 = n2->next) != NULL) {
+        sww12 = swwmat[n1->node][n2->node];
+        s1 = strength[n1->node];
+        s2 = strength[n2->node];;
         
         bimod += sww12 / (sWa2 - sWa) - (s1 * s2) / s2Wa;
       }
@@ -1085,13 +1122,12 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
     If cluster_sw, check if the network is disconnected
   */
   if (cluster_sw == 1) {
-    /* Build a network from the nodes in the target group and find
-       disconected clusters  */
+    /* Build a network from the nodes in the target group and find disconected clusters  */
     binet = CreateBipart();
     binet->net1 = BuildNetFromGroup(target_g);
     binet->net2 = CreateHeaderGraph();
-    net = ProjectBipart(binet); /* This trick to generate the projection
-				   works, although it is not elegant */
+    net = ProjectBipart(binet);
+    /* This trick to generate the projection works, although it is not elegant */
     /*
       Note: This projection uses NCommonLinksBipart to determine
       weights in the projected network, and the original, bipartite
@@ -1102,21 +1138,20 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
   }
 
   /*
-    If cluster_sw==1 and the network is disconnected, then use the
-    clusters
+    If cluster_sw==1 and the network is disconnected, then use the clusters
   */
   if (cluster_sw == 1 && NGroups(split) > 1) {
     /* Build a dictionary for fast access to nodes */
     dict = MakeLabelDict(binet->net1);
 
-    /* Move the nodes in some (half) of the clusters to empty module */
+    /* Move the nodes in some (that is, approximately half) of the clusters to the empty group */
     g = split;
     while ((g = g->next) != NULL) {
       if (gsl_rng_uniform(gen) < 0.500000) { // With prob=0.5 move to empty
-	p = g->nodeList;
-	while ((p = p->next) != NULL) {
-	  MoveNode(GetNodeDict(p->nodeLabel, dict), target_g, empty_g);
-	}
+        p = g->nodeList;
+        while ((p = p->next) != NULL) {
+          MoveNodeFast(GetNodeDict(p->nodeLabel, dict), target_g, empty_g);
+        }
       }
     }
   }
@@ -1135,10 +1170,10 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
       nlist[nnod++] = p->next->ref;
       dice = gsl_rng_uniform(gen);
       if (dice < 0.500000) {
-	MoveNode(p->next->ref, target_g, empty_g);
+      	MoveNodeFast(p->next->ref, target_g, empty_g);
       }
       else {
-	p = p->next;
+      	p = p->next;
       }
     }
     
@@ -1149,49 +1184,49 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
 
       /* Do nnod moves */
       for (i=0; i<nnod; i++) {
+      	/* Determine target node */
+        target = floor(gsl_rng_uniform(gen) * (double)nnod);
+        if (nlist[target]->inGroup == target_g->label)
+          oldg = 0;
+        else
+          oldg = 1;
+      	newg = 1 - oldg;
+	
+	      /* Calculate the change of energy */
+        dE = 0.0;
+        n1 = nlist[target]->num;
+        s1 = strength[n1];
 
-	/* Determine target node */
-	target = floor(gsl_rng_uniform(gen) * (double)nnod);
-	if (nlist[target]->inGroup == target_g->label)
-	  oldg = 0;
-	else
-	  oldg = 1;
-	newg = 1 - oldg;
+        /* 1-Old group */
+        p = glist[oldg]->nodeList;
+        while ((p = p->next) != NULL) {
+	        n2 = p->node;
+          if (n2 != n1) {
+            s2 = strength[n2];
+            dE -= 2. * (swwmat[n1][n2] - s1 * s2 * Wafac);
+          }
+        }
 	
-	/* Calculate the change of energy */
-	dE = 0.0;
-	n1 = nlist[target]->num;
-	s1 = strength[n1];
-	/* 1-Old group */
-	p = glist[oldg]->nodeList;
-	while ((p = p->next) != NULL) {
-	  n2 = p->node;
-	  if (n2 != n1) {
-	    s2 = strength[n2];
-	    dE -= 2. * (swwmat[n1][n2] - s1 * s2 * Wafac);
-	  }
-	}
-	/* 2-New group */
-	p = glist[newg]->nodeList;
-	while ((p = p->next) != NULL) {
-	  n2 = p->node;
-	  s2 = strength[n2];
-	  dE += 2. * (swwmat[n1][n2] - s1 * s2 * Wafac);
-	}
+        /* 2-New group */
+        p = glist[newg]->nodeList;
+        while ((p = p->next) != NULL) {
+          n2 = p->node;
+          s2 = strength[n2];
+          dE += 2. * (swwmat[n1][n2] - s1 * s2 * Wafac);
+      	}
 	
-	/* Accept the change according to the Boltzman factor */
-	if (gsl_rng_uniform(gen) < exp(dE/T)) {
-	  MoveNode(nlist[target], glist[oldg], glist[newg]);
-	  energy += dE;
-	}
+	      /* Accept the change according to the Boltzman factor */
+      	if (gsl_rng_uniform(gen) < exp(dE/T)) {
+          MoveNodeFast(nlist[target], glist[oldg], glist[newg]);
+          energy += dE;
+        }
       }
       
       /* Update the no-change counter */
-      if (fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B ||
-	  fabs(energyant) < EPSILON_MOD_B)
-	count++;
+      if (fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B || fabs(energyant) < EPSILON_MOD_B)
+	      count++;
       else
-	count = 0;
+      	count = 0;
 
       /* Update the last energy */
       energyant = energy;
@@ -1199,7 +1234,7 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
       /* Update the temperature */
       T = T * Ts;
 
-    } /* End of temperature loop */
+    } /* End of temperature while loop */
 
   } /* End of else (network is connected) */
   
@@ -1683,7 +1718,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
     while ((p = p->next) != NULL) {
       glist[p->num] = CreateGroup(part, p->num);
       nlist[p->num] = p;
-      AddNodeToGroup(glist[p->num], p);
+      AddNodeToGroupFast(glist[p->num], p);
     }
     break;
 
@@ -1697,7 +1732,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
     while ((p = p->next) != NULL) {
       nlist[p->num] = p;
       dice = floor(gsl_rng_uniform(gen)* (double)ngroup);
-      AddNodeToGroup(glist[dice], p);
+      AddNodeToGroupFast(glist[dice], p);
     }
     break;
   }
@@ -1706,7 +1741,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
   /* Calculate s2Wa=(sum W_a)^2 and sWa2=sum(W_a^2) */
   p = net2;
   while ((p = p->next) != NULL) {
-    s = (double)SumWeights(p);
+    s = (double)NodeStrengthFast(p);
     sWa += s;
     sWa2 += s * s;
   }
@@ -1714,18 +1749,25 @@ SACommunityIdentBipartWeighted(struct binet *binet,
   Wafac = 1. / s2Wa;
 
 
-  /* Calculate the sww matrix of Sum_a(w_ia*w_ja), and the strengths
-     of each node */
-  swwmat = allocate_d_mat(nnod, nnod);
+  /* 
+     Calculate the sww matrix of Sum_a(w_ia*w_ja)
+     and the strengths of each node 
+  */
   strength = allocate_d_vec(nnod);
+  swwmat = allocate_d_mat(nnod, nnod);
+
   p = net1;
   while ((p = p->next) != NULL) {
-    strength[p->num] = (double)SumWeights(p);
+    strength[p->num] = (double)NodeStrengthFast(p);
     p2 = net1;
     while ((p2 = p2->next) != NULL) {
-      swwmat[p->num][p2->num] = SumProductsOfCommonWeightsBipart(p, p2) / (sWa2); // Note that swwmat includes the 1/sWa2 factor
+      if(swwmat[p2->num][p->num] != 0)
+        swwmat[p->num][p2->num] = swwmat[p2->num][p->num];
+      else
+        swwmat[p->num][p2->num] = SumProductsOfCommonWeightsBipart(p, p2) / (sWa2 - sWa); // Note that swwmat includes the normalization factor
     }
   }
+
 
   /*
     Determine the number of iterations at each temperature
@@ -1741,13 +1783,14 @@ SACommunityIdentBipartWeighted(struct binet *binet,
   else
     cicle2 = floor(fac * (double)nnod);
 
+
   /*
     Do the simulated annealing
     -------------------------------------------------------------------
   */
   /* Determine initial values */
   T = Ti;
-  energy = ModularityBipartWeighted(binet, part);
+  energy = ModularityBipartWeightedFast(binet, part, strength, swwmat);
 
   /* Temperature loop */
   while ((T >= Tf) && (count < limit)) {
@@ -1765,22 +1808,19 @@ SACommunityIdentBipartWeighted(struct binet *binet,
       fprintf(stderr, "%g %lf %g\n",1.0/T, energy, T);
       break;
     case 'v':
-      fprintf(stderr, "%g %lf %lf %g\n",
-	      1.0/T, energy, ModularityBipartWeighted(binet, part), T);
+      fprintf(stderr, "%g %lf %lf %g\n", 1.0/T, energy, ModularityBipartWeightedFast(binet, part, strength, swwmat), T);
       break;
     case 'd':
       FPrintPartition(stderr, part, 0);
-      fprintf(stderr, "%g %lf %lf %g\n",
-	      1.0/T, energy, ModularityBipartWeighted(binet, part), T);
+      fprintf(stderr, "%g %lf %lf %g\n", 1.0/T, energy, ModularityBipartWeightedFast(binet, part, strength, swwmat), T);
     }
-    
 
     /*
       Do cicle1 individual change iterations
     */
     for (i=0; i<cicle1; i++) {
       
-      accepted = "rejected";
+      accepted = "REJECTED";
 
       /* Propose an individual change */
       target = floor(gsl_rng_uniform(gen) * (double)nnod);
@@ -1799,6 +1839,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
       	s2 = strength[nod->ref->num];
         dE -= 2. * (swwmat[nlist[target]->num][nod->node] - s1 * s2 * Wafac);
       }
+      dE += 2. * (swwmat[nlist[target]->num][nlist[target]->num] - s1 * s1 * Wafac); /* remove the effect of the target with itself */
 
       /* New group contribution */
       nod = glist[newg]->nodeList;
@@ -1806,198 +1847,194 @@ SACommunityIdentBipartWeighted(struct binet *binet,
       	s2 = strength[nod->ref->num];
         dE += 2. * (swwmat[nlist[target]->num][nod->node] - s1 * s2 * Wafac);
       }
-      dE += 2. * (swwmat[nlist[target]->num][nlist[target]->num] - s1 * s1 * Wafac);
 
       /* Accept or reject movement according to Metropolis */ 
       if (gsl_rng_uniform(gen) < exp(dE/T)) {
       	accepted = "ACCEPTED";
         energy += dE;
-        MoveNode(nlist[target],glist[oldg],glist[newg]);
+        MoveNodeFast(nlist[target],glist[oldg],glist[newg]);
       }
       
       switch(output_sw) {
       case 'd':
       	if (dE < 0 && accepted == "ACCEPTED" && (T < Ti/1.0e6)) {
-          fprintf(stderr, "Cicle 1 move %s: %i move %i -> %i dE=%g prob=%g T=%g\n",
-		  accepted,target, oldg, newg, dE, exp(dE/T),T);
+          fprintf(stderr, "Cicle 1 move %s: %i move %i -> %i dE=%g prob=%g T=%g\n", accepted, target, oldg, newg, dE, exp(dE/T),T);
         }
-	accepted = "rejected";
+	      accepted = "REJECTED";
       }
     }
-
 
     /*
       Do cicle2 collective change iterations
     */
     if (collective_sw == 1) {
       for (i=0; i<cicle2; i++){
+      	
+        /* MERGE */
+        accepted = "REJECTED";
 
-	/* MERGE */
-	accepted = "rejected";
+      	target = floor(gsl_rng_uniform(gen) * nnod);
+        g1 = nlist[target]->inGroup;
 
-	target = floor(gsl_rng_uniform(gen) * nnod);
-	g1 = nlist[target]->inGroup;
-
-	if (glist[g1]->size < nnod) {
-	  do {
-	    target = floor(gsl_rng_uniform(gen) * nnod);
-	    g2 = nlist[target]->inGroup;
-	  } while (g1 == g2);
+        /* Can only merge groups when there isn't a single megagroup */
+      	if (glist[g1]->size < nnod) {
+          do {
+            target = floor(gsl_rng_uniform(gen) * nnod);
+            g2 = nlist[target]->inGroup;
+      	  } while (g1 == g2);
 	  
-	  /* Calculate dE */
-	  dE = 0.0;
-	  nod = glist[g1]->nodeList;
-	  while ((nod = nod->next) != NULL) {
-	    nod2 = glist[g2]->nodeList;
-	    while ((nod2 = nod2->next) != NULL) {
-	      s1 = strength[nod->ref->num];
-	      s2 = strength[nod2->ref->num];
-	      dE += 2. * (swwmat[nod->node][nod2->node] - s1 * s2 * Wafac);
-	    }
-	  }
+	        /* Calculate dE */
+          dE = 0.0;
+          nod = glist[g1]->nodeList;
+          while ((nod = nod->next) != NULL) {
+            nod2 = glist[g2]->nodeList;
+            while ((nod2 = nod2->next) != NULL) {
+              s1 = strength[nod->ref->num];
+              s2 = strength[nod2->ref->num];
+              dE += 2. * (swwmat[nod->node][nod2->node] - s1 * s2 * Wafac);
+            }
+      	  }
 
-	  /* Accept or reject change */
-	  if (gsl_rng_uniform(gen) < exp(dE/T)) {
-	    accepted = "ACCEPTED";
-	    MergeGroups(glist[g1], glist[g2]);
-	    energy += dE;
-	  }
+	        /* Accept or reject change */
+          if (gsl_rng_uniform(gen) < exp(dE/T)) {
+            accepted = "ACCEPTED";
+            MergeGroupsFast(glist[g1], glist[g2]);
+            energy += dE;
+      	  }
 	  
-	  switch(output_sw) {
-	  case 'd':
-	    if (dE < 0 && accepted == "ACCEPTED" && (T < Ti/1.0e6)) {  
-	      fprintf(stderr, "Cicle 2 Merge %s: %i (sz %i) with %i (sz %i) dE=%g prob=%g T=%g\n",
-		      accepted, g1, glist[g1]->size, g2, glist[g2]->size, dE, exp(dE/T),T);
-	    }
-	    accepted = "rejected";
-	  }
-	} /* End of merge move */
+	        switch(output_sw) {
+          case 'd':
+            if (dE < 0 && accepted == "ACCEPTED" && (T < Ti/1.0e6)) {  
+	            fprintf(stderr, "Cicle 2 Merge %s: %i (sz %i) with %i (sz %i) dE=%g prob=%g T=%g\n",
+                      accepted, g1, glist[g1]->size, g2, glist[g2]->size, dE, exp(dE/T),T);
+	          }
+	          accepted = "REJECTED";
+	        }
+	      } /* End of merge move */
 	
-	/* SPLIT */
-	accepted = "rejected";
+	      /* SPLIT */
+	      accepted = "REJECTED";
 
-	/* Look for an empty group */
-	g = part;
-	empty = -1;
-	while (((g = g->next) != NULL) && (empty < 0)) {
-	  if (g->size == 0) {
-	    empty = g->label;
-	    break;
-	  }
-	}
+	      /* Look for an empty group to split the target group into*/
+	      g = part;
+	      empty = -1;
+	      while (((g = g->next) != NULL) && (empty < 0)) {
+	        if (g->size == 0) {
+            empty = g->label;
+            break;
+	        }
+	      }
 
-	if (empty >= 0 ) { /* if there are no empty groups, do nothing */
-	  /* Select group to split */
-	  do {
-	    target = floor(gsl_rng_uniform(gen) * (double)nnod); /* node */
-	    target = nlist[target]->inGroup;    /* target group */
-	  } while (glist[target]->size == 1);
+	      if (empty >= 0 ) { /* if there are no empty groups, do nothing */
+	        /* Select group to split */
+	        do {
+            target = floor(gsl_rng_uniform(gen) * (double)nnod); /* node */
+            target = nlist[target]->inGroup;    /* target group */
+	        } while (glist[target]->size == 1);
 	  
-	  /* Split the group */
-	  SAGroupSplitBipartWeighted(glist[target], glist[empty],
-				     Ti, T, 0.95,
-				     cluster_prob,
-				     strength,
-				     swwmat, Wafac, gen);
+	        /* Split the group */
+	        SAGroupSplitBipartWeighted(glist[target], glist[empty],
+				                             Ti, T, 0.95,
+                                     cluster_prob,
+                                     strength,
+                                     swwmat, Wafac, gen);
 
-	  /* Calculate dE for remerging the groups */
-	  dE = 0.0;
-	  nod = glist[target]->nodeList;
-	  while ((nod = nod->next) != NULL) {
-	    nod2 = glist[empty]->nodeList;
-	    while ((nod2 = nod2->next) != NULL) {
-	      s1 = strength[nod->ref->num];
-	      s2 = strength[nod2->ref->num];
-	      dE += 2. * (swwmat[nod->node][nod2->node] - s1 * s2 * Wafac);
-	    }
-	  }
+	        /* Calculate dE for remerging the groups */
+          dE = 0.0;
+          nod = glist[target]->nodeList;
+          while ((nod = nod->next) != NULL) {
+            nod2 = glist[empty]->nodeList;
+            while ((nod2 = nod2->next) != NULL) {
+              s1 = strength[nod->ref->num];
+              s2 = strength[nod2->ref->num];
+              dE += 2. * (swwmat[nod->node][nod2->node] - s1 * s2 * Wafac);
+	          }
+	        }
 
-	  /* Accept the change according to "inverse" Metroppolis.
-	     Inverse means that the algor is applied to the split and
-	     NOT to the merge! */
-	  if (gsl_rng_uniform(gen) > exp(-dE/T)) {
-	    /* Undo the split */
-	    MergeGroups(glist[target],glist[empty]);
-	  }
-	  else{
-	    accepted = "ACCEPTED";
-	    /* Update energy */
-	    energy -= dE;
-	  }
-	  switch(output_sw) {
-	  case 'd':
-	    if (-dE < 0 && accepted == "ACCEPTED"  && (T < Ti/1.0e6)) {  	    
-	      fprintf(stderr, "Cicle 2 Split %s: %i -> %i (sz %i) and %i (sz %i) dE=%g dE>-en*Epsilon/10=%i prob=%g T=%g\n",
-		      accepted, target, target, glist[target]->size, empty, glist[empty]->size, -dE, -dE>-fabs(energyant)*EPSILON_MOD_B/10, exp(-dE/T), T);
-	    }
-	    accepted = "rejected";
-	  }
-	} /* End of split move */
+	        /* 
+             Accept the change according to "inverse" Metroppolis.
+	           Inverse means that the algor is applied to the split and
+	           NOT to the merge! 
+          */
+	        if (gsl_rng_uniform(gen) > exp(-dE/T)) {
+	          /* Undo the split */
+	          MergeGroupsFast(glist[target],glist[empty]);
+	        }
+	        else{
+	          accepted = "ACCEPTED";
+	          /* Update energy */
+	          energy -= dE;
+	        }
+
+	        switch(output_sw) {
+	        case 'd':
+	          if (-dE < 0 && accepted == "ACCEPTED"  && (T < Ti/1.0e6)) {  	    
+	            fprintf(stderr, "Cicle 2 Split %s: %i -> %i (sz %i) and %i (sz %i) dE=%g dE>-en*Epsilon/10=%i prob=%g T=%g\n",
+		                  accepted, target, target, glist[target]->size, empty, glist[empty]->size, -dE, -dE>-fabs(energyant)*EPSILON_MOD_B/10, exp(-dE/T), T);
+	          }
+	          accepted = "REJECTED";
+	        }
+	      } /* End of split move */
       } /* End of cicle2 loop */
     } /* End of 'if collective_sw==1' loop */
       
-
-
     /* Update the no-change counter */
     // condition (T < Ti / 1000.) && removed (stpdescent)
-    if ((fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B ||
-	 fabs(energyant) < EPSILON_MOD_B)) {
+    if ((fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B || fabs(energyant) < EPSILON_MOD_B)) {
       count++;
       
 
-      /* If the SA is ready to stop (count==limit) but the current
-	 partition is not the best one so far, replace the current
-	 partition by the best one and continue from there. */
+      /* 
+         If the SA is ready to stop (count==limit) but the current
+         partition is not the best one so far, replace the current
+         partition by the best one and continue from there. 
+      */
       if ((count == limit) && (output_sw == 'd')) {
-	fprintf(stderr, "# Limit reached.\n");
+      	fprintf(stderr, "# Limit reached.\n");
       }
 
       if ((count == limit) && (energy + EPSILON_MOD_B < best_E)) {
-	switch (output_sw) {
-	case 'n':
-	  break;
-	case 'b':
-	  break;
-	default:
-	  fprintf(stderr, "# Resetting partition\n");
-	  break;
-	}
+      	switch (output_sw) {
+        case 'n':
+          break;
+        case 'b':
+          break;
+        default:
+          fprintf(stderr, "# Resetting partition\n");
+	        break;
+        }
 
-	/* Remap the partition to the best partition */
-	RemovePartition(part);
-	g = part = CopyPartition(best_part);
-	while ((g = g->next) != NULL)
-	  glist[g->label] = g;
-	MapPartToNet(part, binet->net1);
+	      /* Remap the partition to the best partition */
+	      RemovePartition(part);
+	      g = part = CopyPartition(best_part);
+	      while ((g = g->next) != NULL)
+	        glist[g->label] = g;
+	      MapPartToNetFast(part, binet->net1);
 
-	/* Reset energy and counter */
-	energy = best_E;
-	count = 0;
+	      /* Reset energy and counter */
+	      energy = best_E;
+	      count = 0;
       }
     }
-
     else {
       count = 0;
     }
 
     if ((T < Ti / 1.0e6) && (output_sw == 'd')) {
       fprintf(stderr, "En Change %: %g (Last En: %g), count: %i",
-	      (fabs(energy - energyant)/fabs(energyant)),
-	      fabs(energyant), count);
+	            (fabs(energy - energyant)/fabs(energyant)), fabs(energyant), count);
     }
 
     /* Update the last energy */
     energyant = energy;
 
-
     /* Compare the current partition to the best partition so far and
        save the current if it is better than the best so far. */
     if ( energy > best_E ) {
       if ( best_part != NULL )
-	RemovePartition(best_part);
+	      RemovePartition(best_part);
       best_part = CopyPartition(part);
-      MapPartToNet(part, binet->net1); /* MUST DO this after copying a
-					  part! */
+      MapPartToNetFast(part, binet->net1); /* MUST DO this after copying a part! */
       best_E = energy;
     }
 

@@ -82,17 +82,18 @@ void FPrintBipart (FILE *outf, struct binet *binet, int weight_sw);
 */
 double ModularityBipart(struct binet *binet, struct group *part);
 double ModularityBipartWeighted(struct binet *binet, struct group *part);
+double ModularityBipartWeightedFast(struct binet *binet, struct group *part, double *strength, double **swwmat);
 void SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 			double Ti, double Tf, double Ts,
 			double cluster_prob, 
 			double **cmat, double msfac,
 			gsl_rng *gen);
 void SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
-			double Ti, double Tf, double Ts,
-			double cluster_prob, 
-      double *strength,
-      double **swwmat, double Wafac,
-			gsl_rng *gen);
+				double Ti, double Tf, double Ts,
+				double cluster_prob,
+				double *strength,
+				double **swwmat, double Wafac,
+				gsl_rng *gen);
 struct group *SACommunityIdentBipart(struct binet *binet,
 				     double Ti, double Tf, double Ts,
 				     double fac,
@@ -102,13 +103,13 @@ struct group *SACommunityIdentBipart(struct binet *binet,
 				     char output_sw,
 				     gsl_rng *gen);
 struct group *SACommunityIdentBipartWeighted(struct binet *binet,
-				     double Ti, double Tf, double Ts,
-				     double fac,
-				     int ngroup,
-				     char initial_sw,
-				     int collective_sw,
-				     char output_sw,
-				     gsl_rng *gen);
+					     double Ti, double Tf, double Ts,
+					     double fac,
+					     int ngroup,
+					     char initial_sw,
+					     int collective_sw,
+					     char output_sw,
+					     gsl_rng *gen);
 double ParticipationCoefficientBipart(struct node_gra *node);
 void StatisticsParticipationCoefficientBipart(struct node_gra *net,
 					      double *theMean,
