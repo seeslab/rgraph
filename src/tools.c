@@ -118,17 +118,17 @@ allocate_d_mat(int nrows, int ncolumns)
 
   array = (double**)malloc(nrows * sizeof(double *));
   if(array == NULL){
-      fprintf(stderr, "out of memory\n");
-      return NULL;
+    fprintf(stderr, "out of memory\n");
+    return NULL;
   }
 
   for(i = 0; i < nrows; i++){
     array[i] = (double*)malloc(ncolumns * sizeof(double));
-      if(array[i] == NULL)
-	{
-	  fprintf(stderr, "out of memory\n");
-	  return NULL;
-	}
+    if(array[i] == NULL){
+      fprintf(stderr, "out of memory\n");
+      return NULL;
+    }else
+      memset(array[i], 0.0, ncolumns * sizeof(double));
   }
 
   return array;
