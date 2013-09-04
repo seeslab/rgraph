@@ -38,6 +38,7 @@ CreateHeaderGraph()
   temp->ivar1 = -1;
   temp->dvar1 = -1.;
   temp->trans = -1;
+  temp->strength = -1;
 
   return temp;
 }
@@ -64,8 +65,7 @@ CreateNodeGraph(struct node_gra *p, char *label)
   (p->next)->num = p->num + 1;
   (p->next)->state = 0;
   (p->next)->next = NULL;
-  (p->next)->neig =
-    (struct node_lis *) calloc(1, sizeof(struct node_lis));
+  (p->next)->neig = (struct node_lis *) calloc(1, sizeof(struct node_lis));
   ((p->next)->neig)->node = -1;
   ((p->next)->neig)->next = NULL;
   (p->next)->ivar1 = 0;
@@ -75,6 +75,7 @@ CreateNodeGraph(struct node_gra *p, char *label)
   (p->next)->coorZ = -1.0;
   (p->next)->dvar1 = -1.0;
   (p->next)->trans = -1;
+  (p->next)->strength = -1;
 
   return p->next;
 }
@@ -1338,10 +1339,11 @@ CountLinks(struct node_gra *node)
   return count;
 }
 
-// ---------------------------------------------------------------------
-// Sums the weights of the connections of a node
-// (returns the strength)
-// ---------------------------------------------------------------------
+/*
+   ---------------------------------------------------------------------
+   Sums the weights of the connections of a node
+   (returns the strength)
+   ---------------------------------------------------------------------
 double
 SumWeights(struct node_gra *node)
 {
@@ -1352,6 +1354,7 @@ SumWeights(struct node_gra *node)
     strength += p->weight;
   return strength;
 }
+*/
 
 /*
   ---------------------------------------------------------------------
@@ -1394,14 +1397,15 @@ AverageSquaredDegree(struct node_gra *root)
 
 }
 
-// ---------------------------------------------------------------------
-// Counts the number of links in the network. If symmetric_sw != 0,
-// that is, if the network is symmetric, the number of links is
-// divided by 2.
-// ---------------------------------------------------------------------
+/*
+   ---------------------------------------------------------------------
+   Counts the number of links in the network. If symmetric_sw != 0,
+   that is, if the network is symmetric, the number of links is
+   divided by 2.
+   ---------------------------------------------------------------------
+*/
 int
-TotalNLinks(struct node_gra *p,
-	    int symmetric_sw)
+TotalNLinks(struct node_gra *p, int symmetric_sw)
 {
   int total = 0;
 
@@ -1415,10 +1419,12 @@ TotalNLinks(struct node_gra *p,
     return total / 2;
 }
 
-// ---------------------------------------------------------------------
-// Calculates the strength of a node, that is, the sum of the weights
-// of all its links
-// ---------------------------------------------------------------------
+/* 
+   ---------------------------------------------------------------------
+   Calculates the strength of a node, that is, the sum of the weights
+   of all its links
+   ---------------------------------------------------------------------
+*/
 double
 NodeStrength(struct node_gra *node)
 {
@@ -1428,6 +1434,26 @@ NodeStrength(struct node_gra *node)
   while ((p = p->next) != NULL)
     count +=  p->weight;
   return count;
+}
+
+/* 
+   ---------------------------------------------------------------------
+   Calculates the strength of a node, that is, the sum of the weights
+   of all its links; also saves that value for future calculations
+   ---------------------------------------------------------------------
+*/
+double
+NodeStrengthFast(struct node_gra *node)
+{
+  if(node->strength != -1)
+    return node->strength;
+  else{
+    struct node_lis *p=node->neig;
+    double strength = 0.0;
+    while ((p = p->next) != NULL)
+      strength +=  p->weight;
+    return strength;
+  }
 }
 
 // ---------------------------------------------------------------------

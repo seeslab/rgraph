@@ -1,7 +1,5 @@
 /*
   graph.h
-  $LastChangedDate$
-  $Revision$
 */
 
 #ifndef RGRAPH_GRAPH_H
@@ -30,8 +28,8 @@ struct node_gra{
   int inGroup;             // group to which the node belongs
   int ivar1;               // number of packets currently at the node
   double dvar1;            // rush variable to store doubles
-  int trans;               // translation of the node (for
-			   // visualization)
+  int trans;               // translation of the node (for visualization)
+  double strength;		   // the sum of all link weights (to speed up modularity calculations)
 };
 
 /*
@@ -57,8 +55,7 @@ struct node_lis{
 */
 struct node_tree{
   char *label;                  // label of the node
-  struct node_gra *ref;         // pointer to the corresponding
-				// node_gra
+  struct node_gra *ref;         // pointer to the corresponding node_gra
 };
 
 // ---------------------------------------------------------------------
@@ -243,13 +240,14 @@ struct node_gra *RandomizeSymmetricNetwork(struct node_gra *net,
 */
 int CountNodes(struct node_gra *p);
 int CountLinks(struct node_gra *node);
-double SumWeights(struct node_gra *node);
+//double SumWeights(struct node_gra *node);
 double AverageDegree(struct node_gra *root,
 		     int symmetric_sw);
 double AverageSquaredDegree(struct node_gra *root);
 int TotalNLinks(struct node_gra *p,
 		int symmetric_sw);
 double NodeStrength(struct node_gra *node);
+double NodeStrengthFast(struct node_gra *node);
 
 /* Distance and related functions */
 void FPrintDistanceHistogram(FILE *file,
