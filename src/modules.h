@@ -20,8 +20,8 @@ struct group{
   int totlinks;     /* total number of links of the nodes in the group */
   int inlinks;      /* links inside the group */
   int outlinks;     /* links outside the group */
-  double totlinksW; /* wighted links of the nodes in the group */
-  double inlinksW;  /* wighted links inside the group */
+  double totlinksW; /* weighted links of the nodes in the group */
+  double inlinksW;  /* weighted links inside the group */
   double outlinksW; /* weighted links outside the group */
 
   double coorX;
