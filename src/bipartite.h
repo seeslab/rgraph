@@ -82,7 +82,7 @@ void FPrintBipart (FILE *outf, struct binet *binet, int weight_sw);
 */
 double ModularityBipart(struct binet *binet, struct group *part);
 double ModularityBipartWeighted(struct binet *binet, struct group *part);
-double ModularityBipartWeightedFast(struct binet *binet, struct group *part, double *strength, double **swwmat);
+double ModularityBipartWeightedFast(struct binet *binet, struct group *part, double **swwmat);
 void SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 			double Ti, double Tf, double Ts,
 			double cluster_prob, 

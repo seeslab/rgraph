@@ -872,37 +872,21 @@ ModularityBipartWeighted(struct binet *binet, struct group *part)
   Calculate the modularity of a partition of a weighted bipartite network
   ---------------------------------------------------------------------
 */
-double ModularityBipartWeightedFast(struct binet *binet, struct group *part, double *strength, double **swwmat)
+double ModularityBipartWeightedFast(struct binet *binet, struct group *part, double **swwmat)
 {
   struct node_gra *p = binet->net2;
   struct node_lis *n1, *n2;
   double bimod = 0.0;
-  double sww12;
-  double s1, s2;
-  double sWa = 0.0, s2Wa = 0.0, sWa2 = 0.0;
-
-  /* Calculate s2Wa=(sum W_a)^2 and sWa2=sum(W_a^2) */
-  while ((p = p->next) != NULL) {
-    sWa += (double)NodeStrength(p);
-    sWa2 += (double)(NodeStrength(p) * NodeStrength(p));
-  }
-  s2Wa = sWa * sWa;
 
   /* Calculate the modularity */
   while ((part = part->next) != NULL){
-
     n1 = part->nodeList;
     while ((n2 = n1 = n1->next) != NULL) {
       while ((n2 = n2->next) != NULL) {
-        sww12 = swwmat[n1->node][n2->node];
-        s1 = strength[n1->node];
-        s2 = strength[n2->node];;
-        
-        bimod += sww12 / (sWa2 - sWa) - (s1 * s2) / s2Wa;
+        bimod += swwmat[n1->node][n2->node];
       }
     }
   }
-  bimod *= 2.;
 
   /* Done */
   return bimod;
@@ -1195,15 +1179,13 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
 	      /* Calculate the change of energy */
         dE = 0.0;
         n1 = nlist[target]->num;
-        s1 = strength[n1];
 
         /* 1-Old group */
         p = glist[oldg]->nodeList;
         while ((p = p->next) != NULL) {
 	        n2 = p->node;
           if (n2 != n1) {
-            s2 = strength[n2];
-            dE -= 2. * (swwmat[n1][n2] - s1 * s2 * Wafac);
+            dE -= swwmat[n1][n2];
           }
         }
 	
@@ -1211,8 +1193,7 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
         p = glist[newg]->nodeList;
         while ((p = p->next) != NULL) {
           n2 = p->node;
-          s2 = strength[n2];
-          dE += 2. * (swwmat[n1][n2] - s1 * s2 * Wafac);
+          dE += swwmat[n1][n2];
       	}
 	
 	      /* Accept the change according to the Boltzman factor */
@@ -1681,7 +1662,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
   double **swwmat;
   int g1, g2, empty;
   struct node_lis *nod, *nod2;
-  double s1, s2;
+  double s1, s2, sww12;
   struct group *best_part = NULL;
   double best_E = -100.0;
   double cluster_prob = 0.500000;
@@ -1748,23 +1729,22 @@ SACommunityIdentBipartWeighted(struct binet *binet,
   s2Wa = sWa * sWa;
   Wafac = 1. / s2Wa;
 
-
   /* 
-     Calculate the sww matrix of Sum_a(w_ia*w_ja)
-     and the strengths of each node 
+     Calculate the matrix of all pairwise contributions to modularity
   */
-  strength = allocate_d_vec(nnod);
   swwmat = allocate_d_mat(nnod, nnod);
-
   p = net1;
   while ((p = p->next) != NULL) {
-    strength[p->num] = (double)NodeStrengthFast(p);
+    s1 = (double)NodeStrengthFast(p);
     p2 = net1;
     while ((p2 = p2->next) != NULL) {
+      s2 = (double)NodeStrengthFast(p2);
       if(swwmat[p2->num][p->num] != 0)
         swwmat[p->num][p2->num] = swwmat[p2->num][p->num];
-      else
-        swwmat[p->num][p2->num] = SumProductsOfCommonWeightsBipart(p, p2) / (sWa2 - sWa); // Note that swwmat includes the normalization factor
+      else{
+        sww12 = (double)SumProductsOfCommonWeightsBipart(p, p2);
+        swwmat[p->num][p2->num] = 2. * (sww12 / (sWa2 - sWa) - s1 * s2 / s2Wa);
+      }
     }
   }
 
@@ -1790,7 +1770,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
   */
   /* Determine initial values */
   T = Ti;
-  energy = ModularityBipartWeightedFast(binet, part, strength, swwmat);
+  energy = ModularityBipartWeightedFast(binet, part, swwmat);
 
   /* Temperature loop */
   while ((T >= Tf) && (count < limit)) {
@@ -1808,11 +1788,11 @@ SACommunityIdentBipartWeighted(struct binet *binet,
       fprintf(stderr, "%g %lf %g\n",1.0/T, energy, T);
       break;
     case 'v':
-      fprintf(stderr, "%g %lf %lf %g\n", 1.0/T, energy, ModularityBipartWeightedFast(binet, part, strength, swwmat), T);
+      fprintf(stderr, "%g %lf %lf %g\n", 1.0/T, energy, ModularityBipartWeightedFast(binet, part, swwmat), T);
       break;
     case 'd':
       FPrintPartition(stderr, part, 0);
-      fprintf(stderr, "%g %lf %lf %g\n", 1.0/T, energy, ModularityBipartWeightedFast(binet, part, strength, swwmat), T);
+      fprintf(stderr, "%g %lf %lf %g\n", 1.0/T, energy, ModularityBipartWeightedFast(binet, part, swwmat), T);
     }
 
     /*
@@ -1831,21 +1811,19 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 
       /* Calculate the change of energy */
       dE = 0.0;
-      s1 = strength[target];
 
       /* Old group contribution */
       nod = glist[oldg]->nodeList;
       while ((nod = nod->next) != NULL) {
-      	s2 = strength[nod->ref->num];
-        dE -= 2. * (swwmat[nlist[target]->num][nod->node] - s1 * s2 * Wafac);
+        if(nlist[target]->num != nod->node){
+          dE -= swwmat[nlist[target]->num][nod->node];
+        }
       }
-      dE += 2. * (swwmat[nlist[target]->num][nlist[target]->num] - s1 * s1 * Wafac); /* remove the effect of the target with itself */
 
       /* New group contribution */
       nod = glist[newg]->nodeList;
       while ((nod = nod->next) != NULL) {
-      	s2 = strength[nod->ref->num];
-        dE += 2. * (swwmat[nlist[target]->num][nod->node] - s1 * s2 * Wafac);
+        dE += swwmat[nlist[target]->num][nod->node];
       }
 
       /* Accept or reject movement according to Metropolis */ 
@@ -1889,9 +1867,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
           while ((nod = nod->next) != NULL) {
             nod2 = glist[g2]->nodeList;
             while ((nod2 = nod2->next) != NULL) {
-              s1 = strength[nod->ref->num];
-              s2 = strength[nod2->ref->num];
-              dE += 2. * (swwmat[nod->node][nod2->node] - s1 * s2 * Wafac);
+              dE += swwmat[nod->node][nod2->node];
             }
       	  }
 
@@ -1945,9 +1921,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
           while ((nod = nod->next) != NULL) {
             nod2 = glist[empty]->nodeList;
             while ((nod2 = nod2->next) != NULL) {
-              s1 = strength[nod->ref->num];
-              s2 = strength[nod2->ref->num];
-              dE += 2. * (swwmat[nod->node][nod2->node] - s1 * s2 * Wafac);
+              dE += swwmat[nod->node][nod2->node];
 	          }
 	        }
 
