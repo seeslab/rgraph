@@ -85,7 +85,8 @@ http://www.gnu.org/software/gsl/. In my installation, I've used version 1.15.
 
 5) In your msys console, cd into the gsl-15 folder and type the following:
 
-./configure --prefix=/MinGW
+
+./configure --prefix=/MinGW #path of MinGW installation
 
 make
 
@@ -95,6 +96,8 @@ All this steps may take a while.
 
 
 6) Untar the contents of rgraph under your msys home and type the following:
+
+./autogen.sh
 
 ./configure 
 
