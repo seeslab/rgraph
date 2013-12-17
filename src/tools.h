@@ -65,6 +65,9 @@ double *InitializeFastLogFact(int LogFactListSize);
 void FreeFastLogFact(double *LogFactList);
 double FastLogFact(int a, double *LogFactList, int LogFactListSize);
 
+double *InitializeHarmonicList(int HarmonicListSize);
+void FreeHarmonicList(double *HarmonicList);
+
 /*
   ---------------------------------------------------------------------
   File operations

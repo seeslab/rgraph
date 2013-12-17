@@ -513,6 +513,37 @@ FastLogFact(int r, double *LogFactList, int LogFactListSize)
 
 
 /*
+  ---------------------------------------------------------------------
+  Get the matrix of harmonic numbers up to HarmonicListSize
+  ---------------------------------------------------------------------
+*/
+double *
+InitializeHarmonicList(int HarmonicListSize)
+{
+  double *HarmonicList;
+  int i, j;
+
+  HarmonicList = allocate_d_vec(HarmonicListSize);
+  HarmonicList[0] = 0.0;
+  for (i=1; i<HarmonicListSize; i++)
+    HarmonicList[i] = HarmonicList[i-1] + 1. / (double)i;
+
+  return HarmonicList;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Free a used by FastHarmonic
+  ---------------------------------------------------------------------
+*/
+void
+FreeHarmonicList(double *HarmonicList)
+{
+  free_d_vec(HarmonicList);
+  return;
+}
+
+/*
   -----------------------------------------------------------------------------
   -----------------------------------------------------------------------------
   File operations
