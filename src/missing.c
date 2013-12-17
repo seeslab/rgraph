@@ -112,11 +112,14 @@ PartitionH(struct group *part, double linC)
 {
   struct group *g1=part, *g2;
   double r, l, H=0.0;
+  int nnod=0, ng=0;
 
   H += linC * NNonEmptyGroups(part);
 
   while ((g1 = g1->next) != NULL) {
     if (g1->size > 0) {
+      ng++;
+      nnod += g1->size;
       r = g1->size * (g1->size - 1) / 2;
       l = g1->inlinks;
       H += log(r + 1) + LogChoose(r, l);
@@ -130,6 +133,8 @@ PartitionH(struct group *part, double linC)
       }
     }
   }
+
+  H -= gsl_sf_lnfact(nnod - ng);
 
   return H;
 }
@@ -152,6 +157,7 @@ LinkScoreMCStep(int factor,
 		int *n2gList,
 		double **LogChooseList,
 		int LogChooseListSize,
+		double *LogFactList, int LogFactListSize,
 		gsl_rng *gen)
 {
   double dH;
@@ -160,8 +166,9 @@ LinkScoreMCStep(int factor,
   struct node_gra *node;
   int n2oldg, n2newg, newg2oldg, oldg2oldg, newg2newg;
   int r, l;
-  int i, j;
+  int i, j, ngroup=nnod;
   int move;
+  int effectng=NULL;
 
   for (move=0; move<nnod*factor; move++) {
 
@@ -170,7 +177,7 @@ LinkScoreMCStep(int factor,
     node = nlist[dice];
     oldgnum = node->inGroup;
     do {
-      newgnum = floor(gsl_rng_uniform(gen) * (double)nnod);
+      newgnum = floor(gsl_rng_uniform(gen) * (double)ngroup);
     } while (newgnum == oldgnum);
     oldg = glist[oldgnum];
     newg = glist[newgnum];
@@ -189,8 +196,10 @@ LinkScoreMCStep(int factor,
     oldg2oldg = oldg->inlinks;
     newg2newg = newg->inlinks;
     g = part;
+    effectng = 0;
     while ((g = g->next) != NULL) {
       if (g->size > 0) {  /* group is not empty */
+	effectng++;
 	n2gList[g->label] = NLinksToGroup(node, g);
 	if (g->label == oldg->label) {
 	  /* old conf, oldg-oldg */
@@ -258,6 +267,16 @@ LinkScoreMCStep(int factor,
       }
     }
 
+    /* Labeled-groups sampling correction */
+    if (noldg == 1 && nnewg != 0) { // effectng would decrease by one
+      dH -= -FastLogFact(ngroup - effectng, LogFactList, LogFactListSize);
+      dH += -FastLogFact(ngroup - (effectng-1), LogFactList, LogFactListSize);
+    }
+    else if (noldg != 1 && nnewg == 0) {  // effectng would increase by one
+      dH -= -FastLogFact(ngroup - effectng, LogFactList, LogFactListSize);
+      dH += -FastLogFact(ngroup - (effectng+1), LogFactList, LogFactListSize);
+    }
+
     /* Metropolis rule */
     if ((dH <= 0.0) || (gsl_rng_uniform(gen) < exp(-dH))) {
       
@@ -293,6 +312,7 @@ GetDecorrelationStep(double *H,
 		     int *n2gList,
 		     double **LogChooseList,
 		     int LogChooseListSize,
+		     double *LogFactList, int LogFactListSize,
 		     gsl_rng *gen,
 		     char verbose_sw)
 {
@@ -321,8 +341,9 @@ GetDecorrelationStep(double *H,
     partRef = CopyPartition(part);
     for (step=0; step<=x2; step++) {
       LinkScoreMCStep(1, H, linC, nlist, glist, part,
-			 nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
-			 gen);
+		      nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
+		      LogFactList, LogFactListSize, 
+		      gen);
       if (step == x1)
 	y1 = MutualInformation(partRef, part);
     }
@@ -392,6 +413,7 @@ ThermalizeLinkScoreMC(int decorStep,
 		      int *n2gList,
 		      double **LogChooseList,
 		      int LogChooseListSize,
+		      double *LogFactList, int LogFactListSize,
 		      gsl_rng *gen,
 		      char verbose_sw)
 {
@@ -406,8 +428,9 @@ ThermalizeLinkScoreMC(int decorStep,
     /* MC steps */
     for (rep=0; rep<nrep; rep++) {
       LinkScoreMCStep(decorStep, H, linC, nlist, glist, part,
-			 nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
-			 gen);
+		      nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
+		      LogFactList, LogFactListSize,
+		      gen);
       switch (verbose_sw) {
       case 'q':
 	break;
@@ -488,6 +511,8 @@ LinkScore(struct node_gra *net,
   int norm = 0;
   int r, l;
   double mutualInfo;
+  int LogFactListSize = 10000;
+  double *LogFactList=InitializeFastLogFact(LogFactListSize);
 
   /*
     PRELIMINARIES
@@ -542,6 +567,7 @@ LinkScore(struct node_gra *net,
   decorStep = GetDecorrelationStep(&H, linC, nlist, glist, part,
 				   nnod, G2G, n2gList,
 				   LogChooseList, LogChooseListSize,
+				   LogFactList, LogFactListSize,
 				   gen, verbose_sw);
 
   /* Thermalization */
@@ -556,15 +582,26 @@ LinkScore(struct node_gra *net,
   ThermalizeLinkScoreMC(decorStep, &H, linC, nlist, glist, part,
 			nnod, G2G, n2gList,
 			LogChooseList, LogChooseListSize,
+			LogFactList, LogFactListSize,
 			gen, verbose_sw);
   
   /*
     SAMPLIN' ALONG
   */
-  H = 0; /* Reset the origin of energies to avoid huge exponentials */
+  /* Unless we are in debug mode, reset the origin of energies */
+  switch (verbose_sw) {
+  case 'd':
+    break;
+  default:
+    H = 0;
+    break;
+  }
+
+  /* Do the MC Steps */
   for (iter=0; iter<nIter; iter++) {
     LinkScoreMCStep(decorStep, &H, linC, nlist, glist, part,
 		    nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
+		    LogFactList, LogFactListSize,
 		    gen);
     switch (verbose_sw) {
     case 'q':
@@ -633,7 +670,8 @@ LinkScore(struct node_gra *net,
   free_i_mat(G2G, nnod);
   free_i_vec(n2gList);
   FreeFastLogChoose(LogChooseList, LogChooseListSize);
-  
+  FreeFastLogFact(LogFactList);
+
   return predA;
 }
 
@@ -803,6 +841,8 @@ NetworkScore(struct node_gra *netTar,
   int i, j, dice;
   int r, lObs, lTar;
   double mutualInfo;
+  int LogFactListSize = 10000;
+  double *LogFactList=InitializeFastLogFact(LogFactListSize);
 
   /*
     PRELIMINARIES
@@ -851,6 +891,7 @@ NetworkScore(struct node_gra *netTar,
   decorStep = GetDecorrelationStep(&H, linC, nlist, glist, part,
 				   nnod, G2G, n2gList,
 				   LogChooseList, LogChooseListSize,
+				   LogFactList, LogFactListSize, 
 				   gen, verbose_sw);
 
   /* Thermalization */
@@ -864,6 +905,7 @@ NetworkScore(struct node_gra *netTar,
   ThermalizeLinkScoreMC(decorStep, &H, linC, nlist, glist, part,
 			nnod, G2G, n2gList,
 			LogChooseList, LogChooseListSize,
+			LogFactList, LogFactListSize,
 			gen, verbose_sw);
   
   /*
@@ -881,6 +923,7 @@ NetworkScore(struct node_gra *netTar,
   for (iter=0; iter<nIter; iter++) {
     LinkScoreMCStep(decorStep, &H, linC, nlist, glist, part,
 		    nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
+		    LogFactList, LogFactListSize,
 		    gen);
     switch (verbose_sw) {
     case 'v':
@@ -1071,6 +1114,8 @@ PartitionSampling(struct node_gra *net,
   int *n2gList=NULL;
   int LogChooseListSize = 500;
   double **LogChooseList=InitializeFastLogChoose(LogChooseListSize);
+  int LogFactListSize = 10000;
+  double *LogFactList=InitializeFastLogFact(LogFactListSize);
   int dice;
   int i, j;
 
@@ -1124,6 +1169,7 @@ PartitionSampling(struct node_gra *net,
   decorStep = GetDecorrelationStep(&H, linC, nlist, glist, part,
 				   nnod, G2G, n2gList,
 				   LogChooseList, LogChooseListSize,
+				   LogFactList, LogFactListSize,
 				   gen, verbose_sw);
   decorStep *= 100; /* To make sure sampled partitions are decorrelated */
 
@@ -1139,6 +1185,7 @@ PartitionSampling(struct node_gra *net,
   ThermalizeLinkScoreMC(decorStep, &H, linC, nlist, glist, part,
 			nnod, G2G, n2gList,
 			LogChooseList, LogChooseListSize,
+			LogFactList, LogFactListSize,
 			gen, verbose_sw);
   
   /*
@@ -1148,6 +1195,7 @@ PartitionSampling(struct node_gra *net,
   for (iter=0; iter<nIter; iter++) {
     LinkScoreMCStep(decorStep, &H, linC, nlist, glist, part,
 		    nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
+		    LogFactList, LogFactListSize,
 		    gen);
     switch (verbose_sw) {
     case 'q':
