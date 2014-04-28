@@ -23,6 +23,7 @@ main(int argc, char **argv)
   double **newA;
   struct node_gra *p1, *p2;
   long int seed;
+  char outFileName[200];
 
   /*
     ---------------------------------------------------------------------------
@@ -52,31 +53,25 @@ main(int argc, char **argv)
     Get link reliabilities
     ---------------------------------------------------------------------------
   */
-  newA = LinkScoreMB(net, 0.0, 10000, rand_gen, 'd');
+  newA = LinkScoreMB(net, 0.0, 10000, rand_gen, 'q');
 
   /*
     ---------------------------------------------------------------------------
     Output
     ---------------------------------------------------------------------------
   */
-  outfile1 = fopen("missing.dat", "w");
-  outfile2 = fopen("spurious.dat", "w");
+  strcpy(outFileName, netF);
+  strcat(outFileName, ".scores");
+  outfile1 = fopen(outFileName, "w");
   p1 = net;
   while ((p1 = p1->next) != NULL) {
     p2 = p1;
     while ((p2 = p2->next) != NULL) {
-      if (IsThereLink(p1, p2) == 0) {
-	fprintf(outfile1,
-		"%g %s %s\n", newA[p1->num][p2->num], p1->label, p2->label);
-      }
-      else {
-	fprintf(outfile2,
-		"%g %s %s\n", newA[p1->num][p2->num], p1->label, p2->label);
-      }
+      fprintf(outfile1,
+	      "%g %s %s\n", newA[p1->num][p2->num], p1->label, p2->label);
     }
   }
   fclose(outfile1);
-  fclose(outfile2);
 
   /*
     ---------------------------------------------------------------------------
