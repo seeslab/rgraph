@@ -17,13 +17,14 @@ main(int argc, char **argv)
 {
   char *netF;
   FILE *infile=NULL;
-  FILE *outfile1=NULL, *outfile2=NULL;
+  FILE *outfileAND=NULL, *outfileOR=NULL;
   struct node_gra *net=NULL;
   gsl_rng *rand_gen;
-  double **newA;
+  double ***newA;
+  double **newA_AND, **newA_OR;
   struct node_gra *p1, *p2;
   long int seed;
-  char outFileName[200];
+  char outFileNameOR[200], outFileNameAND[200];
 
   /*
     ---------------------------------------------------------------------------
@@ -53,25 +54,33 @@ main(int argc, char **argv)
     Get link reliabilities
     ---------------------------------------------------------------------------
   */
-  newA = LinkScoreMB(net, 0.0, 10000, rand_gen, 'v');
+  newA = LinkScoreMB(net, 0.0, 10000, rand_gen, 'q');
+  newA_AND = newA[0];
+  newA_OR = newA[1];
 
   /*
     ---------------------------------------------------------------------------
     Output
     ---------------------------------------------------------------------------
   */
-  strcpy(outFileName, netF);
-  strcat(outFileName, ".scores");
-  outfile1 = fopen(outFileName, "w");
+  strcpy(outFileNameAND, netF);
+  strcat(outFileNameAND, ".AND_scores");
+  strcpy(outFileNameOR, netF);
+  strcat(outFileNameOR, ".OR_scores");
+  outfileAND = fopen(outFileNameAND, "w");
+  outfileOR = fopen(outFileNameOR, "w");
   p1 = net;
   while ((p1 = p1->next) != NULL) {
     p2 = p1;
     while ((p2 = p2->next) != NULL) {
-      fprintf(outfile1,
-	      "%g %s %s\n", newA[p1->num][p2->num], p1->label, p2->label);
+      fprintf(outfileAND,
+	      "%g %s %s\n", newA_AND[p1->num][p2->num], p1->label, p2->label);
+      fprintf(outfileOR,
+	      "%g %s %s\n", newA_OR[p1->num][p2->num], p1->label, p2->label);
     }
   }
-  fclose(outfile1);
+  fclose(outfileAND);
+  fclose(outfileOR);
 
   /*
     ---------------------------------------------------------------------------

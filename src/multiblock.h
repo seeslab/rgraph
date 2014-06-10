@@ -66,11 +66,11 @@ void ThermalizeLSMCMB(int decorStep,
 		      double *HarmonicList,
 		      gsl_rng *gen,
 		      char verbose_sw);
-double **LinkScoreMB(struct node_gra *net,
-		     double linC,
-		     int nIter,
-		     gsl_rng *gen,
-		     char verbose_sw);
+double ***LinkScoreMB(struct node_gra *net,
+		      double linC,
+		      int nIter,
+		      gsl_rng *gen,
+		      char verbose_sw);
 
 
 

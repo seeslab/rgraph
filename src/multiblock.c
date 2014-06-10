@@ -27,158 +27,7 @@
   ---------------------------------------------------------------------
   ---------------------------------------------------------------------
 */
-double LOGDEGENERACY[150] = {
-  0.0,
-  0.0,
-  1.09861228866811,
-  2.7080502011,
-  4.7273878187,
-  7.0501225203,
-  9.6241042829,
-  12.4123914513,
-  15.3873302965,
-  18.5278179713,
-  21.8171996489,
-  25.2419286042,
-  28.7907695492,
-  32.454252335,
-  36.2242817678,
-  40.0938550791,
-  44.0568528741,
-  48.1078805122,
-  52.242145427,
-  56.4553607847,
-  60.7436687672,
-  65.1035787022,
-  69.5319165992,
-  74.0257835705,
-  78.5825212602,
-  83.199682859,
-  87.8750086171,
-  92.6064050134,
-  97.3919269199,
-  102.229762241,
-  107.118218613,
-  112.055711822,
-  117.040755682,
-  122.07195314,
-  127.147988427,
-  132.267620118,
-  137.429674949,
-  142.633042317,
-  147.876669353,
-  153.1595565,
-  158.480753534,
-  163.839355975,
-  169.234501835,
-  174.665368673,
-  180.131170913,
-  185.631157403,
-  191.164609186,
-  196.730837457,
-  202.329181691,
-  207.959007927,
-  213.619707184,
-  219.310694002,
-  225.0314051,
-  230.781298124,
-  236.559850499,
-  242.366558357,
-  248.200935543,
-  254.062512691,
-  259.950836364,
-  265.865468252,
-  271.805984418,
-  277.771974602,
-  283.763041565,
-  289.77880047,
-  295.818878313,
-  301.882913378,
-  307.970554727,
-  314.081461726,
-  320.215303595,
-  326.371758979,
-  333.838111,
-  340.085763,
-  346.354094,
-  352.642816,
-  358.951649,
-  365.280322,
-  371.628571,
-  377.996137,
-  384.382770,
-  390.788225,
-  397.212264,
-  403.654655,
-  410.115171,
-  416.593591,
-  423.089700,
-  429.603286,
-  436.134145,
-  442.682075,
-  449.246880,
-  455.828368,
-  462.426352,
-  469.040649,
-  475.671079,
-  482.317466,
-  488.979641,
-  495.657433,
-  502.350680,
-  509.059219,
-  515.782894,
-  522.521550,
-  529.275035,
-  536.043202,
-  542.825904,
-  549.623000,
-  556.434349,
-  563.259815,
-  570.099263,
-  576.952561,
-  583.819580,
-  590.700193,
-  597.594275,
-  604.501703,
-  611.422358,
-  618.356120,
-  625.302875,
-  632.262509,
-  639.234908,
-  646.219964,
-  653.217567,
-  660.227613,
-  667.249995,
-  674.284612,
-  681.331362,
-  688.390146,
-  695.460865,
-  702.543425,
-  709.637729,
-  716.743685,
-  723.861201,
-  730.990186,
-  738.130552,
-  745.282212,
-  752.445078,
-  759.619067,
-  766.804094,
-  774.000077,
-  781.206935,
-  788.424588,
-  795.652957,
-  802.891964,
-  810.141534,
-  817.401590,
-  824.672058,
-  831.952865,
-  839.243938,
-  846.545207,
-  853.856601,
-  861.178050,
-  868.509486,
-  875.850842
-};
+double LOGDEGENERACY[150] = {0.0, 0.0, 1.09861228866811, 2.7080502011, 4.7273878187, 7.0501225203, 9.6241042829, 12.4123914513, 15.3873302965, 18.5278179713, 21.8171996489, 25.2419286042, 28.7907695492, 32.454252335, 36.2242817678, 40.0938550791, 44.0568528741, 48.1078805122, 52.242145427, 56.4553607847, 60.7436687672, 65.1035787022, 69.5319165992, 74.0257835705, 78.5825212602, 83.199682859, 87.8750086171, 92.6064050134, 97.3919269199, 102.229762241, 107.118218613, 112.055711822, 117.040755682, 122.07195314, 127.147988427, 132.267620118, 137.429674949, 142.633042317, 147.876669353, 153.1595565, 158.480753534, 163.839355975, 169.234501835, 174.665368673, 180.131170913, 185.631157403, 191.164609186, 196.730837457, 202.329181691, 207.959007927, 213.619707184, 219.310694002, 225.0314051, 230.781298124, 236.559850499, 242.366558357, 248.200935543, 254.062512691, 259.950836364, 265.865468252, 271.805984418, 277.771974602, 283.763041565, 289.77880047, 295.818878313, 301.882913378, 307.970554727, 314.081461726, 320.215303595, 326.371758979, 333.838111, 340.085763, 346.354094, 352.642816, 358.951649, 365.280322, 371.628571, 377.996137, 384.382770, 390.788225, 397.212264, 403.654655, 410.115171, 416.593591, 423.089700, 429.603286, 436.134145, 442.682075, 449.246880, 455.828368, 462.426352, 469.040649, 475.671079, 482.317466, 488.979641, 495.657433, 502.350680, 509.059219, 515.782894, 522.521550, 529.275035, 536.043202, 542.825904, 549.623000, 556.434349, 563.259815, 570.099263, 576.952561, 583.819580, 590.700193, 597.594275, 604.501703, 611.422358, 618.356120, 625.302875, 632.262509, 639.234908, 646.219964, 653.217567, 660.227613, 667.249995, 674.284612, 681.331362, 688.390146, 695.460865, 702.543425, 709.637729, 716.743685, 723.861201, 730.990186, 738.130552, 745.282212, 752.445078, 759.619067, 766.804094, 774.000077, 781.206935, 788.424588, 795.652957, 802.891964, 810.141534, 817.401590, 824.672058, 831.952865, 839.243938, 846.545207, 853.856601, 861.178050, 868.509486, 875.850842};
 double
 LogDegeneracy(int ngroup)
 {
@@ -595,7 +444,7 @@ ThermalizeLSMCMB(int decorStep,
   matrix of scores for all links.
   ---------------------------------------------------------------------
 */
-double **
+double ***
 LinkScoreMB(struct node_gra *net,
 	    double linC,
 	    int nIter,
@@ -610,7 +459,8 @@ LinkScoreMB(struct node_gra *net,
   struct group *lastg=NULL;
   double H;
   int iter, decorStep;
-  double **predA=NULL;
+  double **predA_AND=NULL, **predA_OR=NULL;
+  double ***predA;
   int i, j;
   int **G2G=NULL;
   int *n2gList=NULL;
@@ -618,14 +468,14 @@ LinkScoreMB(struct node_gra *net,
   double **LogChooseList=InitializeFastLogChoose(LogChooseListSize);
   double *HarmonicList=NULL;
   struct node_lis *p1=NULL, *p2=NULL;
-  double contrib;
+  double contrib_AND, contrib_OR;
   int dice;
-  int norm = 0;
+  double Z_AND=0.0, Z_OR=0.0, Z_OR_loc=0.0;
   int r, l;
   double mutualInfo;
   int LogFactListSize = 10000;
   double *LogFactList=InitializeFastLogFact(LogFactListSize);
-
+  
   /*
     PRELIMINARIES
   */
@@ -633,10 +483,17 @@ LinkScoreMB(struct node_gra *net,
   HarmonicList = InitializeHarmonicList(1 + nnod * (nnod - 1) / 2);
 
   /* Initialize the predicted adjacency matrix */
-  predA = allocate_d_mat(nnod, nnod);
-  for (i=0; i<nnod; i++)
-    for (j=0; j<nnod; j++)
-      predA[i][j] = 0.0;
+  predA_AND = allocate_d_mat(nnod, nnod);
+  predA_OR = allocate_d_mat(nnod, nnod);
+  for (i=0; i<nnod; i++) {
+    for (j=0; j<nnod; j++) {
+      predA_AND[i][j] = 0.0;
+      predA_OR[i][j] = 0.0;
+    }
+  }
+  predA = (double ***) calloc(2, sizeof(double **));
+  predA[0] = predA_AND;
+  predA[1] = predA_OR;
 
   /* Map nodes and groups to a list for faster access */
   nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
@@ -732,8 +589,26 @@ LinkScoreMB(struct node_gra *net,
       break;
     }
 
-    /* Update partition function */
-    norm += 1;
+    /* Update partition function(s) */
+    Z_OR_loc = 1.0;
+    for (i=0; i<nnod; i++) {
+      if (glist[i]->size > 0) {
+	r = glist[i]->size * (glist[i]->size - 1) / 2;
+	l = glist[i]->inlinks;
+	Z_OR_loc *= ((HarmonicList[r+1] - HarmonicList[r-l]) /
+		     (HarmonicList[r+1] - HarmonicList[l]));
+	for (j=i+1; j<nnod; j++) {
+	  if (glist[j]->size > 0) {
+	    l = G2G[i][j];
+	    r = glist[i]->size * glist[j]->size;
+	    Z_OR_loc *= ((HarmonicList[r+1] - HarmonicList[r-l]) /
+			 (HarmonicList[r+1] - HarmonicList[l]));
+	  }
+	}
+      }
+    }
+    Z_AND += 1.0;
+    Z_OR += Z_OR_loc;
 
     /* Update the predicted adjacency matrix by going through all
        group pairs */
@@ -743,14 +618,21 @@ LinkScoreMB(struct node_gra *net,
 	/* update the within-group pairs */
 	r = glist[i]->size * (glist[i]->size - 1) / 2;
 	l = glist[i]->inlinks;
-	contrib = (float)(l + 1) * (HarmonicList[r+2] - HarmonicList[l+1]) \
+	contrib_AND = \
+	  (float)(l + 1) * (HarmonicList[r+2] - HarmonicList[l+1])	\
 	  / ((float)(r + 2) * (HarmonicList[r+1] - HarmonicList[l]));
+	contrib_OR = \
+	  (float)(l + 1) * (HarmonicList[r+2] - HarmonicList[r-l])	\
+	  / ((float)(r + 2) * (HarmonicList[r+1] - HarmonicList[r-l]));
+	
 	p1 = glist[i]->nodeList;
 	while ((p1 = p1->next) != NULL) {
 	  p2 = p1;
 	  while ((p2 = p2->next) != NULL) {
-	    predA[p1->node][p2->node] += contrib;
-	    predA[p2->node][p1->node] += contrib;
+	    predA_AND[p1->node][p2->node] += contrib_AND;
+	    predA_AND[p2->node][p1->node] += contrib_AND;
+	    predA_OR[p1->node][p2->node] += Z_OR_loc * contrib_OR;
+	    predA_OR[p2->node][p1->node] += Z_OR_loc * contrib_OR;
 	  }
 	}
       
@@ -759,14 +641,20 @@ LinkScoreMB(struct node_gra *net,
 	  if (glist[j]->size > 0) {
 	    l = G2G[i][j];
 	    r = glist[i]->size * glist[j]->size;
-	    contrib = (float)(l + 1) * (HarmonicList[r+2] - HarmonicList[l+1]) \
+	    contrib_AND = \
+	      (float)(l + 1) * (HarmonicList[r+2] - HarmonicList[l+1])	\
 	      / ((float)(r + 2) * (HarmonicList[r+1] - HarmonicList[l]));
+	    contrib_OR = \
+	      (float)(l + 1) * (HarmonicList[r+2] - HarmonicList[r-l]) \
+	      / ((float)(r + 2) * (HarmonicList[r+1] - HarmonicList[r-l]));
 	    p1 = glist[i]->nodeList;
 	    while ((p1 = p1->next) != NULL) {
 	      p2 = glist[j]->nodeList;
 	      while ((p2 = p2->next) != NULL) {
-		predA[p1->node][p2->node] += contrib;
-		predA[p2->node][p1->node] += contrib;
+		predA_AND[p1->node][p2->node] += contrib_AND;
+		predA_AND[p2->node][p1->node] += contrib_AND;
+		predA_OR[p1->node][p2->node] += Z_OR_loc * contrib_OR;
+		predA_OR[p2->node][p1->node] += Z_OR_loc * contrib_OR;
 	      }
 	    }
 	  }
@@ -779,7 +667,8 @@ LinkScoreMB(struct node_gra *net,
   /* Normalize the predicted adjacency matrix */
   for (i=0; i<nnod; i++) {
     for (j=0; j<nnod; j++) {
-      predA[i][j] /= (double)norm;
+      predA_AND[i][j] /= Z_AND;
+      predA_OR[i][j] /= Z_OR;
     }
   }
 
