@@ -1099,7 +1099,8 @@ PartitionSampling(struct node_gra *net,
 		  double linC,
 		  int nIter,
 		  gsl_rng *gen,
-		  char verbose_sw)
+		  char verbose_sw,
+		  int burnin)
 {
   int nnod=CountNodes(net);
   struct group *part=NULL;
@@ -1171,9 +1172,8 @@ PartitionSampling(struct node_gra *net,
 				   LogChooseList, LogChooseListSize,
 				   LogFactList, LogFactListSize,
 				   gen, verbose_sw);
-  decorStep *= 100; /* To make sure sampled partitions are decorrelated */
 
-  /* Thermalization */
+  /* Thermalization and additional burn-in*/
   switch (verbose_sw) {
   case 'q':
     break;
@@ -1187,11 +1187,36 @@ PartitionSampling(struct node_gra *net,
 			LogChooseList, LogChooseListSize,
 			LogFactList, LogFactListSize,
 			gen, verbose_sw);
+  for (iter=0; iter<burnin; iter++) {
+    LinkScoreMCStep(decorStep, &H, linC, nlist, glist, part,
+		    nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
+		    LogFactList, LogFactListSize,
+		    gen);
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    case 'v':
+      fprintf(stderr, "burn %d %lf\n", iter, H);
+      break;
+    case 'd':
+      fprintf(stderr, "burn %d %lf %lf\n", iter, H, PartitionH(part, linC));
+      break;
+    }
+  }
   
   /*
     SAMPLIN' ALONG
   */
-  H = 0; /* Reset the origin of energies to avoid huge exponentials */
+  /* Unless we are in debug mode, reset the origin of energies */
+  switch (verbose_sw) {
+  case 'd':
+    break;
+  default:
+    H = 0;
+    break;
+  }
+
+  /* Do the MC Steps */
   for (iter=0; iter<nIter; iter++) {
     LinkScoreMCStep(decorStep, &H, linC, nlist, glist, part,
 		    nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
