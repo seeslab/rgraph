@@ -1100,7 +1100,8 @@ PartitionSampling(struct node_gra *net,
 		  int nIter,
 		  gsl_rng *gen,
 		  char verbose_sw,
-		  int burnin)
+		  int burnin,
+		  double thinning)
 {
   int nnod=CountNodes(net);
   struct group *part=NULL;
@@ -1218,7 +1219,7 @@ PartitionSampling(struct node_gra *net,
 
   /* Do the MC Steps */
   for (iter=0; iter<nIter; iter++) {
-    LinkScoreMCStep(decorStep, &H, linC, nlist, glist, part,
+    LinkScoreMCStep((int)(decorStep*thinning), &H, linC, nlist, glist, part,
 		    nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
 		    LogFactList, LogFactListSize,
 		    gen);

@@ -84,7 +84,8 @@ struct group **PartitionSampling(struct node_gra *net,
 				 int nIter,
 				 gsl_rng *gen,
 				 char verbose_sw,
-				 int burnin);
+				 int burnin,
+				 double thinning);
 
 /*
   ---------------------------------------------------------------------
