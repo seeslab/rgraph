@@ -59,7 +59,7 @@ main(int argc, char **argv)
   /* Get the scores of the queries and print them */
   scores = GibbsMultiLinkScoreKState(K, ratings,
 				     queries, nquery,
-				     10000, rand_gen, 'd', -1);
+				     10000, rand_gen, 'v');
   fprintf(stdout, "\n\n>>> RESULTS\n\n");
   for (q=0; q<nquery; q++) {
     fprintf(stdout, "%s %s",

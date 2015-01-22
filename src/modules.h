@@ -104,6 +104,7 @@ void GroupSizeStatistics(struct group *part,
 			 double *theStddev,
 			 double *theMin,
 			 double *theMax);
+struct group *GetEmptyGroup(struct group *part);
 
 /*
   ---------------------------------------------------------------------

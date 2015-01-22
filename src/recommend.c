@@ -1905,7 +1905,6 @@ MultiLinkScoreKState(int K,
   -----------------------------------------------------------------------------
 */
 
-
 /*
   -----------------------------------------------------------------------------
   Do a Gibbs sampling Monte Carlo step for the K-state recommender
@@ -1927,7 +1926,8 @@ GibbsStepKState(int K,
 		gsl_rng *gen)
 {
   double *dH=NULL;
-  struct group *oldg, *newg, *g, *groot, ***glistnode, ***glistother;
+  struct group *oldg, *newg, *g, *grootother, *grootnode;
+  struct group ***glistnode, ***glistother;
   int ***N2G[K], ***N2Ginv[K];
   int ***G2G[K], ***G2Ginv[K];
   int move;
@@ -1938,14 +1938,36 @@ GibbsStepKState(int K,
   int i, nnod, ngroupnode, ngroupother;
   int *ng; /* Number of non-empty groups (for labeled-group correction) */
   int k;
-  double dHoo, dHon, dHno, dHnn, dHsam;
+  double dHoo, dHon, dHno, dHnn, dHsam, dHempty;
   int target;
   double cum=0.0, norm=0.0, dice=0.0;
+  /* Shortlist of groups that we consider as possible
+     destinations. Groups not in this list are empty for sure, so we
+     count all of them together in 1 single step. Note that, during a
+     step, we may have to add groups to this list (groups that were
+     initially empty but got filled) but we never remove groups from
+     it (even if they loose all their nodes during a step). slgXsize
+     is the size of slgX. */
+  int *slg1=NULL, *slg2=NULL, *slg=NULL;
+  int slg1size, slg2size, *slgsize, slgn;
+  int isinlist;
 
   /* Preliminaries */
   dH = allocate_d_vec(max(nnod1, nnod2));
+  slg1 = allocate_i_vec(nnod1);  // Shortlist of groups (part 1)
+  g = part1;
+  slg1size = 0;
+  while ((g=g->next) != NULL)
+    if (g->size > 0)
+      slg1[slg1size++] = g->label;
+  slg2 = allocate_i_vec(nnod2);  // Shortlist of groups (part 2)
+  g = part2;
+  slg2size = 0;
+  while ((g=g->next) != NULL)
+    if (g->size > 0)
+      slg2[slg2size++] = g->label;
 
-  /* THE MOVES */
+  /*** THE MOVES ***/
   for (move=0; move<(nnod1+nnod2); move++) {
     if (move < nnod1) {
       /* User move */
@@ -1964,7 +1986,10 @@ GibbsStepKState(int K,
       oldg = glist1[oldgnum];
       glistnode = &glist1;
       glistother = &glist2;
-      groot = part2;
+      grootnode = part1;
+      grootother = part2;
+      slg = slg1;
+      slgsize = &slg1size;
     }
     else {
       /* Item move */
@@ -1983,14 +2008,17 @@ GibbsStepKState(int K,
       oldg = glist2[oldgnum];
       glistnode = &glist2;
       glistother = &glist1;
-      groot = part1;
+      grootnode = part2;
+      grootother = part1;
+      slg = slg2;
+      slgsize = &slg2size;
     }
 
-    /** Fixed contributions for this node **/
+    /** FIXED CONTRIBUTIONS FOR THIS NODE **/
     norm = 0.0;
     dHoo = 0.0;
     dHno = 0.0;
-    g = groot;
+    g = grootother;
     while ((g=g->next) != NULL) {
       if (g->size > 0) {  /* group is not empty */
 	/* old configuration, old group */
@@ -2015,12 +2043,14 @@ GibbsStepKState(int K,
       }
     }
 
-    /** dH for each possible destination group of this node **/
-    for (newgnum=0; newgnum<ngroupnode; newgnum++) {
+    /** DH FOR EACH POSSIBLE DESTINATION OF THIS NODE AMONG GROUPS IN
+	THE SHORTLIST **/
+    for (i=0; i<(*slgsize); i++) {
       dHon = 0.0;
       dHnn = 0.0;
+      newgnum = slg[i];
       newg = (*glistnode)[newgnum];
-      g = groot;
+      g = grootother;
       while ((g=g->next) != NULL) {
 	if (g->size > 0) {  /* group is not empty */
 	  /* old configuration, new group */
@@ -2050,8 +2080,7 @@ GibbsStepKState(int K,
 	dHsam = gsl_sf_lnfact(nnod - *ng) - gsl_sf_lnfact(nnod - (*ng + 1));
       else
 	dHsam = 0.0;
-
-      /* Total energy change for this move */
+      /* total energy change for this move and normalization */
       if (newgnum == oldgnum)
 	dH[newgnum] = 0.0;
       else
@@ -2059,15 +2088,58 @@ GibbsStepKState(int K,
       norm += exp(-dH[newgnum]);
     }
 
+    /** DH FOR AN EMPTY DESTINATION GROUP FOR THIS NODE **/
+    dHon = 0.0;
+    dHnn = 0.0;
+    g = grootother;
+    while ((g=g->next) != NULL) {
+      if (g->size > 0) {  /* group is not empty */
+	/* old configuration, new group */
+	dHon += FastLogFact(K - 1, LogFactList, LogFactListSize);
+	/* new configuration, new group */
+	n = 0;
+	for (k=0; k<K; k++)
+	  n += (*N2G)[k][node->num][g->label];
+	dHnn += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
+	for (k=0; k<K; k++) {
+	  nk = (*N2G)[k][node->num][g->label];
+	  dHnn += -FastLogFact(nk, LogFactList, LogFactListSize);
+	}
+      }
+    }
+    /* add the labeled-group sampling correction, if necessary */
+    if (oldg->size > 1)  // gain 1 group
+      dHsam = gsl_sf_lnfact(nnod - *ng) - gsl_sf_lnfact(nnod - (*ng + 1));
+    else
+      dHsam = 0.0;
+    /* total energy change for this move and normalization */
+    dHempty = -dHoo + dHno - dHon + dHnn + dHsam;
+    norm += (ngroupnode - (*slgsize)) * exp(-dHempty);
 
-    /* Choose the move */
+    /** CHOOSE THE MOVE **/
     dice = norm * gsl_rng_uniform(gen);
-    target = 0;
-    cum = 0.0;
-    while (cum < dice)
-      cum += exp(-dH[target++]);
-    newgnum = target - 1;
-    newg = (*glistnode)[newgnum];
+    if (dice > (norm - (ngroupnode - (*slgsize)) * exp(-dHempty))) {
+      /* Select an empty group */
+      newg = GetEmptyGroup(grootnode);
+      newgnum = newg->label;
+      dH[newgnum] = dHempty;
+      /* Add newg to shortlist (if it's not there already!) */
+      isinlist = 0;
+      for (slgn=0; slgn<(*slgsize); slgn++)
+	if (newgnum == slg[slgn])
+	  isinlist = 1;
+      if (isinlist == 0)
+	slg[(*slgsize)++] = newgnum;
+    }
+    else {
+      /* Select group in shortlist */
+      target = 0;
+      cum = 0.0;
+      while (cum < dice)
+	cum += exp(-dH[slg[target++]]);
+      newgnum = slg[target - 1];
+      newg = (*glistnode)[newgnum];
+    }
 
     /* Make the move and update matrices */
     MoveNode(node, oldg, newg);
@@ -2099,6 +2171,8 @@ GibbsStepKState(int K,
 
   /* Clean up */
   free_d_vec(dH);
+  free_i_vec(slg1);
+  free_i_vec(slg2);
 
   return;
 }
@@ -2145,7 +2219,7 @@ GibbsThermalizeKState(int K,
       case 'q':
 	break;
       default:
-	fprintf(stderr, "%lf\n", *H);
+	fprintf(stderr, "%lf %d %d\n", *H, *ng1, *ng2);
 	break;
       }
       Hvalues[rep] = *H;
@@ -2201,8 +2275,7 @@ GibbsMultiLinkScoreKState(int K,
 			  struct query **querySet, int nquery,
 			  int nIter,
 			  gsl_rng *gen,
-			  char verbose_sw,
-			  int decorStep)
+			  char verbose_sw)
 {
   int nnod1=CountNodes(ratings->net1), nnod2=CountNodes(ratings->net2);
   int nn1, nn2;
@@ -2212,7 +2285,7 @@ GibbsMultiLinkScoreKState(int K,
   struct node_gra **nlist1=NULL, **nlist2=NULL;
   struct group **glist1=NULL, **glist2=NULL;
   struct group *lastg=NULL;
-  double H;
+  double H, H0;
   int iter;
   double **score;
   int i, j;
@@ -2335,26 +2408,20 @@ GibbsMultiLinkScoreKState(int K,
     fprintf(stderr, "# ------------\n");
     break;
   }
-  /* GibbsThermalizeKState(K, &H, */
-  /* 			nlist1, nlist2, glist1, glist2, */
-  /* 			part1, part2, */
-  /* 			nnod1, nnod2, &ng1, &ng2, */
-  /* 			N1G2, N2G1, */
-  /* 			G1G2, G2G1, */
-  /* 			LogList, LogListSize, */
-  /* 			LogFactList, LogFactListSize, */
-  /* 			gen, verbose_sw); */
+  GibbsThermalizeKState(K, &H,
+  			nlist1, nlist2, glist1, glist2,
+  			part1, part2,
+  			nnod1, nnod2, &ng1, &ng2,
+  			N1G2, N2G1,
+  			G1G2, G2G1,
+  			LogList, LogListSize,
+  			LogFactList, LogFactListSize,
+  			gen, verbose_sw);
   
   /*
     SAMPLIN' ALONG
   */
-  switch (verbose_sw) {
-  case 'd':
-    break;
-  default:
-    /* H = 0; /\* Reset the origin of energies to avoid huge exponentials *\/ */
-    break;
-  }
+  H0 = H;
   for (iter=0; iter<nIter; iter++) {
     GibbsStepKState(K, &H, nlist1, nlist2,
 		    glist1, glist2, part1, part2,
@@ -2368,7 +2435,7 @@ GibbsMultiLinkScoreKState(int K,
     case 'q':
       break;
     case 'v':
-      fprintf(stderr, "%d %lf\n", iter, H);
+      fprintf(stderr, "%d %lf %d %d\n", iter, H, ng1, ng2);
       break;
     case 'd':
       fprintf(stderr, "%d %lf %lf\n", iter, H, HKState(K, part1, part2));
@@ -2379,7 +2446,7 @@ GibbsMultiLinkScoreKState(int K,
 
     /* Check if the energy has gone below a certain threshold and, if
        so, reset energies and start over */
-    if (H < -400.0) {
+    if ((H0 - H) > 400.0) {
       switch (verbose_sw) {
       case 'q':
   	break;

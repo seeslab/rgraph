@@ -207,8 +207,7 @@ double **GibbsMultiLinkScoreKState(int K,
 				   struct query **querySet, int nquery,
 				   int nIter,
 				   gsl_rng *gen,
-				   char verbose_sw,
-				   int decorStep);
+				   char verbose_sw);
 
 #endif /* !RGRAPH_RECOMMEND_H */
 
