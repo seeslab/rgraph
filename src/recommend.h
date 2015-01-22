@@ -169,4 +169,46 @@ double **MultiLinkScoreKState(int K,
 			      char verbose_sw,
 			      int decorStep);
 
+
+
+/*
+  -----------------------------------------------------------------------------
+  Recommender with Gibbs sampling
+  -----------------------------------------------------------------------------
+*/
+void GibbsStepKState(int K,
+		     double *H,
+		     struct node_gra **nlist1, struct node_gra **nlist2,
+		     struct group **glist1, struct group **glist2,
+		     struct group *part1, struct group *part2,
+		     int nnod1, int nnod2,
+		     int *ng1, int *ng2,
+		     int **N1G2[], int **N2G1[],
+		     int **G1G2[], int **G2G1[],
+		     double *LogList, int LogListSize,
+		     double *LogFactList, int LogFactListSize,
+		     gsl_rng *gen);
+void GibbsThermalizeKState(int K,
+			     double *H,
+			     struct node_gra **nlist1,
+			     struct node_gra **nlist2,
+			     struct group **glist1, struct group **glist2,
+			     struct group *part1, struct group *part2,
+			     int nnod1, int nnod2,
+			     int *ng1, int *ng2,
+			     int **N1G2[], int **N2G1[],
+			     int **G1G2[], int **G2G1[],
+			     double *LogList, int LogListSize,
+			     double *LogFactList,int LogFactListSize,
+			     gsl_rng *gen,
+			     char verbose_sw);
+double **GibbsMultiLinkScoreKState(int K,
+				   struct binet *ratings,
+				   struct query **querySet, int nquery,
+				   int nIter,
+				   gsl_rng *gen,
+				   char verbose_sw,
+				   int decorStep);
+
 #endif /* !RGRAPH_RECOMMEND_H */
+

@@ -569,6 +569,13 @@ LinkScore(struct node_gra *net,
 				   LogChooseList, LogChooseListSize,
 				   LogFactList, LogFactListSize,
 				   gen, verbose_sw);
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "\n# Decorrelation step = %d\n\n", decorStep);
+    break;
+  }
 
   /* Thermalization */
   switch (verbose_sw) {
@@ -593,7 +600,7 @@ LinkScore(struct node_gra *net,
   case 'd':
     break;
   default:
-    H = 0;
+    /* H = 0; */
     break;
   }
 
@@ -611,6 +618,7 @@ LinkScore(struct node_gra *net,
       break;
     case 'd':
       fprintf(stderr, "%d %lf %lf\n", iter, H, PartitionH(part, linC));
+      FPrintPartition(stderr, part, 0);
       break;
     }
 
