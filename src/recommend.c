@@ -1877,26 +1877,6 @@ MultiLinkScoreKState(int K,
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /*
   -----------------------------------------------------------------------------
   -----------------------------------------------------------------------------
@@ -1948,8 +1928,8 @@ GibbsStepKState(int K,
      initially empty but got filled) but we never remove groups from
      it (even if they loose all their nodes during a step). slgXsize
      is the size of slgX. */
-  int *slg1=NULL, *slg2=NULL, *slg=NULL;
-  int slg1size, slg2size, *slgsize, slgn;
+  int *slg1=NULL, *slg2=NULL, *slg=NULL, *slgother=NULL;
+  int slg1size, slg2size, *slgsize, *slgothersize, slgn;
   int isinlist;
 
   /* Preliminaries */
@@ -1990,6 +1970,8 @@ GibbsStepKState(int K,
       grootother = part2;
       slg = slg1;
       slgsize = &slg1size;
+      slgother = slg2;
+      slgothersize = &slg2size;
     }
     else {
       /* Item move */
@@ -2012,14 +1994,16 @@ GibbsStepKState(int K,
       grootother = part1;
       slg = slg2;
       slgsize = &slg2size;
+      slgother = slg1;
+      slgothersize = &slg1size;
     }
 
     /** FIXED CONTRIBUTIONS FOR THIS NODE **/
     norm = 0.0;
     dHoo = 0.0;
     dHno = 0.0;
-    g = grootother;
-    while ((g=g->next) != NULL) {
+    for (slgn=0; slgn<(*slgothersize); slgn++) {
+      g = (*glistother)[slgother[slgn]];
       if (g->size > 0) {  /* group is not empty */
 	/* old configuration, old group */
 	n = 0;
@@ -2050,8 +2034,8 @@ GibbsStepKState(int K,
       dHnn = 0.0;
       newgnum = slg[i];
       newg = (*glistnode)[newgnum];
-      g = grootother;
-      while ((g=g->next) != NULL) {
+      for (slgn=0; slgn<(*slgothersize); slgn++) {
+	g = (*glistother)[slgother[slgn]];
 	if (g->size > 0) {  /* group is not empty */
 	  /* old configuration, new group */
 	  n = 0;
@@ -2091,8 +2075,8 @@ GibbsStepKState(int K,
     /** DH FOR AN EMPTY DESTINATION GROUP FOR THIS NODE **/
     dHon = 0.0;
     dHnn = 0.0;
-    g = grootother;
-    while ((g=g->next) != NULL) {
+    for (slgn=0; slgn<(*slgothersize); slgn++) {
+      g = (*glistother)[slgother[slgn]];
       if (g->size > 0) {  /* group is not empty */
 	/* old configuration, new group */
 	dHon += FastLogFact(K - 1, LogFactList, LogFactListSize);
@@ -2456,7 +2440,7 @@ GibbsMultiLinkScoreKState(int K,
   	break;
       }
       iter = 0;
-      H = 0.0;
+      H0 = H;
       norm = 0;
       for (k=0; k<K; k++) {
   	for (q=0; q<nquery; q++) {
