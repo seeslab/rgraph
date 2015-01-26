@@ -169,7 +169,23 @@ LinkScoreMCStep(int factor,
   int i, j, ngroup=nnod;
   int move;
   int effectng=NULL;
+  /* Shortlist of groups. Groups not in this list are empty for
+     sure. Note that, during a step, we may have to add groups to this
+     list (groups that were initially empty but got filled) but we
+     never remove groups from it (even if they loose all their nodes
+     during a step). slgXsize is the size of slgX. */
+  int *slg=NULL;
+  int slgn, slgsize, isinlist;
 
+  /* Preliminaries */
+  slg = allocate_i_vec(nnod);  // Shortlist of groups
+  slgsize = 0;
+  g = part;
+  while ((g=g->next) != NULL)
+    if (g->size > 0)
+      slg[slgsize++] = g->label;
+
+  /* Steps */
   for (move=0; move<nnod*factor; move++) {
 
     /* Choose node and destination group */
@@ -195,9 +211,9 @@ LinkScoreMCStep(int factor,
     newg2oldg = NG2GLinks(newg, oldg);
     oldg2oldg = oldg->inlinks;
     newg2newg = newg->inlinks;
-    g = part;
     effectng = 0;
-    while ((g = g->next) != NULL) {
+    for (slgn=0; slgn<slgsize; slgn++) {
+      g = glist[slg[slgn]];
       if (g->size > 0) {  /* group is not empty */
 	effectng++;
 	n2gList[g->label] = NLinksToGroup(node, g);
@@ -291,8 +307,18 @@ LinkScoreMCStep(int factor,
 	G2G[i][newgnum] += n2gList[i];
 	G2G[newgnum][i] = G2G[i][newgnum];
       }
+
+      /* Add newg to shortlist (if it's not there already!) */
+      isinlist = 0;
+      for (slgn=0; slgn<slgsize; slgn++)
+	if (newgnum == slg[slgn])
+	  isinlist = 1;
+      if (isinlist == 0)
+	slg[slgsize++] = newgnum;
     }
   } /* nnod moves completed: done! */
+
+  free_i_vec(slg);
 }
 
 
