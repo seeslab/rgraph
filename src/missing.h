@@ -144,6 +144,41 @@ double **LSMultiLinkScoreKState(int K,
 
 
 
+/*
+  ---------------------------------------------------------------------
+  Link reliability Gibbs sampling
+  ---------------------------------------------------------------------
+*/
+void GibbsLinkScoreStep(double *H,
+			double linC,
+			struct node_gra **nlist,
+			struct group **glist,
+			struct group *part,
+			int nnod,
+			int **G2G,
+			int *n2gList,
+			double **LogChooseList,
+			int LogChooseListSize,
+			double *LogFactList, int LogFactListSize,
+			gsl_rng *gen);
+void GibbsThermalizeLinkScore(double *H,
+			      double linC,
+			      struct node_gra **nlist,
+			      struct group **glist,
+			      struct group *part,
+			      int nnod,
+			      int **G2G,
+			      int *n2gList,
+			      double **LogChooseList,
+			      int LogChooseListSize,
+			      double *LogFactList, int LogFactListSize,
+			      gsl_rng *gen,
+			      char verbose_sw);
+double **GibbsLinkScore(struct node_gra *net,
+			double linC,
+			int nIter,
+			gsl_rng *gen,
+			char verbose_sw);
 
 
 
