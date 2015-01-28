@@ -357,7 +357,8 @@ Choose(int n, int k)
 double
 LogChoose(int a, int b)
 {
-  return (double)logl(Choose(a, b));
+  return gsl_sf_lnchoose(a, b);
+  /* return (double)logl(Choose(a, b)); */
 }
 
 /*
