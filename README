@@ -290,6 +290,8 @@ to the algorithm described in:
 In case you use the results of the program in a publication, please cite
 the paper above.
 
+This command exists in a interactive (bipartmod) and a batch (bipartmod_cl) mode.
+
 Input parameters
 -------------------------------------------------------------------------------
 
@@ -358,6 +360,8 @@ to the algorithm described in:
 
 In case you use the results of the program in a publication, please cite
 the papers above.
+
+This command exists in a interactive (bipartmod_w) and a batch (bipartmod_w_cl) mode.
 
 Input parameters
 -------------------------------------------------------------------------------
