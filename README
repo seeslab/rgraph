@@ -380,40 +380,9 @@ Please read the bipartmod documentation to learn more about bipartmod_w.
 
 
 -------------------------------------------------------------------------------
-bipartmod
--------------------------------------------------------------------------------
-
-Given a bipartite network, the program returns a partition of the nodes in
-one of the sets of nodes (the 'actors' or the 'teams') obtained according
-to the algorithm described in:
-
-4. Guimera, R., Sales-Pardo, M. & Amaral, L.A.N., Module identification in
-   bipartite and directed networks, Phys. Rev. E 76, 036102 (2007)
-The program will prompt for the following parameters:
-
-- Seed for the random number generator: Must be a positive integer. Since the
-  module identification algorithm is stochastic, different runs will yield,
-  in general, slightly different different modules. Two runs with the same
-  seed, though, should give the exact same results.
-
-- Name of the network file: Name of the file that contains the network. The
-  file must be a list of links with the format:
-
-  n1 n2
-  n3 n4
-  .  .
-  .  .
-  .  .
-
-  This represents a network with a link between nodes n1 and n2, another
-  between nodes n3 and n4, and so on. Nodes must be separated by spaces.
-
-- Iteration factor (f): At each temperature of the simulated annealing (SA),
-  the program performs fN^2 individual-node updates (involving the movement
-  of a single node from one module to another) and fN collective updates
-  (involving the merging of two modules and the split of a module). The number
 reliability
 -------------------------------------------------------------------------------
+
 Given a network observation, the programs in reliability:
 
 1) reliability_links: evaluate the reliability of links
