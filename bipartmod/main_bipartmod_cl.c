@@ -25,23 +25,19 @@ main(int argc, char **argv)
     ------------------------------------------------------------
   */
   if (argc < 6) {
-    printf("\nUse: bipartmod_w_cl net_file_name seed iteration_factor cooling_factor modules_column\n\n");
+    printf("\nUsage: bipartmod_cl net_file_name seed iteration_factor cooling_factor modules_column\n\n"
+		   "\t net_file_name: Name of the network file\n"
+		   "\t seed: Random number seed (POSITIVE Integer) \n"
+		   "\t iteraction_factor: Iteration factor (recommended 1.0)\n"
+		   "\t cooling_factor: Cooling factor (recommended 0.950-0.995)\n" 
+		   "\t module_column: Find modules for the first column (0) or second columnd (1)\n\n");
     return -1;
   }
 
-  //printf("\n# Enter the name of the network file: ");
   file_name = argv[1];
-  
-  //printf("\n# Enter random number seed (POSITIVE integer): ");
   seed = atoi(argv[2]);
-  
-  //printf("\n# Enter iteration factor (recommended 1.0): ");
   fac = atof(argv[3]);
-  
-  //printf("\n# Enter the cooling factor (recommended 0.950-0.995): ");
   Ts = atof(argv[4]);
-  
-  //printf("\n# Find modules from first column (0) or second columnd (1): ");
   invert = atoi(argv[5]);
   
   /*

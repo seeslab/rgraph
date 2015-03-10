@@ -2,8 +2,6 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include <mpi.h>
-
 #include <gsl/gsl_rng.h>
 #include "tools.h"
 #include "graph.h"
@@ -28,7 +26,12 @@ main(int argc, char **argv)
     ------------------------------------------------------------
   */
   if (argc < 6) {
-    printf("\nUse: bipartmod_w_cl net_file_name seed iteration_factor cooling_factor modules_column\n\n");
+    printf("\nUsage: bipartmod_cl net_file_name seed iteration_factor cooling_factor modules_column\n\n"
+		   "\t net_file_name: Name of the network file\n"
+		   "\t seed: Random number seed (POSITIVE Integer) \n"
+		   "\t iteraction_factor: Iteration factor (recommended 1.0)\n"
+		   "\t cooling_factor: Cooling factor (recommended 0.950-0.995)\n "
+		   "\t module_column: Find modules for the first column (0) or second columnd (1)\n\n");
     return -1;
   }
 
@@ -47,12 +50,6 @@ main(int argc, char **argv)
   //printf("\n# Find modules from first column (0) or second columnd (1): ");
   invert = atoi(argv[5]);
   
-  /* Initialize MPI */
-  MPI_Init(NULL, NULL);
-
-  int world_rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-
   /*
     ------------------------------------------------------------------
     Initialize the random number generator
@@ -84,15 +81,10 @@ main(int argc, char **argv)
 				Ti, Tf, Ts, fac,
 				0, 'o', 1, 'm',
 				randGen);
-
-  if (world_rank == 0) {
-    outF = fopen("modules_bipart_w_cl.dat", "w");
-    FPrintPartition(outF, part, 0);
-    fclose(outF);
-  }
-
-  /* Finalize MPI */
-  MPI_Finalize();
+  
+  outF = fopen("modules_bipart_w_cl.dat", "w");
+  FPrintPartition(outF, part, 0);
+  fclose(outF);
 
   // Free memory
   // ------------------------------------------------------------
