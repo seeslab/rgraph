@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include <gsl/gsl_rng.h>
 #include "tools.h"
@@ -14,38 +15,76 @@ main(int argc, char **argv)
   int rgm;
   int seed = 1111;
   int to_file = 0;
-  int from_file = 1;
+  int from_file = 0;
   struct binet *binet = NULL;
   struct group *part = NULL;
   gsl_rng *randGen;
-  double Ti, Tf, Ts, fac;
+  double Ti, Tf;
+  double Ts = 0.97;
+  double fac = 1.0;
   char *file_name;
-  int invert;
+  char *file_name_out;
+  int invert = 0;
+  int weighted = 0;
 
+  extern char *optarg;
+  extern int optind;
+  int c; 
+  
   /*
     ------------------------------------------------------------
-    Prompt for user-defined parameters
+    Arguments parsing
     ------------------------------------------------------------
   */
-  if (argc < 6) {
-    printf("\nUsage: bipartmod_cl net_file_name seed iteration_factor cooling_factor modules_column\n\n"
-		   "\t net_file_name: Name of the network file\n"
-		   "\t seed: Random number seed (POSITIVE Integer) \n"
-		   "\t iteraction_factor: Iteration factor (recommended 1.0)\n"
-		   "\t cooling_factor: Cooling factor (recommended 0.950-0.995)\n "
-		   "\t module_column: Find modules for the first column (0) or second columnd (1)\n\n");
+  
+  if (argc == 1) {
+    printf("\nUsage: bipartmod_cl [-f file] [-o file] [-s seed] [-i iter] [-c cool] [-pw]\n\n"
+		   "\t -f file: Name of the input network file (default: standard input)\n"
+		   "\t -o file: Name of the output file (default: standard output)\n"
+		   "\t -s seed: Random number seed (POSITIVE Integer, default 1111) \n"
+		   "\t -i iter: Iteration factor (recommended 1.0, default 1.0)\n"
+		   "\t -c cool: Cooling factor (recommended 0.950-0.995, default 0.97)\n "
+		   "\t -p : Find modules for the second column (default: first) \n"
+		   "\t -w : Use the third column of the input file and the weighted version of the algorithm\n");
+	
     return -1;
+  }
+  else{	
+  while ((c = getopt(argc, argv, "wpf:s:i:c:o:")) != -1)
+	switch (c) {
+	case 'f':
+	  from_file = 1;
+	  file_name = optarg;
+	  //printf("input set to %s \n", file_name);
+	  break;
+	case 's':
+	  seed = atoi(optarg);
+	  //printf("seed set to %d \n", seed);
+	  break;
+	case 'i':
+	  fac = atof(optarg);
+	  //printf("iteration factor set to %f \n", fac);
+	  break;
+	case 'c':
+	  Ts = atof(optarg);
+	  //printf("cooling factor set to %f. \n", Ts);
+	  break;
+	case 'p':
+	  invert = 1;
+	  //printf("Looking at second column.\n");
+	  break;
+	case 'o':
+	  to_file = 1;
+	  file_name_out = optarg;
+	  //printf("Output file set to %s \n",file_name_out);
+	  break;
+	case 'w':
+	  weighted = 1;
+	  break;
+	}
   }
 
 
-  file_name = argv[1];
-  seed = atoi(argv[2]);
-  fac = atof(argv[3]);
-  Ts = atof(argv[4]);
-  invert = atoi(argv[5]);
-  to_file = atoi(argv[6]);
-  from_file = atoi(argv[7]);
-  
   /*
     ------------------------------------------------------------------
     Initialize the random number generator
@@ -61,11 +100,11 @@ main(int argc, char **argv)
   */
   if (from_file == 1) {
 	inF = fopen(file_name, "r");
-	binet = FBuildNetworkBipart(inF, 1, 0);
+	binet = FBuildNetworkBipart(inF, weighted, 0);
 	fclose(inF);
   }
   else
-	binet = FBuildNetworkBipart(stdin, 1, 0);
+	binet = FBuildNetworkBipart(stdin, weighted, 0);
 
   if (invert == 1)
     InvertBipart(binet);
@@ -78,12 +117,21 @@ main(int argc, char **argv)
   Ti = 1. / (double)CountNodes(binet->net1);
   Tf = 0.;
 
-  part = SACommunityIdentBipartWeighted(binet,
-				Ti, Tf, Ts, fac,
-				0, 'o', 1, 'm',
-				randGen);
+  if (weighted == 1){
+	part = SACommunityIdentBipartWeighted(binet,
+										  Ti, Tf, Ts, fac,
+										  0, 'o', 1, 'm',
+										  randGen);
+  }
+  else{
+	part = SACommunityIdentBipart(binet,
+								  Ti, Tf, Ts, fac,
+								  0, 'o', 1, 'm',
+								  randGen);
+  }
+  
   if (to_file == 1)	{
-	outF = fopen("modules_bipart_w_cl.dat", "w");
+	outF = fopen(file_name_out, "w");
     FPrintPartition(outF, part, 0);
 	fclose(outF);
   }
