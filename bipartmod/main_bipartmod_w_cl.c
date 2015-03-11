@@ -13,6 +13,8 @@ main(int argc, char **argv)
   FILE *outF, *inF;
   int rgm;
   int seed = 1111;
+  int to_file = 0;
+  int from_file = 1;
   struct binet *binet = NULL;
   struct group *part = NULL;
   gsl_rng *randGen;
@@ -35,20 +37,14 @@ main(int argc, char **argv)
     return -1;
   }
 
-  //printf("\n# Enter the name of the network file: ");
+
   file_name = argv[1];
-  
-  //printf("\n# Enter random number seed (POSITIVE integer): ");
   seed = atoi(argv[2]);
-  
-  //printf("\n# Enter iteration factor (recommended 1.0): ");
   fac = atof(argv[3]);
-  
-  //printf("\n# Enter the cooling factor (recommended 0.950-0.995): ");
   Ts = atof(argv[4]);
-  
-  //printf("\n# Find modules from first column (0) or second columnd (1): ");
   invert = atoi(argv[5]);
+  to_file = atoi(argv[6]);
+  from_file = atoi(argv[7]);
   
   /*
     ------------------------------------------------------------------
@@ -63,9 +59,14 @@ main(int argc, char **argv)
     Build the network
     ------------------------------------------------------------------
   */
-  inF = fopen(file_name, "r");
-  binet = FBuildNetworkBipart(inF, 1, 0);
-  fclose(inF);
+  if (from_file == 1) {
+	inF = fopen(file_name, "r");
+	binet = FBuildNetworkBipart(inF, 1, 0);
+	fclose(inF);
+  }
+  else
+	binet = FBuildNetworkBipart(stdin, 1, 0);
+
   if (invert == 1)
     InvertBipart(binet);
 
@@ -81,11 +82,15 @@ main(int argc, char **argv)
 				Ti, Tf, Ts, fac,
 				0, 'o', 1, 'm',
 				randGen);
-  
-  outF = fopen("modules_bipart_w_cl.dat", "w");
-  FPrintPartition(outF, part, 0);
-  fclose(outF);
-
+  if (to_file == 1)	{
+	outF = fopen("modules_bipart_w_cl.dat", "w");
+    FPrintPartition(outF, part, 0);
+	fclose(outF);
+  }
+  else{
+	printf("### Results:\n");
+	FPrintPartition(stdout, part, 0);
+  }
   // Free memory
   // ------------------------------------------------------------
   RemovePartition(part);
