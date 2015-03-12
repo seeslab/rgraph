@@ -128,6 +128,11 @@ main(int argc, char **argv)
   */
   if (from_file == 1) {
 	inF = fopen(file_name, "r");
+	if (inF == NULL)
+	  {
+		printf("ERROR: No such file or directory (%s). \n", file_name);
+		return(1);
+	  }
 	binet = FBuildNetworkBipart(inF, weighted, 0);
 	fclose(inF);
   }
@@ -160,6 +165,12 @@ main(int argc, char **argv)
   
   if (to_file == 1)	{
 	outF = fopen(file_name_out, "w");
+	if (outF == NULL)
+	  {
+		printf("ERROR: Cannot write output (%s). \n", file_name_out);
+		return(1);
+	  }
+
     FPrintPartition(outF, part, 0);
 	fclose(outF);
   }
