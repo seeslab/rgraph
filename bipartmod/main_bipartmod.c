@@ -164,7 +164,6 @@ main(int argc, char **argv)
 	fclose(outF);
   }
   else{
-	printf("### Results:\n");
 	FPrintPartition(stdout, part, 0);
   }
   // Free memory
