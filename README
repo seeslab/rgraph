@@ -304,7 +304,7 @@ The synopsis for the command is:
 
 ```
 bipartmod [-f file] [-o file] [-s seed] [-i iter] [-c cool] [-pwh]
-```
+
 
 With:
    -f file: Name of the input network file (default: standard input),
@@ -315,6 +315,7 @@ With:
    -p: Find modules for the second column (default: first), 
    -w: Read edge weights from the input's third column and uses the weighted modularity,
    -h: Display a short usage message.
+```
 
 If no arguments are provided, the program will fallback in interactive mode.
 
@@ -331,11 +332,13 @@ If no arguments are provided, the program will fallback in interactive mode.
   contains the network. The file must be a list of links with the
   format:
 
+```
   n1 n2
   n3 n4
   .  .
   .  .
   .  .
+```
 
   This represents a network with a link between nodes n1 and n2, another
   between nodes n3 and n4, and so on. Nodes must be separated by spaces.
@@ -349,13 +352,15 @@ If no arguments are provided, the program will fallback in interactive mode.
   If you use the weighted definition of modularity (with the `-w`
   flag), the file must contain an additional third column giving the
   weight of each link:
-  
+
+```
      n1 n2 w1
 	 n3 n4 w2
  	  .  .  .
   	  .  .  .
   	  .  .  .	
-
+``` 
+	  
 - Name of the output file (`-o` argument.): Name of the file in which
   the program will write the output.
 
@@ -416,9 +421,9 @@ reliability
 
 Given a network observation, the programs in reliability:
 
-1) reliability_links: evaluate the reliability of links
+1) `reliability_links`: evaluate the reliability of links
 
-2) reliability_reconstruct: reconstruct the network
+2) `reliability_reconstruct`: reconstruct the network
 
 In case you use the results of the program in a publication, please cite
 the following paper:
