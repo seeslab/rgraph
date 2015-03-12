@@ -287,23 +287,44 @@ to the algorithm described in:
 4. Guimera, R., Sales-Pardo, M. & Amaral, L.A.N., Module identification in
    bipartite and directed networks, Phys. Rev. E 76, 036102 (2007)
 
-In case you use the results of the program in a publication, please cite
-the paper above.
+Additionaly, the formula for weighted bipartite networks is described in: 
 
-This command exists in a interactive (bipartmod) and a batch (bipartmod_cl) mode.
+5. Stouffer, D.B., Sales-Pardo, M., Sirer, M.I. & Bascompte J., Evolutionary
+   conservation of species' roles in food webs, Science 335, 1489-1492 (2012).
+
+In case you use the results of the program in a publication, please cite
+the paper(s) above.
+
+The synopsis for the command is:
+
+```
+bipartmod [-f file] [-o file] [-s seed] [-i iter] [-c cool] [-pwh]
+```
+
+With:
+   -f file: Name of the input network file (default: standard input),
+   -o file: Name of the output file (default: standard output),
+   -s seed: Random number seed (POSITIVE Integer, default 1111), 
+   -i iter: Iteration factor (recommended 1.0, default 1.0),
+   -c cool: Cooling factor (recommended 0.950-0.995, default 0.97), 
+   -p: Find modules for the second column (default: first), 
+   -w: Read edge weights from the input's third column and uses the weighted modularity,
+   -h: Display a short usage message.
+
+If no arguments are provided, the program will fallback in interactive mode.
 
 Input parameters
 -------------------------------------------------------------------------------
 
-The program will prompt for the following parameters:
+- Seed for the random number generator (`-s` argument.): Must be a
+  positive integer. Since the module identification algorithm is
+  stochastic, different runs will yield, in general, slightly
+  different different modules. Two runs with the same seed, though,
+  should give the exact same results.
 
-- Seed for the random number generator: Must be a positive integer. Since the
-  module identification algorithm is stochastic, different runs will yield,
-  in general, slightly different different modules. Two runs with the same
-  seed, though, should give the exact same results.
-
-- Name of the network file: Name of the file that contains the network. The
-  file must be a list of links with the format:
+- Name of the network file (`-f` argument.): Name of the file that
+  contains the network. The file must be a list of links with the
+  format:
 
   n1 n2
   n3 n4
@@ -314,7 +335,40 @@ The program will prompt for the following parameters:
   This represents a network with a link between nodes n1 and n2, another
   between nodes n3 and n4, and so on. Nodes must be separated by spaces.
 
-- Iteration factor (f): At each temperature of the simulated annealing (SA),
+  If this argument is not provided (only in non-interactive mode), the
+  program will attempt to read the network from the standard
+  input. Thus you can chain it with a pipe, e.g:
+
+  `cat network.dat | bipartmod_cl -c 0.95` 
+  
+  If you use the weighted definition of modularity (with the `-w`
+  flag), the file must contain an additional third column giving the
+  weight of each link:
+  
+     n1 n2 w1
+	 n3 n4 w2
+ 	  .  .  .
+  	  .  .  .
+  	  .  .  .	
+
+- Name of the output file (`-o` argument.): Name of the file in which
+  the program will write the output.
+
+  If this argument is not provided (only in non-interactive mode), the
+  program will write the result in the standard output. You can
+  it into a file, e.g:
+
+  ```
+  bipartmod_cl -f network.dat > output.dat
+  
+  #Save the simulated annealing progress in another file:		
+  bipartmod_cl -f network.dat > output.dat 2> sa_progress.dat
+  
+  #Get rid of the S.A. progress:
+  bipartmod_cl -f network.dat > output.dat 2> /dev/null 
+  ```
+	  
+- Iteration factor (f, `-i` argument): At each temperature of the simulated annealing (SA),
   the program performs fN^2 individual-node updates (involving the movement
   of a single node from one module to another) and fN collective updates
   (involving the merging of two modules and the split of a module). The number
@@ -325,7 +379,7 @@ The program will prompt for the following parameters:
   number of iterations is imposed at each temperature, so that when f is
   very small, the minimum number will be used instead of fN^2 or fN.
 
-- Cooling factor (c): After the desired number of updates is done at a
+- Cooling factor (c, `-c` argument): After the desired number of updates is done at a
   certain temperature T, the system is cooled down to a new temperature T'=cT,
   where c is the cooling factor. the cooling factor must be strictly larger
   than 0 and strictly smaller than 1. In general, values close to one will
@@ -333,50 +387,25 @@ The program will prompt for the following parameters:
   of the cooling factor f are [0.990, 0.999], although smaller values (0.95
   or even 0.9) may be needed for large and/or dense networks.
 
-- Invert (0 or 1): If 0 (conversely, 1), the program will identify modules
-  in the first (second) set of nodes, that is, the first (second) column in
-  the input file.
+- Invert (0 or 1, `-p` flag): If the flag is not used or this
+  parameter is set to 0 in interactive mode (conversely if the flag is
+  used or the parameter set to 1 in interactive mode), the program
+  will identify modules in the first (second) set of nodes, that is,
+  the first (second) column in the input file.
+
+- Weighted formula (0 or 1, `-w` flag): If the flag is not used (or if
+  this parameter is set to 0 in interactive mode) the program will use
+  the unweighted definition of modularity described in [4]. Conversely,
+  if the flag is used (or this parameter is set to 1 in interactive
+  mode) the program will use the weighted definition of modularity
+  described in [5].
+
 
 Program output
 -------------------------------------------------------------------------------
 
-The program returns a file modules_bipart.dat, which is formally identical
-to the modules.dat described above for netcarto.
-
-
--------------------------------------------------------------------------------
-bipartmod_w
--------------------------------------------------------------------------------
-
-Given a weighted bipartite network, the program returns a partition of the nodes in
-one of the sets of nodes (the 'actors' or the 'teams') obtained according
-to the algorithm described in:
-
-4. Guimera, R., Sales-Pardo, M. & Amaral, L.A.N., Module identification in
-   bipartite and directed networks, Phys. Rev. E 76, 036102 (2007).
-
-5. Stouffer, D.B., Sales-Pardo, M., Sirer, M.I. & Bascompte J., Evolutionary
-   conservation of species' roles in food webs, Science 335, 1489-1492 (2012).
-
-In case you use the results of the program in a publication, please cite
-the papers above.
-
-This command exists in a interactive (bipartmod_w) and a batch (bipartmod_w_cl) mode.
-
-Input parameters
--------------------------------------------------------------------------------
-
-bipartmod_w is equivalent to bipartmod, but instead of using an unweighted
-network it uses a weighted bipartite network with the format:
-
-  n1 n2 w1
-  n3 n4 w2
-  .  .  .
-  .  .  .
-  .  .  .
-
-
-Please read the bipartmod documentation to learn more about bipartmod_w.
+The program output is formally identical to the modules.dat described
+above for netcarto. 
 
 
 -------------------------------------------------------------------------------
