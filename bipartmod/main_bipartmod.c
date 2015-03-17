@@ -28,7 +28,7 @@ main(int argc, char **argv)
   char *file_name_out;
   int invert = 0;
   int weighted = 0;
-
+  int roles = 0;
   extern char *optarg;
   extern int optind;
   int c; 
@@ -64,9 +64,13 @@ main(int argc, char **argv)
 
 	printf("\n# Use the weighted (0) or weighted (1) modularity. (Edge weight is extracted from the third column): ");
 	scanf("%d", &weighted);
+
+	printf("\n# Output the modules (0) or the roles (1) of the nodes. ");
+	scanf("%d", &roles);
+	
   }
   else{
-	while ((c = getopt(argc, argv, "hwpf:s:i:c:o:")) != -1)
+	while ((c = getopt(argc, argv, "hwprf:s:i:c:o:")) != -1)
 	  switch (c) {
 	  case 'h':
 		printf("\nUsage: bipartmod_cl [-f file] [-o file] [-s seed] [-i iter] [-c cool] [-pw]\n"
@@ -78,6 +82,7 @@ main(int argc, char **argv)
 			   "\t -c cool: Cooling factor (recommended 0.950-0.995, default 0.97)\n "
 			   "\t -p : Find modules for the second column (default: first) \n"
 			   "\t -w : Read edge weights from the input's third column and uses the weighted modularity.\n"
+			   "\t -r : Output the roles rather than the modules.\n"
 			   "\t -h : Display this message\n");
 		return -1;
 		break;
@@ -102,10 +107,12 @@ main(int argc, char **argv)
 		invert = 1;
 		//printf("Looking at second column.\n");
 		break;
+	  case 'r':
+		roles = 1;
+		break;
 	  case 'o':
 		to_file = 1;
 		file_name_out = optarg;
-		//printf("Output file set to %s \n",file_name_out);
 		break;
 	  case 'w':
 		weighted = 1;
