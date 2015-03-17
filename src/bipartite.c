@@ -2135,14 +2135,69 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 
 
 
+/**
+  Create a role partition for a bipartite graph using a definition
+  adapted from the one in Guimera & Amaral, Nature (2005).
 
+  CAUTION: At the end of the process, the network is mapped onto the
+  role partition.
+  
+**/
+struct group *
+CatalogRoleIdentBipart(struct node_gra *net, struct group *mod)
+{
+  struct group *roles = NULL;
+  struct node_lis *p;
+  int nroles = 7;
+  int dest_group;
+  int i;
+  struct group *glist[7];
+  struct group *g;
+  double z, P;
 
+  /* Create the groups */
+  roles = CreateHeaderGroup();
+  MapPartToNet(mod, net);
+  glist[0] = CreateGroup(roles, 0);
+  for (i=1; i<nroles; i++) {
+    glist[i] = CreateGroup(glist[i-1],i);
+  }
+  
+  /* Go through all the groups and assign roles to all the nodes */
+  g = mod;
+  while ((g = g->next) != NULL) {
+    p = g->nodeList;
+    while ((p = p->next) != NULL) {
+      P = ParticipationCoefficientBipart(p->ref);
+      z = WithinModuleRelativeDegree(p->ref, g);
+      if (z < 2.5) {  /* Node is not a hub */
+	if (P < 0.050)
+	  dest_group = 0;
+	else if (P < 0.620)
+	  dest_group = 1;
+	else if (P < 0.800)
+	  dest_group = 2;
+	else
+	  dest_group = 3;
+      }
+      else {  /* Node is a hub */
+	if (P < 0.300)
+	  dest_group = 4;
+	else if (P < 0.750)
+	  dest_group = 5;
+	else
+	  dest_group = 6;
+      }
+      
+      /* Add (softly) the node to the role group */
+      AddNodeToGroupSoft(glist[dest_group], p->ref->label);
+    } /* End of loop over nodes in this module */
+  } /* End of loop over modules */
 
-
-
-
-
-
+  /* Map the role partition onto the network and return*/
+  MapPartToNet(roles, net);
+  return roles;
+}
 
 
 /* /\* */
