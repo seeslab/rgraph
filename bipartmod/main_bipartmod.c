@@ -18,6 +18,7 @@ main(int argc, char **argv)
   int from_file = 0;
   struct binet *binet = NULL;
   struct group *part = NULL;
+  struct node_gra *projected = NULL;
   gsl_rng *randGen;
   double Ti, Tf;
   double Ts = 0.97;
@@ -169,7 +170,18 @@ main(int argc, char **argv)
 								  0, 'o', 1, 'm',
 								  randGen);
   }
-  
+
+  /*
+    ------------------------------------------------------------
+    Find the roles
+    ------------------------------------------------------------
+  */
+  if (roles == 1){
+	projected = ProjectBipart(binet);
+	//FPrintNetAdjacencyList(stdout,projected,1,1);
+	part = CatalogRoleIdent(projected, part);
+  }
+	  
   if (to_file == 1)	{
 	outF = fopen(file_name_out, "w");
 	if (outF == NULL)
