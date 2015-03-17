@@ -117,10 +117,4 @@ void StatisticsParticipationCoefficientBipart(struct node_gra *net,
 					      double *theMin,
 					      double *theMax);
 
-/**
- Roles 
-**/
-struct group *CatalogRoleIdentBipart(struct node_gra *net,
-							   struct group *comm);
-
 #endif /* !RGRAPH_BIPARTITE_H */
