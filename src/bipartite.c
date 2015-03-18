@@ -2031,6 +2031,10 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 
   } /* End of simulated annealing */
 
+  // Complete mapping of the best partition on the network
+  // (The previous ones where not updating the partition attributes)
+  MapPartToNet(part, binet->net1); 
+  
   /* Free memory */
   free_d_mat(swwmat, nnod);
   free_d_vec(strength);
