@@ -335,15 +335,18 @@ If no arguments are provided, the program will fallback in interactive mode.
   format:
 
 ```
-  n1 n2
-  n3 n4
+  n1 m1
+  n2 m2
   .  .
   .  .
   .  .
 ```
 
-  This represents a network with a link between nodes n1 and n2, another
-  between nodes n3 and n4, and so on. Nodes must be separated by spaces.
+  This represents a bipartite network with a link between nodes n1 and
+  m1, another between nodes n2 and m2, and so on.  Nodes must be
+  separated by spaces. The two component of the bipartite network must
+  be on different columns. If the same name is used in both columns,
+  it will spawn two nodes (one in each component).
 
   If this argument is not provided (only in non-interactive mode), the
   program will attempt to read the network from the standard
@@ -356,8 +359,8 @@ If no arguments are provided, the program will fallback in interactive mode.
   weight of each link:
 
 ```
-     n1 n2 w1
-	 n3 n4 w2
+     n1 m1 w1
+	 n2 m2 w2
  	  .  .  .
   	  .  .  .
   	  .  .  .	
