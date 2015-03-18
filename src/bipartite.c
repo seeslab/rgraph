@@ -2043,6 +2043,55 @@ SACommunityIdentBipartWeighted(struct binet *binet,
   return CompressPart(part);
 }
 
+
+/**
+Given a bipartite network and a module partition, compute the
+bipartite role on the projection of the first component and
+write the output in outf using the following format:
+
+Label \t Module \t Role \t P \ z
+
+Example: 
+Mynode\t1\tR3\t0.6500\t-1.4400
+**/
+void
+FPrintTabNodesBipart(FILE *outf, struct binet *network,  struct group *modules)
+{
+  struct node_gra *projected;
+  struct group    *g = NULL;
+  struct node_lis *n = NULL;
+  double P, z;
+  int role;
+
+  // Project the first compoenent of the bipartite network. 
+  projected = ProjectBipart(network);
+
+  // Loop through the modules of the bipartite network and compute the
+  // roles on the projection.
+  MapPartToNetFast(modules, projected);
+  g = modules;
+  while ((g = g->next) != NULL) {
+    n = g->nodeList;
+    while ((n = n->next) != NULL) {
+      P = ParticipationCoefficient(n->ref);
+      z = WithinModuleRelativeDegree(n->ref, g);
+	  role = GetRole(P,z) + 1;
+	  printf ("%-20s\t %d\t R%d\t %f\t %f \n",
+			  n->nodeLabel,
+			  n->ref->inGroup,
+			  role,
+			  P,
+			  z);
+	}}
+  // Remap the modules on the original network. 
+  MapPartToNet(modules, network->net1);
+
+  // Free Memory 
+  RemoveGraph(projected);
+}
+
+
+
 /*
   ---------------------------------------------------------------------
   Calculte the participation coefficient of a node in a bipartite
