@@ -18,6 +18,8 @@ main(int argc, char **argv)
   int from_file = 0;
   struct binet *binet = NULL;
   struct group *part = NULL;
+  struct group *roles_part = NULL;
+  struct node_gra *projected = NULL;
   gsl_rng *randGen;
   double Ti, Tf;
   double Ts = 0.97;
@@ -28,7 +30,7 @@ main(int argc, char **argv)
   char *file_name_out;
   int invert = 0;
   int weighted = 0;
-
+  int output_type = 0;
   extern char *optarg;
   extern int optind;
   int c; 
@@ -64,12 +66,15 @@ main(int argc, char **argv)
 
 	printf("\n# Use the weighted (0) or weighted (1) modularity. (Edge weight is extracted from the third column): ");
 	scanf("%d", &weighted);
-  }
+
+	printf("\n# Choose between tabular output (0), module partition (1) or roles partition (2):");
+	scanf("%d", &output_type);}
+  
   else{
-	while ((c = getopt(argc, argv, "hwpf:s:i:c:o:")) != -1)
+	while ((c = getopt(argc, argv, "hwprmf:s:i:c:o:")) != -1)
 	  switch (c) {
 	  case 'h':
-		printf("\nUsage: bipartmod_cl [-f file] [-o file] [-s seed] [-i iter] [-c cool] [-pw]\n"
+		printf("\nUsage: bipartmod_cl [-f file] [-o file] [-s seed] [-i iter] [-c cool] [-pwmrh]\n"
 			   "\nIf no arguments are provided, the program will fallback in interactive mode.\n\n"
 			   "\t -f file: Name of the input network file (default: standard input)\n"
 			   "\t -o file: Name of the output file (default: standard output)\n"
@@ -78,6 +83,8 @@ main(int argc, char **argv)
 			   "\t -c cool: Cooling factor (recommended 0.950-0.995, default 0.97)\n "
 			   "\t -p : Find modules for the second column (default: first) \n"
 			   "\t -w : Read edge weights from the input's third column and uses the weighted modularity.\n"
+			   "\t -r : Output the roles partition rather than the default tabular output.\n"
+			   "\t -m : Output the modules partition rather than the default tabular output. \n"
 			   "\t -h : Display this message\n");
 		return -1;
 		break;
@@ -102,10 +109,15 @@ main(int argc, char **argv)
 		invert = 1;
 		//printf("Looking at second column.\n");
 		break;
+	  case 'm':
+		output_type = 1;
+		break;
+	  case 'r':
+		output_type = 2;
+		break;
 	  case 'o':
 		to_file = 1;
 		file_name_out = optarg;
-		//printf("Output file set to %s \n",file_name_out);
 		break;
 	  case 'w':
 		weighted = 1;
@@ -128,6 +140,11 @@ main(int argc, char **argv)
   */
   if (from_file == 1) {
 	inF = fopen(file_name, "r");
+	if (inF == NULL)
+	  {
+		printf("ERROR: No such file or directory (%s). \n", file_name);
+		return(1);
+	  }
 	binet = FBuildNetworkBipart(inF, weighted, 0);
 	fclose(inF);
   }
@@ -157,18 +174,49 @@ main(int argc, char **argv)
 								  0, 'o', 1, 'm',
 								  randGen);
   }
-  
+
+  // Compute the role partition if we have to.
+  // Note that the roles are computed (but not as a partition)
+  // if the tabular output is selected (output_type==0).
+  if (output_type == 2){
+	projected = ProjectBipart(binet);
+	part = CatalogRoleIdent(projected,part);
+  }
+
+  /*
+    ------------------------------------------------------------
+    Output
+    ------------------------------------------------------------
+  */
+
   if (to_file == 1)	{
 	outF = fopen(file_name_out, "w");
-    FPrintPartition(outF, part, 0);
+	if (outF == NULL)
+	  {
+		printf("ERROR: Cannot write output (%s). \n", file_name_out);
+		return(1);
+	  }
+	if (output_type != 0)
+	  // Partition-type output (a la Netcarto).
+	  FPrintPartition(outF, part, 0);
+	else
+	  // Tabular output. 
+	  FPrintTabNodesBipart(outF, binet, part);
+
+
 	fclose(outF);
   }
   else{
-	FPrintPartition(stdout, part, 0);
+	if (output_type != 0)
+	  FPrintPartition(stdout, part, 0);
+	else
+	  FPrintTabNodesBipart(stdout, binet, part);
   }
+  
   // Free memory
-  // ------------------------------------------------------------
   RemovePartition(part);
   RemoveBipart(binet);
+  if (output_type == 2)
+	RemoveGraph(projected);
   gsl_rng_free(randGen);
 }

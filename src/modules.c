@@ -2409,24 +2409,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
     while ((p = p->next) != NULL) {
       P = ParticipationCoefficient(p->ref);
       z = WithinModuleRelativeDegree(p->ref, g);
-      if (z < 2.5) {  /* Node is not a hub */
-	if (P < 0.050)
-	  dest_group = 0;
-	else if (P < 0.620)
-	  dest_group = 1;
-	else if (P < 0.800)
-	  dest_group = 2;
-	else
-	  dest_group = 3;
-      }
-      else {  /* Node is a hub */
-	if (P < 0.300)
-	  dest_group = 4;
-	else if (P < 0.750)
-	  dest_group = 5;
-	else
-	  dest_group = 6;
-      }
+	  dest_group = GetRole(P,z);
       
       /* Add (softly) the node to the role group */
       AddNodeToGroupSoft(glist[dest_group], p->ref->label);
@@ -2436,6 +2419,35 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
   /* Map the role partition onto the network and return*/
   MapPartToNet(roles, net);
   return roles;
+}
+
+/**
+  Returns the role number given a (P,z) tuple.  
+
+  Cf. Guimera & Amaral, Nature (2005) for the reasoning behind the
+  boundaries values.
+**/
+int GetRole(double P, double z){
+  int dest_group;
+  if (z < 2.5) {  /* Node is not a hub */
+	if (P < 0.050)
+	  dest_group = 0;
+	else if (P < 0.620)
+	  dest_group = 1;
+	else if (P < 0.800)
+	  dest_group = 2;
+	else
+	  dest_group = 3;
+  }
+  else {  /* Node is a hub */
+	if (P < 0.300)
+	  dest_group = 4;
+	else if (P < 0.750)
+	  dest_group = 5;
+	else
+	  dest_group = 6;
+  }
+  return dest_group;
 }
 
 
