@@ -97,7 +97,7 @@ All these steps may take a while.
 6) Untar the contents of `rgraph` under your msys home and type the following:
 
 ```
-./configure 
+./configure
 
 make
 
@@ -164,7 +164,7 @@ on the icon in Windows. The program will prompt for the following parameters:
   .  .
   .  .
 ```
-  
+
   This represents a network with a link between nodes n1 and n2, another
   between nodes n3 and n4, and so on. Nodes must be separated by spaces.
 
@@ -278,7 +278,7 @@ The arguments need to be passed in the following order:
 > netcarto_cl net_file_name seed T_ini iteration_factor cooling_factor
   #_randomizations
 ```
-  
+
 T_ini, iteration_factor, and cooling_factor can be set to -1 to use the
 defaults (2/size_of_network, 1.0, and 0.995, respectively).
 
@@ -294,10 +294,14 @@ to the algorithm described in:
 4. Guimera, R., Sales-Pardo, M. & Amaral, L.A.N., Module identification in
    bipartite and directed networks, Phys. Rev. E 76, 036102 (2007)
 
-Additionaly, the formula for weighted bipartite networks is described in: 
+Additionaly, the formula for weighted bipartite networks is described in:
 
 5. Stouffer, D.B., Sales-Pardo, M., Sirer, M.I. & Bascompte J., Evolutionary
    conservation of species' roles in food webs, Science 335, 1489-1492 (2012).
+
+Lastly, the participation coefficient, within module degree and roles
+are computed on the projected network described by [4] using the modules
+identity found on the bipartite network.
 
 In case you use the results of the program in a publication, please cite
 the paper(s) above.
@@ -305,17 +309,19 @@ the paper(s) above.
 The synopsis for the command is:
 
 ```
-bipartmod [-f file] [-o file] [-s seed] [-i iter] [-c cool] [-pwh]
+bipartmod [-f file] [-o file] [-s seed] [-i iter] [-c cool] [-pwhrm]
 
 
 With:
    -f file: Name of the input network file (default: standard input),
    -o file: Name of the output file (default: standard output),
-   -s seed: Random number seed (POSITIVE Integer, default 1111), 
+   -s seed: Random number seed (POSITIVE Integer, default 1111),
    -i iter: Iteration factor (recommended 1.0, default 1.0),
-   -c cool: Cooling factor (recommended 0.950-0.995, default 0.97), 
-   -p: Find modules for the second column (default: first), 
+   -c cool: Cooling factor (recommended 0.950-0.995, default 0.97),
+   -p: Find modules for the second column (default: first),
    -w: Read edge weights from the input's third column and uses the weighted modularity,
+   -r: Output the roles partition rather than the default tabular output.
+   -m: Output the modules partition rather than the default tabular output.
    -h: Display a short usage message.
 ```
 
@@ -335,68 +341,74 @@ If no arguments are provided, the program will fallback in interactive mode.
   format:
 
 ```
-  n1 n2
-  n3 n4
+  n1 m1
+  n2 m2
   .  .
   .  .
   .  .
 ```
 
-  This represents a network with a link between nodes n1 and n2, another
-  between nodes n3 and n4, and so on. Nodes must be separated by spaces.
+  This represents a bipartite network with a link between nodes n1 and
+  m1, another between nodes n2 and m2, and so on.  Nodes must be
+  separated by spaces. The two component of the bipartite network must
+  be on different columns. If the same name is used in both columns,
+  it will spawn two nodes (one in each component).
 
   If this argument is not provided (only in non-interactive mode), the
   program will attempt to read the network from the standard
   input. Thus you can chain it with a pipe, e.g:
 
-  `cat network.dat | bipartmod_cl -c 0.95` 
-  
+  `cat network.dat | bipartmod_cl -c 0.95`
+
   If you use the weighted definition of modularity (with the `-w`
   flag), the file must contain an additional third column giving the
   weight of each link:
 
 ```
-     n1 n2 w1
-	 n3 n4 w2
- 	  .  .  .
-  	  .  .  .
-  	  .  .  .	
-``` 
-	  
+	 n1 m1 w1
+	 n2 m2 w2
+	  .  .  .
+	  .  .  .
+	  .  .  .
+```
+
 - Name of the output file (`-o` argument.): Name of the file in which
   the program will write the output.
 
   If this argument is not provided (only in non-interactive mode), the
-  program will write the result in the standard output. You can
+  program will write the result in the standard output. You can redirect
   it into a file, e.g:
 
   ```
   bipartmod_cl -f network.dat > output.dat
-  
-  #Save the simulated annealing progress in another file:		
-  bipartmod_cl -f network.dat > output.dat 2> sa_progress.dat
-  
-  #Get rid of the S.A. progress:
-  bipartmod_cl -f network.dat > output.dat 2> /dev/null 
-  ```
-	  
-- Iteration factor (f, `-i` argument): At each temperature of the simulated annealing (SA),
-  the program performs fN^2 individual-node updates (involving the movement
-  of a single node from one module to another) and fN collective updates
-  (involving the merging of two modules and the split of a module). The number
-  "f" is the iteration factor. Large values of f (1 or larger) will result,
-  in general, in better results (higher modularities) and longer execution
-  times. The recommended range for f is [0.1, 1], although smaller values
-  may be needed for large and/or dense networks. Note, also, that a minimum
-  number of iterations is imposed at each temperature, so that when f is
-  very small, the minimum number will be used instead of fN^2 or fN.
 
-- Cooling factor (c, `-c` argument): After the desired number of updates is done at a
-  certain temperature T, the system is cooled down to a new temperature T'=cT,
-  where c is the cooling factor. the cooling factor must be strictly larger
-  than 0 and strictly smaller than 1. In general, values close to one will
-  result in better results and longer execution times. Recommended values
-  of the cooling factor f are [0.990, 0.999], although smaller values (0.95
+  #Save the simulated annealing progress in another file:
+  bipartmod_cl -f network.dat > output.dat 2> sa_progress.dat
+
+  #Get rid of the S.A. progress:
+  bipartmod_cl -f network.dat > output.dat 2> /dev/null
+  ```
+
+- Iteration factor (f, `-i` argument): At each temperature of the
+  simulated annealing (SA), the program performs fN^2 individual-node
+  updates (involving the movement of a single node from one module to
+  another) and fN collective updates (involving the merging of two
+  modules and the split of a module). The number "f" is the iteration
+  factor. Large values of f (1 or larger) will result, in general, in
+  better results (higher modularities) and longer execution times. The
+  recommended range for f is [0.1, 1], although smaller values may be
+  needed for large and/or dense networks. Note, also, that a minimum
+  number of iterations is imposed at each temperature, so that when f
+  is very small, the minimum number will be used instead of fN^2 or
+  fN.
+
+- Cooling factor (c, `-c` argument): After the desired number of
+  updates is done at a certain temperature T, the system is cooled
+  down to a new temperature T'=cT, where c is the cooling factor. the
+  cooling factor must be strictly larger than 0 and strictly smaller
+  than 1. In general, values close to one will result in better
+  results and longer execution times. Recommended values of the
+  cooling factor f are [0.990, 0.999], although smaller values (0.95
   or even 0.9) may be needed for large and/or dense networks.
 
 - Invert (0 or 1, `-p` flag): If the flag is not used or this
@@ -412,11 +424,27 @@ If no arguments are provided, the program will fallback in interactive mode.
   mode) the program will use the weighted definition of modularity
   described in [5].
 
+- Output type (0, 1 or 2, `-m` or `-r` flags): Choose the output
+  format, see next section for a detailed description.
 
 ### Program output
 
-The program output is formally identical to the modules.dat described
-above for netcarto. 
+This program offers two types of output _tabular_ and _partition_.
+
+The _tabular output_ is the default output. Each line correspond to a
+node, the values are separated by tabulations. The fields are: label,
+module id, role, participation coefficient (P) and within-module
+degree (z). Note that the last three values are computed on the
+projected network.
+
+```
+Mynode			1	R3	0.6500		-1.440
+Another_node	1	R2	0.277778	-2.445675
+
+```
+The _partition output_ is obtained using either the `-m` (for the
+modules) or `-r` (for the roles) flags. It is formally identical to
+the modules.dat described above for netcarto.
 
 reliability
 -----------

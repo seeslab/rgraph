@@ -74,6 +74,8 @@ void FPrintPajekFileBipart(char *fname,
 			   int weight_sw);
 
 void FPrintBipart (FILE *outf, struct binet *binet, int weight_sw);
+void FPrintTabNodesBipart(FILE *outf, struct binet *network,  struct group *modules);
+
 
 /*
   ---------------------------------------------------------------------
@@ -116,6 +118,5 @@ void StatisticsParticipationCoefficientBipart(struct node_gra *net,
 					      double *theStddev,
 					      double *theMin,
 					      double *theMax);
-
 
 #endif /* !RGRAPH_BIPARTITE_H */
