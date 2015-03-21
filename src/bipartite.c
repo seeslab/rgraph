@@ -2080,7 +2080,7 @@ FPrintTabNodesBipart(FILE *outf, struct binet *network,  struct group *modules)
       P = ParticipationCoefficient(n->ref);
       z = WithinModuleRelativeDegree(n->ref, g);
 	  role = GetRole(P,z) + 1;
-	  printf ("%-20s\t %d\t R%d\t %f\t %f \n",
+	  printf ("%-20s\t%d\tR%d\t%f\t%f\n",
 			  n->nodeLabel,
 			  n->ref->inGroup,
 			  role,
