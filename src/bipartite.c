@@ -2064,8 +2064,8 @@ FPrintTabNodesBipart(FILE *outf, struct binet *network,  struct group *modules)
   struct node_gra *projected;
   struct group    *g = NULL;
   struct node_lis *n = NULL;
-  double P, z;
-  int role;
+  double P, z, P_w, z_w;
+  int role, role_w, degree;
 
   // Project the first compoenent of the bipartite network. 
   projected = ProjectBipart(network);
@@ -2079,13 +2079,20 @@ FPrintTabNodesBipart(FILE *outf, struct binet *network,  struct group *modules)
     while ((n = n->next) != NULL) {
       P = ParticipationCoefficient(n->ref);
       z = WithinModuleRelativeDegree(n->ref, g);
+	  P_w = WeightedParticipationCoefficient(n->ref,modules);
+      z_w = WithinModuleRelativeStrength(n->ref, g);
 	  role = GetRole(P,z) + 1;
-	  printf ("%-20s\t%d\tR%d\t%f\t%f\n",
+	  role_w = GetRole(P_w,z_w) + 1;
+	  printf ("%-20s\t%d\t%d\tR%d\t%f\t%f\tR%d\t%f\t%f\n",
 			  n->nodeLabel,
 			  n->ref->inGroup,
+			  degree,
 			  role,
 			  P,
-			  z);
+			  z,
+			  role_w,
+			  P_w,
+			  z_w);
 	}}
   // Remap the modules on the original network. 
   MapPartToNet(modules, network->net1);
