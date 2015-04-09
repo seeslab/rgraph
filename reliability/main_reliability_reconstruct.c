@@ -31,7 +31,7 @@ main(int argc, char **argv)
   /* Command line parameters */
   if (argc < 3) {
     printf("\nUse: reconstruct.out net_file seed\n\n");
-    return;
+    return -1;
   }
   netF = argv[1];
   seed = atoi(argv[2]);

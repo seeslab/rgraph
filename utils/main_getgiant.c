@@ -15,7 +15,7 @@ main(int argc, char **argv)
   /* Command line parameters */
   if (argc < 2) {
     printf("\nUse: getgiant net_file\n\n");
-    return;
+    return -1;
   }
   netF = argv[1];
 

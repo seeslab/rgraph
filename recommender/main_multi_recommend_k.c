@@ -35,7 +35,7 @@ main(int argc, char **argv)
   /* Command line parameters */
   if (argc < 4) {
     printf("\nUse: multi_recommend_k.out K observation_file query_file seed\n\n");
-    return;
+    return -1;
   }
   K = atoi(argv[1]);
   obsFile = argv[2];
