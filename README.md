@@ -59,7 +59,7 @@ instead of just `./configure`. For other configure options run:
 
 ```bash
 ./configure -h
-```bash
+```
 
 
 You can uninstall the whole thing by running `make uninstall` from the installation directory.
@@ -148,7 +148,7 @@ For the comparison to randomized networks, please cite:
    70, art. no. 025101 (2004).
 
 
-#### Input parameters
+**Input parameters**
 
 To run the program, type netcarto.exe in the command line or
 double-click on the icon in Windows. The program will prompt for the
@@ -205,7 +205,7 @@ following parameters:
   randomization, just enter 0 here.
 
 
-#### Program output
+**Program output**
 
 After entering these parameters, the algorithm will start to identify
 the modules in the network. As the SA proceeds, the program prints
@@ -307,7 +307,7 @@ In case you use the results of the program in a publication, please
 cite the paper above.
 
 
-#### Input parameters
+**Input parameters**
 
 The program will prompt for the following parameters:
 
@@ -355,7 +355,7 @@ The program will prompt for the following parameters:
   modules in the first (second) set of nodes, that is, the first
   (second) column in the input file.
 
-#### Program output
+**Program output**
 
 The program returns a file modules_bipart.dat, which is formally
 identical to the modules.dat described above for netcarto.
@@ -376,7 +376,7 @@ cite the following papers:
    and the reconstruction of complex networks,
    Proc. Natl. Acad. Sci. USA ?????? (2009).
 
-#### Input parameters
+**Input parameters**
 
 The programs take two arguments:
 
@@ -399,7 +399,7 @@ The programs take two arguments:
   results. Two runs with the same seed, though, should give the exact
   same results.
 
-#### Program output
+**Program output**
 
 The "links" program generates two files: missing.dat and
 spurious.dat. Each of these files has the format:
@@ -425,13 +425,13 @@ the reconstructed network.
 
 Additionally, a few utility programs are also compiled and installed.
 
-*countlinks netA: count the number of links in a network.
+- countlinks netA: count the number of links in a network.
 
-*netcompare netA netA: compares two networks.
+- netcompare netA netA: compares two networks.
 
-*netprop netA: print a number of properties of a network.
+- netprop netA: print a number of properties of a network.
 
-*netrandomize netA: randomize an undirected unweighted network and
+- netrandomize netA: randomize an undirected unweighted network and
 		    print result to standard output.
 
 
