@@ -427,6 +427,13 @@ If no arguments are provided, the program will fallback in interactive mode.
 - Output type (0, 1 or 2, `-m` or `-r` flags): Choose the output
   format, see next section for a detailed description.
 
+- Degree-based role metric (0, 1, `-d` flag): If the flag is used (or
+  if the parameter is set to one in interactive mode), the program
+  will use degree based rather than strength based metrics for the
+  role computation. It is equivalent to compute the roles on the
+  unweighted projected graph.
+
+  
 ### Program output
 
 This program offers two types of output _tabular_ and _partition_.

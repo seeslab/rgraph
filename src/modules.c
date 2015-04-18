@@ -831,6 +831,9 @@ NLinksToGroupByNum(struct node_gra* node, int gLabel)
   return inlink;
 }
 
+
+
+
 /*
   ---------------------------------------------------------------------
   Weight of links from a node to a given group
@@ -844,6 +847,23 @@ StrengthToGroup(struct node_gra* node, struct group *g)
 
   while ((nei = nei->next) != NULL)
     if ((nei->ref)->inGroup == g->label)
+      inlink += nei->weight;
+  
+  return inlink;
+}
+
+/**
+Weight of links from a node to a given group, based on the label of
+the group only.
+**/
+double
+StrengthToGroupByNum(struct node_gra* node, int gLabel)
+{
+  struct node_lis *nei = node->neig;
+  double inlink = 0.0;
+
+  while ((nei = nei->next) != NULL)
+    if ((nei->ref)->inGroup == gLabel)
       inlink += nei->weight;
   
   return inlink;
@@ -2321,7 +2341,7 @@ ParticipationCoefficient(struct node_gra *node)
   double P = 0.0;
   int nlink = CountLinks(node);
 
-  /* Go through the neighbors */
+  // Go through the neighbors. 
   if (nlink != 0) {
     while ((nei = nei->next) != NULL) {
       toGroup = NLinksToGroupByNum(node, nei->ref->inGroup);
@@ -2331,6 +2351,42 @@ ParticipationCoefficient(struct node_gra *node)
   }
 
   /* Done */
+  return P;
+}
+
+
+/**
+
+Compute the weighted participation coefficient of a node.
+P_i = 1 - sum_{modules m}(strength_{im} / strength_i)**2
+
+with:
+- strength_i = sum of this node edges weigth. 
+- strength_{im} = sum of this node edges weigth. 
+
+**/
+double 
+WeightedParticipationCoefficient(struct node_gra *node,  struct group *part)
+{
+  double toGroup;
+  double P = 0.0;
+  double strength = NodeStrengthFast(node);
+  double squared_st = strength*strength;
+  //  printf ("%s: %f \n",node->label,strength);
+  int nlink = CountLinks(node);
+  struct group *group=NULL;
+  
+  group = part;
+  if (nlink != 0) {
+	while ((group=group->next) != NULL){
+      toGroup = StrengthToGroup(node, group);
+      P += (toGroup*toGroup) / squared_st;
+    }
+
+    P = 1.0 - P;
+  }
+  //printf ("\n");
+
   return P;
 }
 
@@ -2375,6 +2431,51 @@ WithinModuleRelativeDegree(struct node_gra *node, struct group *part)
   return z;
 }
 
+
+
+
+/**
+Compute the the within-module relative strengh of a node. 
+
+Warning: The network must be properly mapped to the partition under
+consideration.
+**/
+double
+WithinModuleRelativeStrength(struct node_gra *node, struct group *part)
+{
+  struct node_lis *p;
+  double z;
+  struct group *group=NULL;
+
+  double inStrength;
+  double kmean = 0.0, k2mean = 0.0, kstd = 0.0;
+
+  // Find the group of the node
+  group = part;
+  while (group->label != node->inGroup)
+    group = group->next;
+
+  // Go through all the nodes in the group and calculate mean and
+  // standard deviation of the within-module strength 
+  p = group->nodeList;
+  while ((p = p->next) != NULL) {
+    inStrength = StrengthToGroup(p->ref, group);
+    kmean += (double)inStrength;
+    k2mean += (double)inStrength * (double)inStrength;
+  }
+  kmean /= (double)(group->size);
+  k2mean /= (double)(group->size);
+  kstd = sqrt(k2mean - kmean * kmean);
+  
+  // Calculate the z-score
+  if (kstd == 0.0)
+    z = 0.0;
+  else
+    z = ((double)StrengthToGroup(node, group) - kmean) / kstd;
+  return z;
+}
+
+
 /*
   ---------------------------------------------------------------------
   Create a role partition according to the roles defined in Guimera &
@@ -2409,6 +2510,54 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
     while ((p = p->next) != NULL) {
       P = ParticipationCoefficient(p->ref);
       z = WithinModuleRelativeDegree(p->ref, g);
+	  dest_group = GetRole(P,z);
+      
+      /* Add (softly) the node to the role group */
+      AddNodeToGroupSoft(glist[dest_group], p->ref->label);
+    } /* End of loop over nodes in this module */
+  } /* End of loop over modules */
+
+  /* Map the role partition onto the network and return*/
+  MapPartToNet(roles, net);
+  return roles;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Create a role partition using the strength of the nodes rather than
+  their degree.
+  
+  CAUTION: At the end of the process, the
+  network is mapped onto the role partition.
+  ---------------------------------------------------------------------
+*/
+struct group *
+CatalogRoleIdentStrength(struct node_gra *net, struct group *mod)
+{
+  struct group *roles = NULL;
+  struct node_lis *p;
+  int nroles = 7;
+  int dest_group;
+  int i;
+  struct group *glist[7];
+  struct group *g;
+  double z, P;
+
+  /* Create the groups */
+  roles = CreateHeaderGroup();
+  MapPartToNet(mod, net);
+  glist[0] = CreateGroup(roles, 0);
+  for (i=1; i<nroles; i++) {
+    glist[i] = CreateGroup(glist[i-1],i);
+  }
+  
+  /* Go through all the groups and assign roles to all the nodes */
+  g = mod;
+  while ((g = g->next) != NULL) {
+    p = g->nodeList;
+    while ((p = p->next) != NULL) {
+	  P = WeightedParticipationCoefficient(p->ref,mod);
+	  z = WithinModuleRelativeStrength(p->ref, g);
 	  dest_group = GetRole(P,z);
       
       /* Add (softly) the node to the role group */

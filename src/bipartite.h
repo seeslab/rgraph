@@ -74,7 +74,7 @@ void FPrintPajekFileBipart(char *fname,
 			   int weight_sw);
 
 void FPrintBipart (FILE *outf, struct binet *binet, int weight_sw);
-void FPrintTabNodesBipart(FILE *outf, struct binet *network,  struct group *modules);
+void FPrintTabNodesBipart(FILE *outf, struct binet *network,  struct group *modules, int degree_based);
 
 
 /*

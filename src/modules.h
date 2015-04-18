@@ -98,6 +98,7 @@ int NLinksToGroup(struct node_gra* node, struct group *g);
 int NWeightLinksToGroup(struct node_gra* node, struct group *g, double w);
 int NLinksToGroupByNum(struct node_gra* node, int gLabel);
 double StrengthToGroup(struct node_gra* node, struct group *g);
+double StrengthToGroupByNum(struct node_gra* node, int gLabel);
 int NG2GLinks(struct group *g1, struct group *g2);
 int NWeightG2GLinks(struct group *g1, struct group *g2, double w);
 double NG2GLinksWeight(struct group *g1, struct group *g2);
@@ -170,10 +171,18 @@ struct group *SACommunityIdent(struct node_gra *net,
   ---------------------------------------------------------------------
 */
 double ParticipationCoefficient(struct node_gra *node);
+double WeightedParticipationCoefficient(struct node_gra *node,
+										struct group *part);
 double WithinModuleRelativeDegree(struct node_gra *node,
-				  struct group *group);
+								  struct group *group);
+double WithinModuleRelativeStrength(struct node_gra *node,
+									struct group *group);
+
 struct group *CatalogRoleIdent(struct node_gra *net,
+							   struct group *comm);
+struct group *CatalogRoleIdentStrength(struct node_gra *net,
 			       struct group *comm);
+
 int GetRole(double P, double z);
 
 #endif /* !RGRAPH_MODULES_H */
