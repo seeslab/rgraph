@@ -2059,7 +2059,7 @@ Example:
 Mynode\t1\tR3\t0.6500\t-1.4400
 **/
 void
-FPrintTabNodesBipart(FILE *outf, struct binet *network,  struct group *modules)
+FPrintTabNodesBipart(FILE *outf, struct binet *network,  struct group *modules, int degree_based)
 {
   struct node_gra *projected;
   struct group    *g = NULL;
@@ -2079,21 +2079,22 @@ FPrintTabNodesBipart(FILE *outf, struct binet *network,  struct group *modules)
     n = g->nodeList;
 	group_nb ++;
     while ((n = n->next) != NULL) {
-      P = ParticipationCoefficient(n->ref);
-      z = WithinModuleRelativeDegree(n->ref, g);
-	  P_w = WeightedParticipationCoefficient(n->ref,modules);
-      z_w = WithinModuleRelativeStrength(n->ref, g);
-	  role = GetRole(P,z) + 1;
-	  role_w = GetRole(P_w,z_w) + 1;
-	  printf ("%-20s\t%d\tR%d\t%f\t%f\tR%d\t%f\t%f\n",
+	  if (degree_based==1){
+		P = ParticipationCoefficient(n->ref);
+		z = WithinModuleRelativeDegree(n->ref, g);
+		role = GetRole(P,z) + 1;
+	  }
+	  else{
+		P = WeightedParticipationCoefficient(n->ref,modules);
+		z = WithinModuleRelativeStrength(n->ref, g);
+		role = GetRole(P,z) + 1;
+	  }
+	  printf ("%-20s\t%d\tR%d\t%f\t%f\n",
 			  n->nodeLabel,
 			  group_nb,
 			  role,
 			  P,
-			  z,
-			  role_w,
-			  P_w,
-			  z_w);
+			  z);
 	}}
   // Remap the modules on the original network. 
   MapPartToNet(modules, network->net1);

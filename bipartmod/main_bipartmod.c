@@ -21,6 +21,7 @@ main(int argc, char **argv)
   struct group *roles_part = NULL;
   struct node_gra *projected = NULL;
   gsl_rng *randGen;
+  double degree_based = 0;
   double Ti, Tf;
   double Ts = 0.97;
   double fac = 1.0;
@@ -67,11 +68,16 @@ main(int argc, char **argv)
 	printf("\n# Use the weighted (0) or weighted (1) modularity. (Edge weight is extracted from the third column): ");
 	scanf("%d", &weighted);
 
+	printf("\n# Use the strength (0) or degree (1) based role metrics: ");
+	scanf("%d", &degree_based);
+
+
 	printf("\n# Choose between tabular output (0), module partition (1) or roles partition (2):");
 	scanf("%d", &output_type);}
   
+  
   else{
-	while ((c = getopt(argc, argv, "hwprmf:s:i:c:o:")) != -1)
+	while ((c = getopt(argc, argv, "hwprmdf:s:i:c:o:")) != -1)
 	  switch (c) {
 	  case 'h':
 		printf("\nUsage: bipartmod_cl [-f file] [-o file] [-s seed] [-i iter] [-c cool] [-pwmrh]\n"
@@ -83,6 +89,7 @@ main(int argc, char **argv)
 			   "\t -c cool: Cooling factor (recommended 0.950-0.995, default 0.97)\n "
 			   "\t -p : Find modules for the second column (default: first) \n"
 			   "\t -w : Read edge weights from the input's third column and uses the weighted modularity.\n"
+			   "\t -d : Use degree based role metrics (default: strength based metrics)"
 			   "\t -r : Output the roles partition rather than the default tabular output.\n"
 			   "\t -m : Output the modules partition rather than the default tabular output. \n"
 			   "\t -h : Display this message\n");
@@ -122,6 +129,10 @@ main(int argc, char **argv)
 	  case 'w':
 		weighted = 1;
 		break;
+	  case 'd':
+		degree_based = 1;
+		break;
+
 	  }
   }
 
@@ -180,7 +191,10 @@ main(int argc, char **argv)
   // if the tabular output is selected (output_type==0).
   if (output_type == 2){
 	projected = ProjectBipart(binet);
-	part = CatalogRoleIdent(projected,part);
+	if (degree_based==1)
+	  part = CatalogRoleIdent(projected,part);
+	else
+	  part = CatalogRoleIdentStrength(projected,part);
   }
 
   /*
@@ -201,7 +215,7 @@ main(int argc, char **argv)
 	  FPrintPartition(outF, part, 0);
 	else
 	  // Tabular output. 
-	  FPrintTabNodesBipart(outF, binet, part);
+	  FPrintTabNodesBipart(outF, binet, part, degree_based);
 
 
 	fclose(outF);
@@ -210,7 +224,7 @@ main(int argc, char **argv)
 	if (output_type != 0)
 	  FPrintPartition(stdout, part, 0);
 	else
-	  FPrintTabNodesBipart(stdout, binet, part);
+	  FPrintTabNodesBipart(stdout, binet, part, degree_based);
   }
   
   // Free memory

@@ -179,7 +179,10 @@ double WithinModuleRelativeStrength(struct node_gra *node,
 									struct group *group);
 
 struct group *CatalogRoleIdent(struct node_gra *net,
+							   struct group *comm);
+struct group *CatalogRoleIdentStrength(struct node_gra *net,
 			       struct group *comm);
+
 int GetRole(double P, double z);
 
 #endif /* !RGRAPH_MODULES_H */

@@ -2522,6 +2522,54 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
   return roles;
 }
 
+/*
+  ---------------------------------------------------------------------
+  Create a role partition using the strength of the nodes rather than
+  their degree.
+  
+  CAUTION: At the end of the process, the
+  network is mapped onto the role partition.
+  ---------------------------------------------------------------------
+*/
+struct group *
+CatalogRoleIdentStrength(struct node_gra *net, struct group *mod)
+{
+  struct group *roles = NULL;
+  struct node_lis *p;
+  int nroles = 7;
+  int dest_group;
+  int i;
+  struct group *glist[7];
+  struct group *g;
+  double z, P;
+
+  /* Create the groups */
+  roles = CreateHeaderGroup();
+  MapPartToNet(mod, net);
+  glist[0] = CreateGroup(roles, 0);
+  for (i=1; i<nroles; i++) {
+    glist[i] = CreateGroup(glist[i-1],i);
+  }
+  
+  /* Go through all the groups and assign roles to all the nodes */
+  g = mod;
+  while ((g = g->next) != NULL) {
+    p = g->nodeList;
+    while ((p = p->next) != NULL) {
+	  P = WeightedParticipationCoefficient(p->ref,mod);
+	  z = WithinModuleRelativeStrength(p->ref, g);
+	  dest_group = GetRole(P,z);
+      
+      /* Add (softly) the node to the role group */
+      AddNodeToGroupSoft(glist[dest_group], p->ref->label);
+    } /* End of loop over nodes in this module */
+  } /* End of loop over modules */
+
+  /* Map the role partition onto the network and return*/
+  MapPartToNet(roles, net);
+  return roles;
+}
+
 /**
   Returns the role number given a (P,z) tuple.  
 
