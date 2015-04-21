@@ -25,6 +25,7 @@ main(int argc, char **argv)
   double Ti, Tf;
   double Ts = 0.97;
   double fac = 1.0;
+  double modularity = 0;
   char fn_array[256];
   char fno_array[256];
   char *file_name;
@@ -210,9 +211,12 @@ main(int argc, char **argv)
 		printf("ERROR: Cannot write output (%s). \n", file_name_out);
 		return(1);
 	  }
-	if (output_type != 0)
+	if (output_type != 0){
 	  // Partition-type output (a la Netcarto).
 	  FPrintPartition(outF, part, 0);
+	  modularity = Modularity(part);
+	  fprintf(outF, "# Modularity = %g\n", modularity);
+	}
 	else
 	  // Tabular output. 
 	  FPrintTabNodesBipart(outF, binet, part, degree_based);
@@ -221,8 +225,11 @@ main(int argc, char **argv)
 	fclose(outF);
   }
   else{
-	if (output_type != 0)
+	if (output_type != 0){
 	  FPrintPartition(stdout, part, 0);
+	  modularity = Modularity(part);
+	  fprintf(stdout, "# Modularity = %g\n", modularity);
+	}
 	else
 	  FPrintTabNodesBipart(stdout, binet, part, degree_based);
   }
