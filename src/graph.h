@@ -5,8 +5,8 @@
 #ifndef RGRAPH_GRAPH_H
 #define RGRAPH_GRAPH_H 1
 
-//#include <search.h>
-#include "lib/search.h"
+#include <search.h>
+//include "lib/search.h"
 #include <gsl/gsl_rng.h>
 
 #define MAX_LABEL_LENGTH 100
