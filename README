@@ -63,7 +63,7 @@ from the installation directory.
 
 
 1) First of all, you have to download and install MinGW
-(http://sourceforce.net/projects/mingw/files/latest/download?source=files)
+(http://sourceforge.net/projects/mingw/files/latest/download?source=files)
 
 During the installation, when it prompts you the packages to install, select
 gcc, msys and mingw base. The other default options are OK.
