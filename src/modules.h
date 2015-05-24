@@ -113,6 +113,9 @@ void GroupSizeStatistics(struct group *part,
 			 double *theMin,
 			 double *theMax);
 
+/* a la DB Stouffer */
+void MergeGroupsFast(struct group *g1, struct group *g2);
+
 /*
   ---------------------------------------------------------------------
   Network-partition operations
