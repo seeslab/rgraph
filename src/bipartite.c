@@ -1995,7 +1995,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
     }
 
     if ((T < Ti / 1.0e6) && (output_sw == 'd')) {
-      fprintf(stderr, "En Change %: %g (Last En: %g), count: %i",
+      fprintf(stderr, "En Change %%: %g (Last En: %g), count: %i",
 	            (fabs(energy - energyant)/fabs(energyant)), fabs(energyant), count);
     }
 
