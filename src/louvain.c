@@ -7,11 +7,30 @@
 #include "graph.h"
 #include "modules.h"
 
+
+/**
+Louvain's algorithm of community detection for bipartite graphs. 
+
+The Louvain's method is a graph hierarchical clustering algorithm by
+optimization of a modularity function. It was first described in 2008
+by Blondel et al. using Newman's modularity. This method do not
+guarantee to reach the global optimum, but happens to be a powerful
+heuristic to treat very large graphs.
+
+This function is an implementation of the first step of this method
+for Guimera's bipartite modularity function (Guimera et al. 2007).  It
+is designed as a drop-in replacement for the SACommunityIdentBipart
+function defined in bipartite.c.
+
+@param binet The bipartite network to analyse. 
+@param epsilon Threshold under which the modularity gain is not considered
+significant anymore.
+**/
 struct group * LOUVCommunityIdentBipart(struct binet *binet, double epsilon)
 {
   double gain = epsilon;
   int gain_this_loop = 0;
-  int nnod;
+  int nagent;
   int gmax;
   double links=0, fac1=0, fac2=0, loss=0, ng=0;
   double **cooc;
