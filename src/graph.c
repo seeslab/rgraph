@@ -505,7 +505,7 @@ FBuildNetwork(FILE *inFile,
   void *node_dict=NULL;
   struct node_tree *n_tree=NULL, *ntree1=NULL, *ntree2=NULL;
   double weight;
-
+  int noReadItems;
   // Create the header of the graph
   root = last_add = CreateHeaderGraph();
 
@@ -513,13 +513,16 @@ FBuildNetwork(FILE *inFile,
   while (!feof(inFile)) {
     // Read the data
     if (weight_sw == 0) {
-      fscanf(inFile,"%s %s\n", &label1[0], &label2[0]);
+      noReadItems = fscanf(inFile,"%s %s\n", &label1[0], &label2[0]);
       weight = 1.;
+	  if (noReadItems != 2)
+		printf ("Failed to read input, incorrect field number (%d != 2)\n",noReadItems);
     }
     else {
-      fscanf(inFile,"%s %s %lf\n", &label1[0], &label2[0], &weight);
+      noReadItems = fscanf(inFile,"%s %s %lf\n", &label1[0], &label2[0], &weight);
+	  if (noReadItems != 3)
+		printf ("Failed to read input, incorrect field number (%d != 3)\n",noReadItems);
     }
-/*     printf("%s %s\n", label1, label2); */
    
     // Check if the nodes already exist, and create them otherwise
     n_tree = CreateNodeTree();

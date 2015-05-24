@@ -61,7 +61,7 @@ FBuildNetworkBipart(FILE *inFile,
   struct binet *net=NULL;
   double weight;
   struct node_tree *nodeTree=NULL, *ntree1=NULL, *ntree2=NULL;
-
+  int noReadItems = 0;
   /* Initialize the subnetworks */
   last1 = root1 = CreateHeaderGraph();
   last2 = root2 = CreateHeaderGraph();
@@ -71,11 +71,15 @@ FBuildNetworkBipart(FILE *inFile,
 
     /* Read the labels (and weight, if necessary) */
     if (weight_sw == 0) {
-      fscanf(inFile, "%s %s\n", label1, label2);
-      weight = 1.;
+      noReadItems = fscanf(inFile, "%s %s\n", label1, label2);
+	  if(noReadItems != 2)
+		printf ("Failed to read input: incorrect field number (%d!=2). \n",noReadItems);
+	  weight = 1.;
     }
     else {
-      fscanf(inFile,"%s %s %lf\n", label1, label2, &weight);
+      noReadItems = fscanf(inFile,"%s %s %lf\n", label1, label2, &weight);
+	  if(noReadItems != 3)
+		printf ("Failed to read input: incorrect field number (%d!=3). \n",noReadItems);
     }
 
     

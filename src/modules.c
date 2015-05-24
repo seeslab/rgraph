@@ -119,7 +119,8 @@ FCreatePartition(FILE *inF)
   struct group *g = NULL;
   struct group *part = NULL;
   int npart = 0;
-
+  int noReadItems;
+  
   /* Create the header of the partition */
   part = CreateHeaderGroup();
 
@@ -127,10 +128,16 @@ FCreatePartition(FILE *inF)
   while (!feof(inF)) {
     g = CreateGroup(part, npart);
     npart++;
-    fscanf(inF, "%s\n", &label[0]);
+    noReadItems = fscanf(inF, "%s\n", &label[0]);
+	if (noReadItems != 1)
+	  printf ("Failed to read input, incorrect field number (%d != 1)\n",noReadItems);
+
     while (strcmp(label, separator) != 0) {
       AddNodeToGroupSoft(g, label);
-      fscanf(inF, "%s\n", &label[0]);
+      noReadItems = fscanf(inF, "%s\n", &label[0]);
+	  if (noReadItems != 1)
+		printf ("Failed to read input, incorrect field number (%d != 1)\n",noReadItems);
+
     }
   }
 
