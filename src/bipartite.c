@@ -92,7 +92,7 @@ FBuildNetworkBipart(FILE *inFile,
     if (ntree1->ref == NULL)
       ntree1->ref = last1 = CreateNodeGraph(last1, label1);
     else
-      FreeNodeTree(nodeTree, preorder, 0);
+      FreeNodeTree(nodeTree);
     n1 = ntree1->ref;
 
     nodeTree = CreateNodeTree();
@@ -103,7 +103,7 @@ FBuildNetworkBipart(FILE *inFile,
     if (ntree2->ref == NULL)
       ntree2->ref = last2 = CreateNodeGraph(last2, label2);
     else
-      FreeNodeTree(nodeTree, preorder, 0);
+      FreeNodeTree(nodeTree);
     n2 = ntree2->ref;
 
     /* Create the links */
@@ -112,8 +112,8 @@ FBuildNetworkBipart(FILE *inFile,
   }
 
   /* Free memory */
-  tdestroy(dict1, FreeNodeTree);
-  tdestroy(dict2, FreeNodeTree);
+  FreeLabelDict(dict1);
+  FreeLabelDict(dict2);
 
   /* Create the bipartite network and return */
   net = CreateBipart();
@@ -502,8 +502,8 @@ CopyBipart(struct binet *binet)
   }
 
   /* Free memory */
-  tdestroy(dict1, FreeNodeTree);
-  tdestroy(dict2, FreeNodeTree);
+  FreeLabelDict(dict1);
+  FreeLabelDict(dict2);
   
   /* Done */
   return copy;
@@ -592,7 +592,7 @@ ProjectBipart(struct binet *binet)
   }
 
   /* Free memory and return */
-  tdestroy(dict, FreeNodeTree);
+  FreeLabelDict(dict);
   return projnet;
 }
 
@@ -1055,7 +1055,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
     RemovePartition(split);
     RemoveGraph(net);
     RemoveBipart(binet);
-    tdestroy(dict, FreeNodeTree);
+    FreeLabelDict(dict);
   }
   else {
     free(nlist);
@@ -1227,7 +1227,7 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
     RemovePartition(split);
     RemoveGraph(net);
     RemoveBipart(binet);
-    tdestroy(dict, FreeNodeTree);
+    FreeLabelDict(dict);
   }
   else {
     free(nlist);

@@ -1355,7 +1355,7 @@ MapPartToNetSoft(struct group *part, struct node_gra *net)
       node = (*(struct node_tree **)tfind((void *)treeNode,
 					  &nodeDict,
 					  NodeTreeLabelCompare))->ref;
-      FreeNodeTree(treeNode, preorder, 0);
+      FreeNodeTree(treeNode);
       /* Update the properties of the node */
       node->inGroup = g->label;
     }

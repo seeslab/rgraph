@@ -1,20 +1,13 @@
-/*
-  graph.c
-  $LastChangedDate$
-  $Revision$
-*/
-
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-//#include <search.h>
+#include <search.h>
 
 #include <gsl/gsl_rng.h>
 
 #include "tools.h"
 #include "datastruct.h"
 #include "graph.h"
-//#include "lib/search.h"
 
 // ---------------------------------------------------------------------
 // A graph is a collection of nodes. This function creates an empty
@@ -364,12 +357,10 @@ MakeLabelDict(struct node_gra *net)
 // ---------------------------------------------------------------------
 
 // ---------------------------------------------------------------------
-// Frees the memory allocated to a node_tree (needed by
-// tdestroy). VISIT value and int level are not used but are required
-// by tdestroy.
+// Frees the memory allocated to a node_tree.
 // ---------------------------------------------------------------------
 void
-FreeNodeTree(struct node_tree *ntree, VISIT value, int level)
+FreeNodeTree(struct node_tree *ntree)
 {
   free(ntree->label);
   free(ntree);
@@ -462,15 +453,36 @@ RemoveLink(struct node_gra *n1, struct node_gra *n2,
   }
 }
 
-// ---------------------------------------------------------------------
-// Frees the memory allocated to a label dictionary
-// ---------------------------------------------------------------------
+struct node_t
+{
+  /* Callers expect this to be the first element in the structure - do not
+     move!  */
+  const void *key;
+  struct node_t *left;
+  struct node_t *right;
+  unsigned int red:1;
+};
+
+/**
+@brief Free the memory allocated to a label dictionary.
+
+It recursively walk the binary search tree and free its element.
+
+@param dict A pointer to a dictionnary created with MakeLabelDict().
+*/
 void
 FreeLabelDict(void *dict)
 {
-  tdestroy(dict, FreeNodeTree);
-  return;
+  struct node_t *focal = (struct node_t*) dict;
+  if (focal != NULL){
+	struct node_tree *leaf = (struct node_tree*) focal->key;
+   	FreeLabelDict(focal->left); 
+   	FreeLabelDict(focal->right);
+	FreeNodeTree(leaf);
+  } 
 }
+
+
 
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
@@ -534,7 +546,7 @@ FBuildNetwork(FILE *inFile,
       ntree1->ref = last_add = CreateNodeGraph(last_add, label1);
     }
     else {
-      FreeNodeTree(n_tree, preorder, 0);
+      FreeNodeTree(n_tree);
     }
     n1 = ntree1->ref;
     
@@ -547,7 +559,7 @@ FBuildNetwork(FILE *inFile,
       ntree2->ref = last_add = CreateNodeGraph(last_add, label2);
     }
     else {
-      FreeNodeTree(n_tree, preorder, 0);
+      FreeNodeTree(n_tree);
     }
     n2 = ntree2->ref;
     
@@ -559,7 +571,7 @@ FBuildNetwork(FILE *inFile,
   }
 
   // Done
-  tdestroy(node_dict, FreeNodeTree);
+  FreeLabelDict(node_dict);
   return root;
 }
 
@@ -715,7 +727,7 @@ GetNodeDict(char *label, void *dict)
   treeNode = tfind((void *)tempTreeNode,
 		   &dict,
 		   NodeTreeLabelCompare);
-  FreeNodeTree(tempTreeNode, preorder, 0);
+  FreeNodeTree(tempTreeNode);
   
   if (treeNode != NULL)
     return (*(struct node_tree **)treeNode)->ref;
