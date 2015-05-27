@@ -479,6 +479,7 @@ FreeLabelDict(void *dict)
    	FreeLabelDict(focal->left); 
    	FreeLabelDict(focal->right);
 	FreeNodeTree(leaf);
+	free(focal);
   } 
 }
 
