@@ -1659,7 +1659,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
   struct group **glist, *lastg;
   int cicle1, cicle2;
   int count = 0, limit = 25;
-  double energy, energyant, dE, e;
+  double energy, energyant = 0.0, dE, e;
   double T;
   int target, oldg, newg;
   char* accepted;
