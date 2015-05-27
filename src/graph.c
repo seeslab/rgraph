@@ -2051,7 +2051,7 @@ OneNodeSquareClustering(struct node_gra *node,
 void
 CalculateLinkBetweenness(struct node_gra *root)
 {
-  int a,d,nodes,*size,i,counter,size_ant;
+  int a,d,*size,i,counter,size_ant;
   struct node_gra *p = root;
   struct node_bfs *list,*lp;
   double *bet_loc;
@@ -2072,8 +2072,6 @@ CalculateLinkBetweenness(struct node_gra *root)
   counter = 0;
   a = 0;
   size = &a;
-
-  nodes = CountNodes(root);
 
   // set the btw of all links to 0
   while(p->next != NULL){
@@ -2144,7 +2142,7 @@ CalculateLinkBetweenness(struct node_gra *root)
 void
 CalculateBiggestLinkBetweenness(struct node_gra *root,int *n1,int *n2)
 {
-  int a,d,nodes,*size,i,counter,size_ant;
+  int a,d,*size,i,counter,size_ant;
   struct node_gra *p = root;
   struct node_bfs *list,*lp;
   double *bet_loc;
@@ -2165,8 +2163,6 @@ CalculateBiggestLinkBetweenness(struct node_gra *root,int *n1,int *n2)
   counter = 0;
   a = 0;
   size = &a;
-
-  nodes = CountNodes(root);
 
   while(p->next != NULL){
     p = p->next;
@@ -2337,7 +2333,6 @@ NodeBetweennessStatistics(struct node_gra *net,
 {
   int nnod = CountNodes(net);
   double *betws = NULL;
-  int count = 0;
   struct node_gra *p = net;
   
   /* Allocate memory */

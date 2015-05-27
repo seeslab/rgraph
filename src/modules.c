@@ -340,13 +340,17 @@ AddNodeToGroup(struct group *g, struct node_gra *node)
   return p->next;
 }
 
-/* a la DB Stouffer */
+/**
+@brief Add a node to a graph without fully updating the group properties.
+@author DB Stouffer 
+
+Like AddNodeToGroup() but the group properties totlinks, inlinks,
+outlinks and their weighted counterpart are not updated.
+**/
 struct node_lis *
 AddNodeToGroupFast(struct group *g, struct node_gra *node)
 {
   struct node_lis *p = g->nodeList;
-  int totlink, inlink;
-  double totweight, inweight;
 
   /* Go to the end of the list of nodes in the group */
   while (p->next != NULL)
@@ -364,18 +368,8 @@ AddNodeToGroupFast(struct group *g, struct node_gra *node)
   (p->next)->btw=0.0;  /* initalising rush variable to 0.0; */
   (p->next)->weight=0.0;  /* initalising rush variable to 0.0; */
 
-  /* Update the properties of the group */
+  /* Partially update the properties of the group */
   g->size++;
-/*  totlink = CountLinks(node);
-  inlink = NLinksToGroup(node, g);
-  totweight = NodeStrengthFast(node);
-  inweight = StrengthToGroup(node, g);
-  g->totlinks += totlink - inlink;
-  g->inlinks += inlink;
-  g->outlinks = g->totlinks - g->inlinks;
-  g->totlinksW += totweight - inweight;
-  g->inlinksW += inweight;
-  g->outlinksW = g->totlinksW - g->inlinksW;*/
 
   /* Update the properties of the node */
   node->inGroup = g->label;
@@ -462,14 +456,21 @@ RemoveNodeFromGroup(struct group *g, struct node_gra *node)
   }
 }
 
-/* a la DB Stouffer */
+/**
+@brief Remove a node from a group without fully updating the group properties.
+@author DB Stouffer 
+
+Returns 1 if the node has been successfully removed and 0 if the node
+is not found in the group. 
+
+Like RemoveNodeFromGroup() but the group properties totlinks, inlinks,
+outlinks and their weighted counterpart are not updated.
+*/
 int 
 RemoveNodeFromGroupFast(struct group *g, struct node_gra *node)
 {
   struct node_lis *p = g->nodeList;
   struct node_lis *temp;
-  int totlink,inlink;
-  double totweight,inweight;
 
   /* Find the node */
   while ((p->next != NULL) && ((p->next)->ref != node))
@@ -483,19 +484,9 @@ RemoveNodeFromGroupFast(struct group *g, struct node_gra *node)
     free(temp->nodeLabel);
     free(temp);
 
-    /* Update the properties of the group */
+    /* Partially update the properties of the group */
     g->size--;
-/*    totlink = CountLinks(node);
-    inlink = NLinksToGroup(node, g);
-    totweight = NodeStrengthFast(node);
-    inweight = StrengthToGroup(node, g);
-    g->totlinks -= totlink - inlink;
-    g->inlinks -= inlink;
-    g->outlinks = g->totlinks - g->inlinks;
-    g->totlinksW -= totweight - inweight;
-    g->inlinksW -= inweight;
-    g->outlinksW = g->totlinksW - g->inlinksW;*/
-
+	
     /* Done */
     return 1;
   }
@@ -517,13 +508,22 @@ MoveNode(struct node_gra *node, struct group *old, struct group *new)
   return 1;
 }
 
-/* a la DB Stouffer */
+/**
+@brief Move a node from a group without fully updating the group properties.
+@author DB Stouffer 
+
+Returns 1 if the node has been successfully removed and 0 if the node
+is not in the old group. 
+
+Like MoveNode() but the group properties totlinks, inlinks,
+outlinks and their weighted counterpart are not updated.
+*/
 int
 MoveNodeFast(struct node_gra *node, struct group *old, struct group *new)
 {
   if (RemoveNodeFromGroupFast(old,node) == 0)
     return 0;
-
+  
   AddNodeToGroupFast(new, node);
   return 1;
 }
@@ -698,7 +698,7 @@ BlockModel(struct group *part, char type_sw, int list_sw)
   int links = 0;
   int nodes = 0;
   double prob;
-  double bij, av, sig;
+  double bij=0, av, sig;
 
   /* Count the total number of nodes and links, and the average
      linking probability */
@@ -1980,7 +1980,7 @@ SACommunityIdent(struct node_gra *net,
   int i;
   struct group *part = NULL;
   struct group *split = NULL, *g = NULL;
-  struct group **glist, *lastg;
+  struct group **glist = NULL, *lastg;
   struct node_gra **nlist;
   struct node_gra *p;
   struct node_lis *nod;
