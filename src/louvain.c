@@ -160,7 +160,8 @@ struct group * LOUVCommunityIdentBipart(struct binet *binet, double epsilon, int
   free_d_mat(cooc,nagent);
   free_i_vec(degree);
   free(glist);
-
+  RemoveGraph(projected);
+  
   return CompressPart(part);
 }
 
