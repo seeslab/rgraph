@@ -23,7 +23,7 @@ main(int argc, char **argv)
   /* Command line parameters */
   if (argc < 2) {
     printf("\nUse: netprop net_file\n\n");
-    return;
+    return -1;
   }
   netF = argv[1];
 /*   seed = atoi(argv[2]); */

@@ -25,7 +25,7 @@ main(int argc, char **argv)
   */
   if (argc < 2) {
     printf("\nUse: countlinks.out net_file\n\n");
-    return;
+    return -1;
   }
   netF = argv[1];
 

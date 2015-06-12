@@ -684,3 +684,613 @@ LinkScoreMB(struct node_gra *net,
 
   return predA;
 }
+/*
+  ---------------------------------------------------------------------
+  Partition H OR
+  ---------------------------------------------------------------------
+*/
+double
+ORPartitionHMB(struct group *part, double linC, double *HarmonicList)
+{
+  struct group *g1=part, *g2;
+  int r, l;
+  int ng=0;      /* Number of non-empty groups */
+  int nnod=0;  /* Number of nodes */
+  double H=0.0;
+
+  H += linC * NNonEmptyGroups(part);
+
+  while ((g1 = g1->next) != NULL) {
+    if (g1->size > 0) {
+      ng++;
+      nnod += g1->size;
+      r = g1->size * (g1->size - 1) / 2;
+      l = g1->inlinks;
+      H += log(r + 1) + LogChoose(r, l);
+      H -= log(HarmonicList[r + 1] - HarmonicList[r - l]);
+      g2 = g1;
+      while ((g2 = g2->next) != NULL) {
+	if (g2->size > 0) {
+	  r = g1->size * g2->size;
+	  l = NG2GLinks(g1, g2);
+	  H += log(r + 1) + LogChoose(r, l);
+	  H -= log(HarmonicList[r + 1] - HarmonicList[r - l]);
+	}
+      }
+    }
+  }
+
+  H -= gsl_sf_lnfact(nnod - ng);
+  H -= LogDegeneracy(ng);
+
+  return H;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Do a Monte Carlo step for the prediction of missing links. Each
+  "step" involves nnod independent attempts to move a single node.
+  ---------------------------------------------------------------------
+*/
+void
+ORLSMCStepMB(int factor,
+	   double *H,
+	   double linC,
+	   struct node_gra **nlist,
+	   struct group **glist,
+	   struct group *part,
+	   int nnod,
+	   int **G2G,
+	   int *n2gList,
+	   double **LogChooseList,
+	   int LogChooseListSize,
+	   double *LogFactList, int LogFactListSize,
+	   double *HarmonicList,
+	   gsl_rng *gen)
+{
+  double dH;
+  struct group *g, *oldg, *newg;
+  int dice, oldgnum, newgnum, n2g, oldg2g, newg2g, ng, noldg, nnewg;
+  struct node_gra *node;
+  int n2oldg, n2newg, newg2oldg, oldg2oldg, newg2newg;
+  int r, l;
+  int i, j, ngroup=nnod;
+  int move;
+  int effectng=0;
+
+  for (move=0; move<nnod*factor; move++) {
+
+    /* Choose node and destination group */
+    dice = floor(gsl_rng_uniform(gen) * (double)nnod);
+    node = nlist[dice];
+    oldgnum = node->inGroup;
+    do {
+      newgnum = floor(gsl_rng_uniform(gen) * (double)nnod);
+    } while (newgnum == oldgnum);
+    oldg = glist[oldgnum];
+    newg = glist[newgnum];
+    
+    /* Calculate the change of energy */
+    dH = 0.0;
+    noldg = oldg->size;
+    nnewg = newg->size;
+    if (noldg == 1)  /* number of groups would decrease by one */ 
+      dH -= linC;
+    if (nnewg == 0)  /* number of groups would increase by one */
+      dH += linC;
+    n2oldg = NLinksToGroup(node, oldg);
+    n2newg = NLinksToGroup(node, newg);
+    newg2oldg = NG2GLinks(newg, oldg);
+    oldg2oldg = oldg->inlinks;
+    newg2newg = newg->inlinks;
+    g = part;
+    effectng = 0;
+    while ((g = g->next) != NULL) {
+      if (g->size > 0) {  /* group is not empty */
+	effectng++;
+	n2gList[g->label] = NLinksToGroup(node, g);
+	if (g->label == oldg->label) {
+	  /* old conf, oldg-oldg */
+	  r = noldg * (noldg - 1) / 2;
+	  l = oldg2oldg;
+	  dH -= log(r + 1) + FastLogChoose(r, l,
+					   LogChooseList, LogChooseListSize);
+	  dH -= -log(HarmonicList[r + 1] - HarmonicList[r - l]);
+	  /* new conf, oldg-oldg */
+	  r = (noldg - 1) * (noldg - 2) / 2;
+	  l = oldg2oldg - n2oldg;
+	  dH += log(r + 1) + FastLogChoose(r, l,
+					   LogChooseList, LogChooseListSize);
+	  dH += -log(HarmonicList[r + 1] - HarmonicList[r - l]);
+	  /* old conf, newg-oldg */
+	  r = nnewg * noldg;
+	  l = newg2oldg;
+	  dH -= log(r + 1) + FastLogChoose(r, l,
+					   LogChooseList, LogChooseListSize);
+	  dH -= -log(HarmonicList[r + 1] - HarmonicList[r - l]);
+	  /* new conf, newg-oldg */
+	  r = (nnewg + 1) * (noldg - 1);
+	  l = newg2oldg + n2oldg - n2newg;
+	  dH += log(r + 1) + FastLogChoose(r, l,
+					   LogChooseList, LogChooseListSize);
+	  dH += -log(HarmonicList[r + 1] - HarmonicList[r - l]);
+	}
+	else if (g->label == newg->label) {
+	  /* old conf, newg-newg */
+	  r = nnewg * (nnewg - 1) / 2;
+	  l = newg2newg;
+	  dH -= log(r + 1) + FastLogChoose(r, l,
+					   LogChooseList, LogChooseListSize);
+	  dH -= -log(HarmonicList[r + 1] - HarmonicList[r - l]);
+	  /* new conf, newg-newg */
+	  r = (nnewg + 1) * nnewg / 2;
+	  l = newg2newg + n2newg;
+	  dH += log(r + 1) + FastLogChoose(r, l,
+					   LogChooseList, LogChooseListSize);
+	  dH += -log(HarmonicList[r + 1] - HarmonicList[r - l]);
+	}
+	else {
+	  n2g = n2gList[g->label];
+	  oldg2g = G2G[oldg->label][g->label];
+	  newg2g = G2G[newg->label][g->label];
+	  ng = g->size;
+	  /* old conf, oldg-g */
+	  r = noldg * ng;
+	  l = oldg2g;
+	  dH -= log(r + 1) + FastLogChoose(r, l,
+					   LogChooseList, LogChooseListSize);
+	  dH -= -log(HarmonicList[r + 1] - HarmonicList[r - l]);
+	  /* new conf, oldg-g */
+	  r = (noldg - 1) * ng;
+	  l = oldg2g - n2g;
+	  dH += log(r + 1) + FastLogChoose(r, l,
+					   LogChooseList, LogChooseListSize);
+	  dH += -log(HarmonicList[r + 1] - HarmonicList[r - l]);
+	  /* old conf, newg-g */
+	  r = nnewg * ng;
+	  l = newg2g;
+	  dH -= log(r + 1) + FastLogChoose(r, l,
+					   LogChooseList, LogChooseListSize);
+	  dH -= -log(HarmonicList[r + 1] - HarmonicList[r - l]);
+	  /* new conf, newg-g */
+	  r = (nnewg + 1) * ng;
+	  l = newg2g + n2g;
+	  dH += log(r + 1) + FastLogChoose(r, l,
+					   LogChooseList, LogChooseListSize);
+	  dH += -log(HarmonicList[r + 1] - HarmonicList[r - l]);
+	}
+      }
+      else { /* group is empty */
+	n2gList[g->label] = 0.0;
+      }
+    }
+
+    /* Labeled-groups sampling correction */
+    if (noldg == 1 && nnewg != 0) { // effectng would decrease by one
+      dH -= -FastLogFact(ngroup - effectng, LogFactList, LogFactListSize);
+      dH += -FastLogFact(ngroup - (effectng-1), LogFactList, LogFactListSize);
+      dH += LogDegeneracy(effectng) - LogDegeneracy(effectng - 1);
+    }
+    else if (noldg != 1 && nnewg == 0) {  // effectng would increase by one
+      dH -= -FastLogFact(ngroup - effectng, LogFactList, LogFactListSize);
+      dH += -FastLogFact(ngroup - (effectng+1), LogFactList, LogFactListSize);
+      dH += LogDegeneracy(effectng) - LogDegeneracy(effectng + 1);
+    }
+
+    /* Metropolis rule */
+    if ((dH <= 0.0) || (gsl_rng_uniform(gen) < exp(-dH))) {
+      
+      /* accept move */
+      MoveNode(node, oldg, newg);
+      *H += dH;
+    
+      /* update G2G */
+      for (i=0; i<nnod; i++) {
+	G2G[i][oldgnum] -= n2gList[i];
+	G2G[oldgnum][i] = G2G[i][oldgnum];
+	G2G[i][newgnum] += n2gList[i];
+	G2G[newgnum][i] = G2G[i][newgnum];
+      }
+    }
+  } /* nnod moves completed: done! */
+}
+
+
+/*
+  ---------------------------------------------------------------------
+  
+  ---------------------------------------------------------------------
+*/
+int
+ORGetDecorrelationStepMB(double *H,
+		       double linC,
+		       struct node_gra **nlist,
+		       struct group **glist,
+		       struct group *part,
+		       int nnod,
+		       int **G2G,
+		       int *n2gList,
+		       double **LogChooseList,
+		       int LogChooseListSize,
+		       double *LogFactList, int LogFactListSize,
+		       double *HarmonicList,
+		       gsl_rng *gen,
+		       char verbose_sw)
+{
+  struct group *partRef;
+  int step, x1, x2;
+  double y1, y2;
+  double mutualInfo;
+  int rep, nrep=10;
+  double *decay, meanDecay, sigmaDecay, result;
+  int norm=0;
+
+  x2 = nnod / 5;
+  x1 = x2 / 4;
+
+  /* Get the nrep initial estimates */
+  decay = allocate_d_vec(nrep);
+  for (rep=0; rep<nrep; rep++) {
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    default:
+      fprintf(stderr, "#\n# Estimating decorrelation time (%d/%d)\n",
+	      rep + 1, nrep);
+      break;
+    }
+    partRef = CopyPartition(part);
+    for (step=0; step<=x2; step++) {
+      ORLSMCStepMB(1, H, linC, nlist, glist, part,
+		 nnod, G2G, n2gList,
+		 LogChooseList, LogChooseListSize,
+		 LogFactList, LogFactListSize, HarmonicList,
+		 gen);
+      if (step == x1)
+	y1 = MutualInformation(partRef, part);
+    }
+    y2 = MutualInformation(partRef, part);
+    RemovePartition(partRef);
+    decay[rep] = 2. * CalculateDecay(nnod, x1, y1, x2, y2);
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    default:
+      fprintf(stderr, "# Decorrelation time (estimate %d) = %g\n",
+	      rep + 1, decay[rep]);
+      break;
+    }
+    if (decay[rep] < 0) {
+      rep--;
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "#\tignoring...\n");
+	break;
+      }
+    }
+  }
+  
+  /* Get rid of bad estimates (Chauvenet criterion)  */
+  meanDecay = mean(decay, nrep);
+  sigmaDecay = stddev(decay, nrep);
+  result = meanDecay * nrep;
+  for (rep=0; rep<nrep; rep++) {
+    if (fabs(decay[rep] - meanDecay) / sigmaDecay > 2) {
+      result -= decay[rep];
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "# Disregarding estimate %d\n", rep + 1);
+	break;
+      }
+    }
+    else {
+      norm++;
+    }
+  }
+  
+  /* Clean up */
+  free_d_vec(decay);
+
+  return result / norm;
+}
+
+/*
+  ---------------------------------------------------------------------
+  
+  ---------------------------------------------------------------------
+*/
+void
+ORThermalizeLSMCMB(int decorStep,
+		 double *H,
+		 double linC,
+		 struct node_gra **nlist,
+		 struct group **glist,
+		 struct group *part,
+		 int nnod,
+		 int **G2G,
+		 int *n2gList,
+		 double **LogChooseList,
+		 int LogChooseListSize,
+		 double *LogFactList, int LogFactListSize,
+		 double *HarmonicList,
+		 gsl_rng *gen,
+		 char verbose_sw)
+{
+  double HMean0=1.e10, HStd0=1.e-10, HMean1, HStd1, *Hvalues;
+  int rep, nrep=20;
+  int equilibrated=0;
+
+  Hvalues = allocate_d_vec(nrep);
+
+  do {
+    
+    /* MC steps */
+    for (rep=0; rep<nrep; rep++) {
+      ORLSMCStepMB(decorStep, H, linC, nlist, glist, part,
+		 nnod, G2G, n2gList,
+		 LogChooseList, LogChooseListSize,
+		 LogFactList, LogFactListSize, HarmonicList,
+		 gen);
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "%lf\n", *H);
+	break;
+      }
+      Hvalues[rep] = *H;
+    }
+
+    /* Check for equilibration */
+    HMean1 = mean(Hvalues, nrep);
+    HStd1 = stddev(Hvalues, nrep);
+    if ((HMean0 - HStd0 / sqrt(nrep)) - (HMean1 + HStd1 / sqrt(nrep))
+	< EPSILON) {
+      equilibrated++;
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "#\tequilibrated (%d/5) H=%lf\n",
+		equilibrated, HMean1);
+	break;
+      }
+    }
+    else {
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "#\tnot equilibrated yet H0=%g+-%g H1=%g+-%g\n",
+		HMean0, HStd0 / sqrt(nrep), HMean1, HStd1 / sqrt(nrep));
+	break;
+      }
+      HMean0 = HMean1;
+      HStd0 = HStd1;
+      equilibrated = 0;
+    }
+
+  } while (equilibrated < 5);
+  
+  /* Clean up */
+  free_d_vec(Hvalues);
+
+  return;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Predict the links missing in a network. The algorithm returns a
+  matrix of scores for all links.
+  ---------------------------------------------------------------------
+*/
+double **
+ORLinkScoreMB(struct node_gra *net,
+	    double linC,
+	    int nIter,
+	    gsl_rng *gen,
+	    char verbose_sw)
+{
+  int nnod=CountNodes(net);
+  struct group *part=NULL;
+  struct node_gra *p=NULL, *node=NULL;
+  struct node_gra **nlist=NULL;
+  struct group **glist=NULL;
+  struct group *lastg=NULL;
+  double H;
+  int iter, decorStep;
+  double **predA_OR=NULL;
+  int i, j;
+  int **G2G=NULL;
+  int *n2gList=NULL;
+  int LogChooseListSize = 500;
+  double **LogChooseList=InitializeFastLogChoose(LogChooseListSize);
+  double *HarmonicList=NULL;
+  struct node_lis *p1=NULL, *p2=NULL;
+  double contrib_OR;
+  int dice;
+  double Z_OR=0.0;
+  int r, l;
+  double mutualInfo;
+  int LogFactListSize = 10000;
+  double *LogFactList=InitializeFastLogFact(LogFactListSize);
+  
+  /*
+    PRELIMINARIES
+  */
+  /* Initialize the table of harmonic numbers */
+  HarmonicList = InitializeHarmonicList(1 + nnod * (nnod - 1) / 2);
+
+  /* Initialize the predicted adjacency matrix */
+  predA_OR = allocate_d_mat(nnod, nnod);
+  for (i=0; i<nnod; i++) {
+    for (j=0; j<nnod; j++) {
+      predA_OR[i][j] = 0.0;
+    }
+  }
+
+  /* Map nodes and groups to a list for faster access */
+  nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
+  glist = (struct group **) calloc(nnod, sizeof(struct group *));
+  lastg = part = CreateHeaderGroup();
+  p = net;
+  while ((p = p->next) != NULL) {
+    nlist[p->num] = p;
+    lastg = glist[p->num] = CreateGroup(lastg, p->num);
+  }
+
+  /* Place nodes in random partitions */
+  p = net;
+  ResetNetGroup(net);
+  while ((p = p->next) != NULL) {
+    dice = floor(gsl_rng_uniform(gen) * (double)nnod);
+    AddNodeToGroup(glist[dice], p);
+  }
+
+  /* Get the initial group-to-group links matrix */
+  G2G = allocate_i_mat(nnod, nnod);
+  n2gList = allocate_i_vec(nnod);
+  for (i=0; i<nnod; i++) {
+    G2G[i][i] = glist[i]->inlinks;
+    for (j=i+1; j<nnod; j++) {
+      G2G[i][j] = G2G[j][i] = NG2GLinks(glist[i], glist[j]);
+    }
+  }
+
+  /*
+    GET READY FOR THE SAMPLING
+  */
+  /* Get the decorrelation time */
+  H = ORPartitionHMB(part, linC, HarmonicList);
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "# CALCULATING DECORRELATION TIME\n");
+    fprintf(stderr, "# ------------------------------\n");
+    break;
+  }
+  decorStep = ORGetDecorrelationStepMB(&H, linC, nlist, glist, part,
+  				     nnod, G2G, n2gList,
+  				     LogChooseList, LogChooseListSize,
+  				     LogFactList, LogFactListSize,
+  				     HarmonicList,
+  				     gen, verbose_sw);
+
+  /* Thermalization */
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "#\n#\n# THERMALIZING\n");
+    fprintf(stderr, "# ------------\n");
+    break;
+  }
+  ORThermalizeLSMCMB(decorStep, &H, linC, nlist, glist, part,
+  		   nnod, G2G, n2gList,
+  		   LogChooseList, LogChooseListSize,
+  		   LogFactList, LogFactListSize, HarmonicList,
+  		   gen, verbose_sw);
+  
+  /*
+    SAMPLIN' ALONG
+  */
+  /* Unless we are in debug mode, reset the origin of energies */
+  switch (verbose_sw) {
+  case 'd':
+    break;
+  default:
+    H = 0.0;
+    break;
+  }
+
+  /* Do the MC Steps */
+  for (iter=0; iter<nIter; iter++) {
+    ORLSMCStepMB(decorStep, &H, linC, nlist, glist, part,
+	       nnod, G2G, n2gList,
+	       LogChooseList, LogChooseListSize,
+	       LogFactList, LogFactListSize, HarmonicList,
+	       gen);
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    case 'v':
+      fprintf(stderr, "%d %lf\n", iter, H);
+      break;
+    case 'd':
+      fprintf(stderr, "%d %lf %lf\n",
+	      iter, H, ORPartitionHMB(part, linC, HarmonicList));
+      break;
+    }
+
+
+    Z_OR += 1.0;
+
+    /* Update the predicted adjacency matrix by going through all
+       group pairs */
+    for (i=0; i<nnod; i++) {
+      if (glist[i]->size > 0) {
+	
+	/* update the within-group pairs */
+	r = glist[i]->size * (glist[i]->size - 1) / 2;
+	l = glist[i]->inlinks;
+	contrib_OR = \
+	  (float)(r - l + 1) * (HarmonicList[r+2] - HarmonicList[r-l+1])	\
+	  / ((float)(r + 2) * (HarmonicList[r+1] - HarmonicList[r-l]));
+	
+	p1 = glist[i]->nodeList;
+	while ((p1 = p1->next) != NULL) {
+	  p2 = p1;
+	  while ((p2 = p2->next) != NULL) {
+	    predA_OR[p1->node][p2->node] += contrib_OR;
+	    predA_OR[p2->node][p1->node] += contrib_OR;
+	  }
+	}
+      
+	/* update the between-group pairs */
+	for (j=i+1; j<nnod; j++) {
+	  if (glist[j]->size > 0) {
+	    l = G2G[i][j];
+	    r = glist[i]->size * glist[j]->size;
+	    contrib_OR = \
+	      (float)(r - l + 1) * (HarmonicList[r+2] - HarmonicList[r-l+1]) \
+	      / ((float)(r + 2) * (HarmonicList[r+1] - HarmonicList[r-l]));
+	    p1 = glist[i]->nodeList;
+	    while ((p1 = p1->next) != NULL) {
+	      p2 = glist[j]->nodeList;
+	      while ((p2 = p2->next) != NULL) {
+		predA_OR[p1->node][p2->node] += contrib_OR;
+		predA_OR[p2->node][p1->node] += contrib_OR;
+	      }
+	    }
+	  }
+	}
+      }
+    } /* Done updating adjacency matrix */
+
+  }  /* End of iter loop */
+
+  /* Normalize the predicted adjacency matrix */
+  for (i=0; i<nnod; i++) {
+    for (j=0; j<nnod; j++) {
+      predA_OR[i][j] /= Z_OR;
+      predA_OR[i][j] = 1-predA_OR[i][j];
+    }
+  }
+
+  /* Done */
+  RemovePartition(part);
+  free(glist);
+  free(nlist);
+  free_i_mat(G2G, nnod);
+  free_i_vec(n2gList);
+  FreeFastLogChoose(LogChooseList, LogChooseListSize);
+  FreeFastLogFact(LogFactList);
+  FreeHarmonicList(HarmonicList);
+
+  return predA_OR;
+}

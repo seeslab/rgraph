@@ -71,10 +71,55 @@ double ***LinkScoreMB(struct node_gra *net,
 		      int nIter,
 		      gsl_rng *gen,
 		      char verbose_sw);
-
-
-
-
+double ORPartitionHMB(struct group *part, double linC, double *HarmonicList);
+void ORLSMCStepMB(int factor,
+                double *H,
+                double linC,
+                struct node_gra **nlist,
+                struct group **glist,
+                struct group *part,
+                int nnod,
+                int **G2G,
+                int *n2gList,
+                double **LogChooseList,
+                int LogChooseListSize,
+                double *LogFactList, int LogFactListSize,
+                double *HarmonicList,
+                gsl_rng *gen);
+int ORGetDecorrelationStepMB(double *H,
+                           double linC,
+                           struct node_gra **nlist,
+                           struct group **glist,
+                           struct group *part,
+                           int nnod,
+                           int **G2G,
+                           int *n2gList,
+                           double **LogChooseList,
+                           int LogChooseListSize,
+                           double *LogFactList, int LogFactListSize,
+                           double *HarmonicList,
+                           gsl_rng *gen,
+                           char verbose_sw);
+void ORThermalizeLSMCMB(int decorStep,
+                      double *H,
+                      double linC,
+                      struct node_gra **nlist,
+                      struct group **glist,
+                      struct group *part,
+                      int nnod,
+                      int **G2G,
+                      int *n2gList,
+                      double **LogChooseList,
+                      int LogChooseListSize,
+                      double *LogFactList, int LogFactListSize,
+                      double *HarmonicList,
+                      gsl_rng *gen,
+                      char verbose_sw);
+double **ORLinkScoreMB(struct node_gra *net,
+                      double linC,
+                      int nIter,
+                      gsl_rng *gen,
+                      char verbose_sw);
 
 
 #endif /* !RGRAPH_MULTIBLOCK_H */

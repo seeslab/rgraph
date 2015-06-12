@@ -33,7 +33,7 @@ main(int argc, char **argv)
   /* Command line parameters */
   if (argc < 3) {
     printf("\nUse: multi_recommend_2.out observation_file seed\n\n");
-    return;
+    return -1;
   }
   obsFile = argv[1];
   seed = atoi(argv[2]);

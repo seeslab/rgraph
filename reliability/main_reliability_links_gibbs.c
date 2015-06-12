@@ -33,7 +33,7 @@ main(int argc, char **argv)
   */
   if (argc < 2) {
     printf("\nUse: links net_file seed\n\n");
-    return;
+    return -1;
   }
   netF = argv[1];
   seed = atoi(argv[2]);
