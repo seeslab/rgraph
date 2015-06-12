@@ -26,7 +26,7 @@ function defined in bipartite.c.
 @param epsilon Threshold under which the modularity gain is not considered
 significant anymore.
 **/
-struct group * LOUVCommunityIdentBipart(struct binet *binet, double epsilon)
+struct group * LOUVCommunityIdentBipart(struct binet *binet, double epsilon, int weighted)
 {
   double gain = epsilon;
   int gain_this_loop = 0;
@@ -35,6 +35,7 @@ struct group * LOUVCommunityIdentBipart(struct binet *binet, double epsilon)
   double links=0, fac1=0, fac2=0, loss=0, ng=0;
   double **cooc;
   int *degree=NULL;
+  double min;
   struct node_gra *agents = binet->net1;
   struct node_gra *focal, *node;
   struct node_lis *neigh, *member;
@@ -60,11 +61,23 @@ struct group * LOUVCommunityIdentBipart(struct binet *binet, double epsilon)
 
   // Denominators from degree of teams.
   focal = binet->net2;
-  while ((focal = focal->next) != NULL) {
-	links = (double)CountLinks(focal);
-	fac1 += links * (links - 1);
-	fac2 += links;
-  }
+  if (weighted == 0){
+	while ((focal = focal->next) != NULL) {
+	  links = (double)CountLinks(focal);
+	  fac1 += links * (links - 1);
+	  fac2 += links;
+	}}
+  else{
+	while ((focal = focal->next) != NULL) {
+	  links = (double)NodeStrengthFast(focal);
+	  min = links;
+	  neigh = focal->neig;
+	  while ((neigh = neigh->next) != NULL){
+		if (neigh->weight > min) min = neigh->weight;
+	  }
+	  fac1 += links * (links - min);
+	  fac2 += links;
+	}}
   fac1 = 1. / fac1; // 1/sum_a[m_a(m_a-1)]
   fac2 = 1. / fac2; // 1/sum_a[m_a]
 
@@ -73,29 +86,27 @@ struct group * LOUVCommunityIdentBipart(struct binet *binet, double epsilon)
   cooc = allocate_d_mat(nagent, nagent);
   degree = allocate_i_vec(nagent);
   focal = agents;
-  while ((focal = focal->next) != NULL) {
-	degree[focal->num] = fac2 * CountLinks(focal);
-	node = agents;
-	while ((node = node->next) != NULL)
-	  cooc[focal->num][node->num] = fac1 * (double)NCommonLinksBipart(focal, node);
+  if (weighted == 0){
+	while ((focal = focal->next) != NULL) {
+	  degree[focal->num] = fac2 * (double)CountLinks(focal);
+	  node = agents;
+	  while ((node = node->next) != NULL)
+		cooc[focal->num][node->num] = fac1 * (double)NCommonLinksBipart(focal, node);
+	}
   }
-
+  else{
+	while ((focal = focal->next) != NULL) {
+	  degree[focal->num] = fac2 * (double)NodeStrengthFast(focal);
+	  node = agents;
+	  while ((node = node->next) != NULL)
+		cooc[focal->num][node->num] = fac1 * (double)SumProductsOfCommonWeightsBipart(focal, node);
+	}
+  }
   //// MAIN LOOP TROUGH THE NODES.
   focal = projected->next;
   while(1){
 	gain = .5 * epsilon; //because we are only computing 0.5 Delta M
 	gmax = -1;
-
-	/*
-	neigh = focal->neig;
-	while ((neigh = neigh->next) != NULL)
-	  printf ("Neighbor %d, %d, in group %d\n",
-	  neigh->node, neigh->ref->num, neigh->ref->inGroup);
-	member = glist[focal->inGroup]->nodeList;
-	while ((member = member->next) != NULL)
-	  printf ("Member %d, in group %d\n",
-	  member->ref->num, member->ref->inGroup);
-	*/
 
 	// modularity loss if the focal node is removed from its group.
 	loss = 0;
@@ -152,3 +163,5 @@ struct group * LOUVCommunityIdentBipart(struct binet *binet, double epsilon)
 
   return CompressPart(part);
 }
+
+
