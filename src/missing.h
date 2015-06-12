@@ -16,6 +16,8 @@
 #include "modules.h"
 #include "recommend.h"
 
+#define EPSILON 1.e-6
+
 /*
   ---------------------------------------------------------------------
   Missing links
@@ -24,7 +26,8 @@
 int ExponentialRootF(const gsl_vector *params, void *points, gsl_vector *f);
 double CalculateDecay(int nnod, double x1, double y1, double x2, double y2);
 double PartitionH(struct group *part, double linC);
-void LinkScoreMCStep(double *H,
+void LinkScoreMCStep(int factor,
+		     double *H,
 		     double linC,
 		     struct node_gra **nlist,
 		     struct group **glist,
@@ -179,44 +182,6 @@ double **GibbsLinkScore(struct node_gra *net,
 			int nIter,
 			gsl_rng *gen,
 			char verbose_sw);
-
-
-
-
-
-double SparsePartitionH(struct group *part, double betaA, double betaB);
-void SparseGibbsLinkScoreStep(double *H,
-			      struct node_gra **nlist,
-			      struct group **glist,
-			      struct group *part,
-			      int nnod,
-			      int **G2G,
-			      int *n2gList,
-			      double *LogGammaListA,
-			      double *LogGammaListB,
-			      double *LogGammaListAB,
-			      int LogGammaListSize,
-			      double *LogFactList, int LogFactListSize,
-			      double betaA, double betaB,
-			      gsl_rng *gen);
-void SparseGibbsThermalizeLinkScore(double *H,
-				    struct node_gra **nlist,
-				    struct group **glist,
-				    struct group *part,
-				    int nnod,
-				    int **G2G,
-				    int *n2gList,
-				    double *LogGammaListA,
-				    double *LogGammaListB,
-				    double *LogGammaListAB,
-				    int LogGammaListSize,
-				    double *LogFactList, int LogFactListSize,
-				    double betaA, double betaB,
-				    gsl_rng *gen, char verbose_sw);
-double **SparseGibbsLinkScore(struct node_gra *net,
-			      int nIter,
-			      gsl_rng *gen,
-			      char verbose_sw);
 
 
 
