@@ -5,6 +5,7 @@
 
 #include <gsl/gsl_rng.h>
 #include "tools.h"
+#include "louvain.c"
 #include "graph.h"
 #include "modules.h"
 #include "bipartite.h"
@@ -33,6 +34,8 @@ main(int argc, char **argv)
   int invert = 0;
   int weighted = 0;
   int output_type = 0;
+  int louvain = 0;
+  double louvain_threshold = 0;
   extern char *optarg;
   extern int optind;
   int c; 
@@ -78,10 +81,10 @@ main(int argc, char **argv)
   
   
   else{
-	while ((c = getopt(argc, argv, "hwprmdf:s:i:c:o:")) != -1)
+	while ((c = getopt(argc, argv, "hwprmdLf:s:i:c:o:t:")) != -1)
 	  switch (c) {
 	  case 'h':
-		printf("\nUsage: bipartmod_cl [-f file] [-o file] [-s seed] [-i iter] [-c cool] [-pwmrh]\n"
+		printf("\nUsage: bipartmod_cl [-f file] [-o file] [-s seed] [-i iter] [-c cool] [-t threshold] [-pwmrhL]\n"
 			   "\nIf no arguments are provided, the program will fallback in interactive mode.\n\n"
 			   "\t -f file: Name of the input network file (default: standard input)\n"
 			   "\t -o file: Name of the output file (default: standard output)\n"
@@ -93,6 +96,8 @@ main(int argc, char **argv)
 			   "\t -d : Use degree based role metrics (default: strength based metrics)"
 			   "\t -r : Output the roles partition rather than the default tabular output.\n"
 			   "\t -m : Output the modules partition rather than the default tabular output. \n"
+			   "\t -L : Use Louvain's heuristic to optimize the modularity rather than simulated annealing \n"
+			   "\t -t : Louvain's method threshold (default is 0.00).   \n" 
 			   "\t -h : Display this message\n");
 		return -1;
 		break;
@@ -119,6 +124,12 @@ main(int argc, char **argv)
 		break;
 	  case 'm':
 		output_type = 1;
+		break;
+	  case 'L':
+		louvain = 1;
+		break;
+	  case 't':
+		louvain_threshold = atof(optarg);
 		break;
 	  case 'r':
 		output_type = 2;
@@ -173,7 +184,10 @@ main(int argc, char **argv)
   */
   Ti = 1. / (double)CountNodes(binet->net1);
   Tf = 0.;
-
+  if (louvain != 0){
+	part = LOUVCommunityIdentBipart(binet,louvain_threshold,weighted);
+  }
+  else{
   if (weighted == 1){
 	part = SACommunityIdentBipartWeighted(binet,
 										  Ti, Tf, Ts, fac,
@@ -185,7 +199,7 @@ main(int argc, char **argv)
 								  Ti, Tf, Ts, fac,
 								  0, 'o', 1, 'm',
 								  randGen);
-  }
+  }}
 
   // Compute the role partition if we have to.
   // Note that the roles are computed (but not as a partition)
