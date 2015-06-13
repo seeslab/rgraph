@@ -211,42 +211,32 @@ main(int argc, char **argv)
 	else
 	  part = CatalogRoleIdentStrength(projected,part);
   }
-
+  
+  modularity = ModularityBipart(binet,part);
   /*
     ------------------------------------------------------------
     Output
     ------------------------------------------------------------
   */
 
+  // Select output 
   if (to_file == 1)	{
 	outF = fopen(file_name_out, "w");
-	if (outF == NULL)
-	  {
+	if (outF == NULL) {
 		printf("ERROR: Cannot write output (%s). \n", file_name_out);
 		return(1);
-	  }
-	if (output_type != 0){
-	  // Partition-type output (a la Netcarto).
-	  FPrintPartition(outF, part, 0);
-	  modularity = Modularity(part);
-	  fprintf(outF, "# Modularity = %g\n", modularity);
 	}
-	else
-	  // Tabular output. 
-	  FPrintTabNodesBipart(outF, binet, part, degree_based);
+  } else outF = stdout;
 
+  // Print output
+  fprintf(outF, "# Modularity: %g\n", modularity);
+  if (output_type != 0)
+	FPrintPartition(outF, part, 0);
+  else
+	FPrintTabNodesBipart(outF, binet, part, degree_based);
 
-	fclose(outF);
-  }
-  else{
-	if (output_type != 0){
-	  FPrintPartition(stdout, part, 0);
-	  modularity = Modularity(part);
-	  fprintf(stdout, "# Modularity = %g\n", modularity);
-	}
-	else
-	  FPrintTabNodesBipart(stdout, binet, part, degree_based);
-  }
+  // Close file if we need to. 
+  if (to_file == 1)	fclose(outF);
   
   // Free memory
   RemovePartition(part);
