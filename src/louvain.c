@@ -73,7 +73,9 @@ struct group * LOUVCommunityIdentBipart(struct binet *binet, double epsilon, int
 	  min = links;
 	  neigh = focal->neig;
 	  while ((neigh = neigh->next) != NULL){
-		if (neigh->weight > min) min = neigh->weight;
+		if (neigh->weight < min){
+		  min = neigh->weight;
+		}
 	  }
 	  fac1 += links * (links - min);
 	  fac2 += links;
