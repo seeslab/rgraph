@@ -24,7 +24,7 @@ main(int argc, char **argv)
   */
   if (argc < 3) {
     printf("\nUse: multinetlayout.out net_file_1 net_file_2 [net_file_3...]\n\n");
-    return;
+    return -1;
   }
 
   /*
@@ -70,4 +70,5 @@ main(int argc, char **argv)
     RemoveGraph(net[i]);
   RemoveGraph(net_sum);
   gsl_rng_free(rand_gen);
+  return 0;
 }

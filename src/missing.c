@@ -20,8 +20,8 @@
 #include "modules.h"
 #include "models.h"
 #include "recommend.h"
+#include "missing.h"
 
-#define EPSILON 1.e-6
 
 /*
   ---------------------------------------------------------------------
@@ -2036,7 +2036,6 @@ GibbsLinkScoreStep(double *H,
   int slgn, slgsize, isinlist;
   int newgn, target;
   double dice, norm, dHempty, cum;
-  double Href;
   
   /* Preliminaries */
   dH = allocate_d_vec(nnod);

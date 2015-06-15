@@ -8,7 +8,7 @@
 #include "modules.h"
 #include "bipartite.h"
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   FILE *outF, *inF;
   int seed = 1111;
@@ -79,4 +79,6 @@ main(int argc, char **argv)
   // ------------------------------------------------------------
   gsl_rng_free(randGen);
   RemoveBipart(binet);
+
+  return 0;
 }

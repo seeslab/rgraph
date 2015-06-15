@@ -592,7 +592,7 @@ RemoveBetweenGroupLinks(struct group *part, int symmetric_sw)
   ALL CALCULATIONS ARE RIGHT BEFORE USING!!!!!!!!!!
   ---------------------------------------------------------------------
 */
-double **
+void
 BlockModel(struct group *part, char type_sw, int list_sw)
 {
   struct group *g1, *g2;

@@ -27,7 +27,7 @@ main(int argc, char **argv)
   */
   if (argc < 7) {
     printf("\nUse: netlayout.out net_file_name seed step(-1) nsteps damping(-1) 1(2d)/2(2dp)/3(3d)\n\n");
-    return;
+    return -1;
   }
 
   netF = argv[1];
@@ -89,4 +89,5 @@ main(int argc, char **argv)
   */
   RemoveGraph(net);
   gsl_rng_free(rand_gen);
+  return 0;
 }

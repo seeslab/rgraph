@@ -1,5 +1,7 @@
 /*
-  main_reliability_links_mb.c
+  main_links.c
+  $LastChangedDate: 2008-03-25 18:02:36 -0500 (Tue, 25 Mar 2008) $
+  $Revision: 124 $
 */
 
 #include <stdio.h>
@@ -10,20 +12,19 @@
 
 #include "tools.h"
 #include "graph.h"
-#include "multiblock.h"
+#include "sparse_missing.h"
 
 int
 main(int argc, char **argv)
 {
   char *netF;
   FILE *infile=NULL;
-  FILE *outfileAND=NULL, *outfileOR=NULL;
+  FILE *outfile1=NULL, *outfile2=NULL;
   struct node_gra *net=NULL;
   gsl_rng *rand_gen;
-  double **newA_AND;
+  double **newA;
   struct node_gra *p1, *p2;
   long int seed;
-  char outFileNameOR[200], outFileNameAND[200];
 
   /*
     ---------------------------------------------------------------------------
@@ -32,7 +33,7 @@ main(int argc, char **argv)
   */
   if (argc < 2) {
     printf("\nUse: links net_file seed\n\n");
-    return -1;
+    return;
   }
   netF = argv[1];
   seed = atoi(argv[2]);
@@ -53,25 +54,40 @@ main(int argc, char **argv)
     Get link reliabilities
     ---------------------------------------------------------------------------
   */
-  newA_AND = LinkScoreMB(net, 0.0, 10000, rand_gen, 'q');
+  newA = SparseGibbsLinkScore(net, 10000, rand_gen, 'q');
 
   /*
     ---------------------------------------------------------------------------
     Output
     ---------------------------------------------------------------------------
   */
-  strcpy(outFileNameAND, netF);
-  strcat(outFileNameAND, ".AND_scores");
-  outfileAND = fopen(outFileNameAND, "w");
+  /* outfile1 = fopen("missing.dat", "w"); */
+  /* outfile2 = fopen("spurious.dat", "w"); */
+  /* p1 = net; */
+  /* while ((p1 = p1->next) != NULL) { */
+  /*   p2 = p1; */
+  /*   while ((p2 = p2->next) != NULL) { */
+  /*     if (IsThereLink(p1, p2) == 0) { */
+  /* 	fprintf(outfile1, */
+  /* 		"%g %s %s\n", newA[p1->num][p2->num], p1->label, p2->label); */
+  /*     } */
+  /*     else { */
+  /* 	fprintf(outfile2, */
+  /* 		"%g %s %s\n", newA[p1->num][p2->num], p1->label, p2->label); */
+  /*     } */
+  /*   } */
+  /* } */
+  /* fclose(outfile1); */
+  /* fclose(outfile2); */
+
   p1 = net;
   while ((p1 = p1->next) != NULL) {
     p2 = p1;
     while ((p2 = p2->next) != NULL) {
-      fprintf(outfileAND,
-	      "%g %s %s\n", newA_AND[p1->num][p2->num], p1->label, p2->label);
+	fprintf(stdout,
+		"%g %s %s\n", newA[p1->num][p2->num], p1->label, p2->label);
     }
   }
-  fclose(outfileAND);
 
   /*
     ---------------------------------------------------------------------------
