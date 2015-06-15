@@ -1,5 +1,5 @@
 /*
-  main_reliability_links_mb.c
+  main_reliability_links_mb_gibbs.c
 */
 
 #include <stdio.h>
@@ -53,7 +53,7 @@ main(int argc, char **argv)
     Get link reliabilities
     ---------------------------------------------------------------------------
   */
-  newA_AND = LinkScoreMB(net, 0.0, 10000, rand_gen, 'q');
+  newA_AND = GibbsLinkScoreMB(net, 0.0, 10000, rand_gen, 'q');
 
   /*
     ---------------------------------------------------------------------------

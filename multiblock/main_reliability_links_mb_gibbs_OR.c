@@ -1,5 +1,5 @@
 /*
-  main_reliability_links_mb.c
+  main_reliability_links_mb_gibbs_OR.c
 */
 
 #include <stdio.h>
@@ -20,10 +20,10 @@ main(int argc, char **argv)
   FILE *outfileAND=NULL, *outfileOR=NULL;
   struct node_gra *net=NULL;
   gsl_rng *rand_gen;
-  double **newA_AND;
+  double **newA_OR;
   struct node_gra *p1, *p2;
   long int seed;
-  char outFileNameOR[200], outFileNameAND[200];
+  char outFileNameOR[200];
 
   /*
     ---------------------------------------------------------------------------
@@ -31,7 +31,7 @@ main(int argc, char **argv)
     ---------------------------------------------------------------------------
   */
   if (argc < 2) {
-    printf("\nUse: links net_file seed\n\n");
+    printf("\nUse: reliability_links_mb_OR net_file seed\n\n");
     return;
   }
   netF = argv[1];
@@ -53,25 +53,25 @@ main(int argc, char **argv)
     Get link reliabilities
     ---------------------------------------------------------------------------
   */
-  newA_AND = LinkScoreMB(net, 0.0, 10000, rand_gen, 'q');
+  newA_OR = ORGibbsLinkScoreMB(net, 0.0, 10000, rand_gen, 'q');
 
   /*
     ---------------------------------------------------------------------------
     Output
     ---------------------------------------------------------------------------
   */
-  strcpy(outFileNameAND, netF);
-  strcat(outFileNameAND, ".AND_scores");
-  outfileAND = fopen(outFileNameAND, "w");
+  strcpy(outFileNameOR, netF);
+  strcat(outFileNameOR, ".OR_scores");
+  outfileOR = fopen(outFileNameOR, "w");
   p1 = net;
   while ((p1 = p1->next) != NULL) {
     p2 = p1;
     while ((p2 = p2->next) != NULL) {
-      fprintf(outfileAND,
-	      "%g %s %s\n", newA_AND[p1->num][p2->num], p1->label, p2->label);
+      fprintf(outfileOR,
+	      "%g %s %s\n", newA_OR[p1->num][p2->num], p1->label, p2->label);
     }
   }
-  fclose(outfileAND);
+  fclose(outfileOR);
 
   /*
     ---------------------------------------------------------------------------
