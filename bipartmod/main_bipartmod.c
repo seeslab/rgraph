@@ -163,8 +163,7 @@ main(int argc, char **argv)
   */
   if (from_file == 1) {
 	inF = fopen(file_name, "r");
-	if (inF == NULL)
-	  {
+	if (inF == NULL){
 		printf("ERROR: No such file or directory (%s). \n", file_name);
 		return(1);
 	  }
@@ -173,6 +172,11 @@ main(int argc, char **argv)
   }
   else
 	binet = FBuildNetworkBipart(stdin, weighted, 0);
+
+  if (binet == NULL){
+	printf("Error reading input. \n");
+	return(1);
+  }
   
   if (invert == 1)
     InvertBipart(binet);

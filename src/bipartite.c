@@ -62,27 +62,32 @@ FBuildNetworkBipart(FILE *inFile,
   double weight;
   struct node_tree *nodeTree=NULL, *ntree1=NULL, *ntree2=NULL;
   int noReadItems = 0;
+  char *line = NULL;
+  size_t bufsiz = 0;
+  ssize_t nbytes;
+
   /* Initialize the subnetworks */
   last1 = root1 = CreateHeaderGraph();
   last2 = root2 = CreateHeaderGraph();
 
-  /* Go through the file */
-  while (!feof(inFile)) {
-
+  
+  while ((nbytes = getline(&line, &bufsiz, inFile)) != -1){
     /* Read the labels (and weight, if necessary) */
     if (weight_sw == 0) {
-      noReadItems = fscanf(inFile, "%s %s\n", label1, label2);
-	  if(noReadItems != 2)
-		printf ("Failed to read input: incorrect field number (%d!=2). \n",noReadItems);
-	  weight = 1.;
+      noReadItems = sscanf(line, "%s %s", label1, label2);
+	  if(noReadItems != 2){
+		printf ("Failed to read input: not enough fields in line %s (%d!=2). \n",line, noReadItems);
+		return NULL;}
+	  weight = 1;
     }
     else {
-      noReadItems = fscanf(inFile,"%s %s %lf\n", label1, label2, &weight);
-	  if(noReadItems != 3)
-		printf ("Failed to read input: incorrect field number (%d!=3). \n",noReadItems);
+      noReadItems = sscanf(line,"%s %s %lf\n", label1, label2, &weight);
+	  if(noReadItems != 3){
+		printf ("Failed to read input: not enough fields in line %s (%d!=3). \n",line, noReadItems);
+		return NULL;
+	  }
     }
 
-    
     /* Check if the nodes already exist, and create them otherwise */
     nodeTree = CreateNodeTree();
     strcpy(nodeTree->label, label1);
