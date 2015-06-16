@@ -1304,7 +1304,7 @@ ORLinkScoreMB_OD2(struct node_gra *net,
   ---------------------------------------------------------------------
 */
 void
-LinkScoreStepMB_OD(double *H,
+GibbsLinkScoreStepMB_OD(double *H,
 		   double linC,
 		   struct node_gra **nlist,
 		   struct group **glist,
@@ -1633,7 +1633,7 @@ LinkScoreStepMB_OD(double *H,
   ---------------------------------------------------------------------
 */
 void
-ThermalizeLSMCMB_OD(double *H,
+GibbsThermalizeLSMCMB_OD(double *H,
 			 double linC,
 			 struct node_gra **nlist,
 			 struct group **glist,
@@ -1658,7 +1658,7 @@ ThermalizeLSMCMB_OD(double *H,
     
     /* MC steps */
     for (rep=0; rep<nrep; rep++) {
-      LinkScoreStepMB_OD(H, linC, nlist, glist, part,
+      GibbsLinkScoreStepMB_OD(H, linC, nlist, glist, part,
 			 nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
 			 LogFactList, LogFactListSize, HarmonicList,
 			 gen);
@@ -1721,7 +1721,7 @@ ThermalizeLSMCMB_OD(double *H,
   ---------------------------------------------------------------------
 */
 double **
-LinkScoreMB_OD(struct node_gra *net,
+GibbsLinkScoreMB_OD(struct node_gra *net,
 	       double linC,
 	       int nIter,
 	       gsl_rng *gen,
@@ -1808,7 +1808,7 @@ LinkScoreMB_OD(struct node_gra *net,
     fprintf(stderr, "# ------------\n");
     break;
   }
-  ThermalizeLSMCMB_OD(&H, linC, nlist, glist, part,
+  GibbsThermalizeLSMCMB_OD(&H, linC, nlist, glist, part,
 			   nnod, G2G, n2gList,
 			   LogChooseList, LogChooseListSize,
 			   LogFactList, LogFactListSize, HarmonicList,
@@ -1828,7 +1828,7 @@ LinkScoreMB_OD(struct node_gra *net,
 
   /* Do the MC Steps */
   for (iter=0; iter<nIter; iter++) {
-    LinkScoreStepMB_OD(&H, linC, nlist, glist, part,
+    GibbsLinkScoreStepMB_OD(&H, linC, nlist, glist, part,
 		       nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
 		       LogFactList, LogFactListSize, HarmonicList,
 		       gen);
@@ -1944,7 +1944,7 @@ LinkScoreMB_OD(struct node_gra *net,
   ---------------------------------------------------------------------
 */
 void
-ORLinkScoreStepMB_OD(double *H,
+ORGibbsLinkScoreStepMB_OD(double *H,
 		   double linC,
 		   struct node_gra **nlist,
 		   struct group **glist,
@@ -2273,7 +2273,7 @@ ORLinkScoreStepMB_OD(double *H,
   ---------------------------------------------------------------------
 */
 void
-ORThermalizeLSMCMB_OD(double *H,
+ORGibbsThermalizeLSMCMB_OD(double *H,
 			 double linC,
 			 struct node_gra **nlist,
 			 struct group **glist,
@@ -2298,7 +2298,7 @@ ORThermalizeLSMCMB_OD(double *H,
     
     /* MC steps */
     for (rep=0; rep<nrep; rep++) {
-      ORLinkScoreStepMB_OD(H, linC, nlist, glist, part,
+      ORGibbsLinkScoreStepMB_OD(H, linC, nlist, glist, part,
 			 nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
 			 LogFactList, LogFactListSize, HarmonicList,
 			 gen);
@@ -2361,7 +2361,7 @@ ORThermalizeLSMCMB_OD(double *H,
   ---------------------------------------------------------------------
 */
 double **
-ORLinkScoreMB_OD(struct node_gra *net,
+ORGibbsLinkScoreMB_OD(struct node_gra *net,
 	       double linC,
 	       int nIter,
 	       gsl_rng *gen,
@@ -2448,7 +2448,7 @@ ORLinkScoreMB_OD(struct node_gra *net,
     fprintf(stderr, "# ------------\n");
     break;
   }
-  ORThermalizeLSMCMB_OD(&H, linC, nlist, glist, part,
+  ORGibbsThermalizeLSMCMB_OD(&H, linC, nlist, glist, part,
 			   nnod, G2G, n2gList,
 			   LogChooseList, LogChooseListSize,
 			   LogFactList, LogFactListSize, HarmonicList,
@@ -2468,7 +2468,7 @@ ORLinkScoreMB_OD(struct node_gra *net,
 
   /* Do the MC Steps */
   for (iter=0; iter<nIter; iter++) {
-    ORLinkScoreStepMB_OD(&H, linC, nlist, glist, part,
+    ORGibbsLinkScoreStepMB_OD(&H, linC, nlist, glist, part,
 		       nnod, G2G, n2gList, LogChooseList, LogChooseListSize,
 		       LogFactList, LogFactListSize, HarmonicList,
 		       gen);
