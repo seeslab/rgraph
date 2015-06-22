@@ -93,7 +93,7 @@ main(int argc, char **argv)
 			   "\t -c cool: Cooling factor (recommended 0.950-0.995, default 0.97)\n "
 			   "\t -p : Find modules for the second column (default: first) \n"
 			   "\t -w : Read edge weights from the input's third column and uses the weighted modularity.\n"
-			   "\t -d : Use degree based role metrics (default: strength based metrics)"
+			   "\t -d : Use degree based role metrics (default: strength based metrics)\n"
 			   "\t -r : Output the roles partition rather than the default tabular output.\n"
 			   "\t -m : Output the modules partition rather than the default tabular output. \n"
 			   "\t -L : Use Louvain's heuristic to optimize the modularity rather than simulated annealing \n"
