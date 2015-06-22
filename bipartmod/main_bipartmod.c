@@ -237,7 +237,7 @@ main(int argc, char **argv)
   if (output_type != 0)
 	FPrintPartition(outF, part, 0);
   else
-	FPrintTabNodesBipart(outF, binet, part, degree_based);
+	FPrintTabNodesBipart(outF, binet, part, degree_based,weighted);
 
   // Close file if we need to. 
   if (to_file == 1)	fclose(outF);

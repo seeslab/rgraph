@@ -60,6 +60,7 @@ struct binet *CopyBipart(struct binet *binet);
 struct binet *InvertBipart(struct binet *net);
 int NLinksBipart(struct binet *binet);
 struct node_gra *ProjectBipart(struct binet *binet);
+struct node_gra *ProjectBipartWeighted(struct binet *binet);
 struct binet *RandomizeBipart(struct binet *binet,
 			     double times, gsl_rng *gen);
 
@@ -74,7 +75,7 @@ void FPrintPajekFileBipart(char *fname,
 			   int weight_sw);
 
 void FPrintBipart (FILE *outf, struct binet *binet, int weight_sw);
-void FPrintTabNodesBipart(FILE *outf, struct binet *network,  struct group *modules, int degree_based);
+void FPrintTabNodesBipart(FILE *outf, struct binet *network,  struct group *modules, int degree_based, int weighted);
 
 
 /*

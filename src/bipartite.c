@@ -600,6 +600,54 @@ ProjectBipart(struct binet *binet)
   return projnet;
 }
 
+
+struct node_gra *
+ProjectBipartWeighted(struct binet *binet)
+{
+  struct node_gra *projnet = NULL;
+  struct node_gra *last = NULL;
+  struct node_gra *p1 = NULL, *p2 = NULL;
+  void *dict = NULL;
+  struct node_tree *ntree=NULL;
+  int weight;
+
+  /* Create the header of the projection network */
+  last = projnet = CreateHeaderGraph();
+
+  /* Create the nodes */
+  p1 = binet->net1;
+  while ((p1 = p1->next) != NULL) {
+    ntree = CreateNodeTree();
+    strcpy(ntree->label, p1->label);
+    ntree = *(struct node_tree **)tsearch((void *)ntree,
+					  &dict,
+					  NodeTreeLabelCompare);
+    ntree->ref = last = CreateNodeGraph(last, p1->label);
+  }
+
+  /* Create the links */
+  p1 = binet->net1;
+  while ((p1 = p1->next) != NULL) {
+    p2 = p1;
+    while ((p2 = p2->next) != NULL) {
+	  weight = (double)SumProductsOfCommonWeightsBipart(p1,p2);
+      if (weight > 0) {
+	AddAdjacency(GetNodeDict(p1->label, dict),
+		     GetNodeDict(p2->label, dict),
+		     0, 0, (double)weight, 0);
+	AddAdjacency(GetNodeDict(p2->label, dict),
+		     GetNodeDict(p1->label, dict),
+		     0, 0, (double)weight, 0);
+      }
+    }
+  }
+
+  /* Free memory and return */
+  FreeLabelDict(dict);
+  return projnet;
+}
+
+
 /*
   ---------------------------------------------------------------------
   Randomize links in a bipartite network
@@ -2066,7 +2114,7 @@ Example:
 Mynode\t1\tR3\t0.6500\t-1.4400
 **/
 void
-FPrintTabNodesBipart(FILE *outf, struct binet *network,  struct group *modules, int degree_based)
+FPrintTabNodesBipart(FILE *outf, struct binet *network,  struct group *modules, int degree_based,int weighted)
 {
   struct node_gra *projected;
   struct group    *g = NULL;
@@ -2075,9 +2123,12 @@ FPrintTabNodesBipart(FILE *outf, struct binet *network,  struct group *modules, 
   int group_nb = 0;
   int role;
 
-  // Project the first compoenent of the bipartite network. 
-  projected = ProjectBipart(network);
-
+  // Project the first component of the bipartite network.
+  if (weighted == 0 || degree_based == 1)
+	projected = ProjectBipart(network);
+  else
+	projected = ProjectBipartWeighted(network);
+  
   // Loop through the modules of the bipartite network and compute the
   // roles on the projection.
   MapPartToNetFast(modules, projected);
