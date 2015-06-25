@@ -5,12 +5,10 @@ INCLUDES = -I$(top_builddir) -I$(top_srcdir) \
 	-I$(top_srcdir)/lib -I$(top_srcdir)/src
 AM_LDFLAGS = -static
 
-bin_PROGRAMS = only_degeneration_mb_gibbs only_degeneration_mb_gibbs_OR
+bin_PROGRAMS = only_degeneration_mb only_degeneration_mb_gibbs
+
+only_degeneration_mb_SOURCES = main_only_degeneration_mb.c
+only_degeneration_mb_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
 
 only_degeneration_mb_gibbs_SOURCES = main_only_degeneration_mb_gibbs.c
 only_degeneration_mb_gibbs_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
-
-only_degeneration_mb_gibbs_OR_SOURCES = main_only_degeneration_mb_gibbs_OR.c
-only_degeneration_mb_gibbs_OR_LDADD = $(top_srcdir)/src/librgraph.a $(top_srcdir)/lib/libgnu.la
-
-CLEANFILES = spurious.dat missing.dat
