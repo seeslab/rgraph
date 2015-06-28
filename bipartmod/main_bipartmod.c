@@ -205,18 +205,27 @@ main(int argc, char **argv)
 								  randGen);
   }}
 
+  // Compute partition modularity
+  if (weighted == 0)
+	modularity = ModularityBipart(binet,part);
+  else
+	modularity = ModularityBipartWeighted(binet,part);
+
   // Compute the role partition if we have to.
   // Note that the roles are computed (but not as a partition)
   // if the tabular output is selected (output_type==0).
   if (output_type == 2){
-	projected = ProjectBipart(binet);
+	if (weighted == 0 || degree_based == 1)
+	  projected = ProjectBipart(binet);
+	else
+	  projected = ProjectBipartWeighted(binet);
 	if (degree_based==1)
 	  part = CatalogRoleIdent(projected,part);
 	else
 	  part = CatalogRoleIdentStrength(projected,part);
   }
-  
-  modularity = ModularityBipart(binet,part);
+
+
   /*
     ------------------------------------------------------------
     Output
