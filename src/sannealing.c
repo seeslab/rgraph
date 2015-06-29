@@ -595,7 +595,7 @@ struct group *ThermalPercNetworkSplitWeight(struct group *targ,
 
   // Check if the network is connected
   split = ClustersPartition(net);
-  ngroups = CountGroups(split);
+  ngroups = NGroups(split);
 
   if ( ngroups > 1 && gsl_rng_uniform(gen) < prob) { // Network is not
 						   // connected
@@ -637,7 +637,7 @@ struct group *ThermalPercNetworkSplitWeight(struct group *targ,
 	while(p->next != NULL){
 	  p = p->next;
 	  nlist[nnod] = p;
-	  totallinks += CountLinksWeight(p);
+	  totallinks += NodeStrength(p);
 	  nnod++;
 
 	  des = floor(gsl_rng_uniform(gen)*2.0);
@@ -660,9 +660,9 @@ struct group *ThermalPercNetworkSplitWeight(struct group *targ,
 		newg = 0;
 
 	  // Calculate the change of energy
-	  inold = CountLinksWeightInGroup(nlist[target],glist[oldg]);
-	  innew = CountLinksWeightInGroup(nlist[target],glist[newg]);
-	  nlink = CountLinksWeight(nlist[target]);
+	  inold = StrengthToGroup(nlist[target],glist[oldg]);
+	  innew = StrengthToGroup(nlist[target],glist[newg]);
+	  nlink = NodeStrength(nlist[target]);
 
 	  dE = 0.0;
 
@@ -749,7 +749,7 @@ struct group *SACommunityIdentWeight(struct node_gra *net,double Ti,double Tf,do
   trans[p->num] = 0;
   glist[0] = CreateGroup(part,0);
   AddNodeToGroup(glist[0],p);
-  totallinks += CountLinksWeight(p);
+  totallinks += NodeStrength(p);
 
   for( i=1; i<nnod; i++ ) {
 	p = p->next;
@@ -758,7 +758,7 @@ struct group *SACommunityIdentWeight(struct node_gra *net,double Ti,double Tf,do
 	trans[p->num] = i;
 	glist[i] = CreateGroup(glist[i-1],i);
 	AddNodeToGroup(glist[i],p);
-	totallinks += CountLinksWeight(p);
+	totallinks += NodeStrength(p);
   }
 
   // Number of iterations at each temperature
@@ -785,9 +785,6 @@ struct group *SACommunityIdentWeight(struct node_gra *net,double Ti,double Tf,do
 	  count = 0;
 	}
 
-	/*     PrintGroups(part); */
-	/*     printf("%g %lf %lf %g %d\n",1.0/T, energy, ModularityWeight(part), T, CountNonEmptyGroups(part)); */
-	printf("%g %lf %g %d\n",1.0/T, energy, T, CountNonEmptyGroups(part));
 
 	if (merge == 1) {
 
@@ -932,9 +929,9 @@ struct group *SACommunityIdentWeight(struct node_gra *net,double Ti,double Tf,do
 	  }while(newg == oldg);
 
 	  // Calculate the change of energy
-	  inold = CountLinksWeightInGroup(nlist[target],glist[oldg]);
-	  innew = CountLinksWeightInGroup(nlist[target],glist[newg]);
-	  nlink = CountLinksWeight(nlist[target]);
+	  inold = StrengthToGroup(nlist[target],glist[oldg]);
+	  innew = StrengthToGroup(nlist[target],glist[newg]);
+	  nlink = NodeStrength(nlist[target]);
 
 	  dE = 0.0;
 
