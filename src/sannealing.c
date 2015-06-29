@@ -1,18 +1,19 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include <search.h>
-
 #include <gsl/gsl_rng.h>
 
 #include "tools.h"
 #include "graph.h"
 #include "modules.h"
 #include "bipartite.h"
+#include "sannealing.h"
 
 #define EPSILON_MOD 1.e-6
-#define EPSILON_MOD_B 1.e-6
 
+/*============================================================================*/
+/* SPLITTING GROUPS */
+/*============================================================================*/
 
 /*
   ---------------------------------------------------------------------
@@ -174,6 +175,499 @@ SAGroupSplit(struct group *targ,
   return split;
 }
 
+struct group *
+SAGroupSplitWeight(struct group *targ,
+						double Ti, double Tf,
+						gsl_rng *gen)
+{
+  struct group *glist[2];
+  struct group *split = NULL;
+  struct node_gra **nlist;
+  struct node_gra *net = NULL;
+  struct node_gra *p = NULL;
+  struct node_p;
+  int nnod = 0;
+  int i;
+  int des;
+  int target,oldg,newg;
+  double innew,inold,nlink;
+  double totallinks=0.0;
+  double dE=0.0, energy=0.0;
+  double T, Ts = 0.95;
+  int ngroups, g1, g2;
+  double prob = 0.5;
+
+  nlist = (struct node_gra**)calloc(targ->size,
+					   sizeof(struct node_gra *));
+
+  glist[0] = NULL;
+  glist[1] = NULL;
+
+  // Build a network from the nodes in the target group
+  net = BuildNetFromGroup(targ);
+
+  // Check if the network is connected
+  split = ClustersPartition(net);
+  ngroups = NGroups(split);
+
+  if ( ngroups > 1 && gsl_rng_uniform(gen) < prob) { // Network is not
+						   // connected
+
+	// Merge groups randomly until only two are left
+	while (ngroups > 2) {
+	  // Select two random groups
+	  g1 = ceil(gsl_rng_uniform(gen)* (double)ngroups);
+	  do {
+	g2 = ceil(gsl_rng_uniform(gen)* (double)ngroups);
+	  } while (g2 == g1);
+
+	  glist[0] = split;
+	  for(i=0; i<g1; i++)
+	glist[0] = glist[0]->next;
+	  glist[1] = split;
+	  for(i=0; i<g2; i++)
+	glist[1] = glist[1]->next;
+
+	  // Merge
+	  MergeGroups(glist[0], glist[1]);
+	  split = CompressPart(split);
+	  ngroups--;
+	}
+  }
+
+  else { // Network IS connected
+	// Remove SCS partition
+	RemovePartition(split);
+	ResetNetGroup(net);
+
+	// Create the groups
+	split = CreateHeaderGroup();
+	glist[0] = CreateGroup(split,0);
+	glist[1] = CreateGroup(split,1);
+
+	// Randomly assign the nodes to the groups
+	p = net;
+	while(p->next != NULL){
+	  p = p->next;
+	  nlist[nnod] = p;
+	  totallinks += NodeStrength(p);
+	  nnod++;
+
+	  des = floor(gsl_rng_uniform(gen)*2.0);
+	  AddNodeToGroup(glist[des],p);
+	}
+
+	totallinks /= 2.0;
+
+	// Do the SA to "optimize" the splitting
+	if ( totallinks > 0 ) {
+	  T = Ti;
+	  while( T > Tf){
+
+	for (i=0; i< nnod; i++){
+	  target = floor(gsl_rng_uniform(gen) * (double)nnod);
+	  oldg = nlist[target]->inGroup;
+	  if(oldg == 0)
+		newg = 1;
+	  else
+		newg = 0;
+
+	  // Calculate the change of energy
+	  inold = StrengthToGroup(nlist[target],glist[oldg]);
+	  innew = StrengthToGroup(nlist[target],glist[newg]);
+	  nlink = NodeStrength(nlist[target]);
+
+	  dE = 0.0;
+
+	  dE -= (double)(2 * glist[oldg]->inlinksW) /
+		(double)totallinks -
+		(double)(glist[oldg]->totlinksW+glist[oldg]->inlinksW) *
+		(double)(glist[oldg]->totlinksW+glist[oldg]->inlinksW) /
+		((double)totallinks * (double)totallinks);
+
+	  dE -= (double)(2 * glist[newg]->inlinksW) /
+		(double)totallinks -
+		(double)(glist[newg]->totlinksW+glist[newg]->inlinksW) *
+		(double)(glist[newg]->totlinksW+glist[newg]->inlinksW) /
+		((double)totallinks * (double)totallinks);
+
+	  dE += (double)(2*glist[oldg]->inlinksW - 2*inold) /
+		(double)totallinks -
+		(double)(glist[oldg]->totlinksW + glist[oldg]->inlinksW -
+			 nlink ) *
+		(double)(glist[oldg]->totlinksW + glist[oldg]->inlinksW -
+			 nlink ) /
+		((double)totallinks * (double)totallinks);
+
+	  dE += (double)(2*glist[newg]->inlinksW + 2*innew) /
+		(double)totallinks -
+		(double)(glist[newg]->totlinksW + glist[newg]->inlinksW +
+			 nlink ) *
+		(double)(glist[newg]->totlinksW + glist[newg]->inlinksW +
+			 nlink ) /
+		((double)totallinks * (double)totallinks);
+
+	  // Accept the change according to the Boltzman factor
+	  if( (dE >= 0.0) || (gsl_rng_uniform(gen) < exp(dE/T)) ){
+		MoveNode(nlist[target],glist[oldg],glist[newg]);
+		energy += dE;
+	  }
+	}
+
+	T = T * Ts;
+	  } // End of temperature loop
+	} // End if totallinks > 0
+  }
+
+  RemoveGraph(net);
+  return split;
+}
+
+
+/*
+  ---------------------------------------------------------------------
+  Splits one group into two new groups (thermalized with the outer
+  SA), checking first if the network contains disconnected clusters.
+  ---------------------------------------------------------------------
+*/
+void
+SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
+		   double Ti, double Tf, double Ts,
+		   double cluster_prob,
+		   double **cmat, double msfac,
+		   gsl_rng *gen)
+{
+  struct group *glist[2], *g = NULL, *split = NULL;
+  struct node_gra **nlist;
+  struct node_lis *p = NULL;
+  int nnod = 0;
+  int i;
+  int n1, n2, t1, t2;
+  int target, oldg, newg;
+  double dE = 0.0;
+  double T;
+  double dice;
+  struct node_gra *net;
+  struct binet *binet;
+  int S1 = target_g->size;
+  int cluster_sw;
+  void *dict=NULL;
+  double energy, energyant;
+  int count = 0, limit = 5;
+
+  /* Initialize */
+  glist[0] = target_g;
+  glist[1] = empty_g;
+
+  /* Are we going to use clusters? */
+  if (gsl_rng_uniform(gen) < cluster_prob)
+	cluster_sw = 1;
+
+  /*
+	If cluster_sw, check if the network is disconnected
+  */
+  if (cluster_sw == 1) {
+	/* Build a network from the nodes in the target group and find
+	   disconected clusters  */
+	binet = CreateBipart();
+	binet->net1 = BuildNetFromGroup(target_g);
+	binet->net2 = CreateHeaderGraph();
+	net = ProjectBipart(binet); /* This trick to generate the projection
+				  works, although it is not elegant */
+	split = ClustersPartition(net);
+  }
+
+  /*
+	If cluster_sw==1 and the network is disconnected, then use the
+	clusters
+  */
+  if (cluster_sw == 1 && NGroups(split) > 1) {
+	/* Build a dictionary for fast access to nodes */
+	dict = MakeLabelDict(binet->net1);
+
+	/* Move the nodes in some (half) of the clusters to empty module */
+	g = split;
+	while ((g = g->next) != NULL) {
+	  if (gsl_rng_uniform(gen) < 0.500000) { // With prob=0.5 move to empty
+	p = g->nodeList;
+	while ((p = p->next) != NULL) {
+	  MoveNode(GetNodeDict(p->nodeLabel, dict), target_g, empty_g);
+	}
+	  }
+	}
+  }
+
+  /*
+	Else if the network is connected or cluster_sw... go SA!
+  */
+  else {
+	/* Allocate memory for a list of nodes for faster access */
+	nlist = (struct node_gra **) calloc(S1, sizeof(struct node_gra *));
+	nnod = 0;
+
+	/* Randomly assign the nodes to the groups */
+	p = target_g->nodeList;
+	while (p->next != NULL) {
+	  nlist[nnod++] = p->next->ref;
+	  dice = gsl_rng_uniform(gen);
+	  if (dice < 0.500000) {
+	MoveNode(p->next->ref, target_g, empty_g);
+	  }
+	  else {
+	p = p->next;
+	  }
+	}
+
+	/* Do SA to "optimize" the splitting */
+	T = Ti;
+	energy = energyant = 0.0;
+	while ((T >= Tf) && (count < limit)) {
+
+	  /* Do nnod moves */
+	  for (i=0; i<nnod; i++) {
+
+	/* Determine target node */
+	target = floor(gsl_rng_uniform(gen) * (double)nnod);
+	if (nlist[target]->inGroup == target_g->label)
+	  oldg = 0;
+	else
+	  oldg = 1;
+	newg = 1 - oldg;
+
+	/* Calculate the change of energy */
+	dE = 0.0;
+	n1 = nlist[target]->num;
+	t1 = CountLinks(nlist[target]);
+	/* 1-Old group */
+	p = glist[oldg]->nodeList;
+	while ((p = p->next) != NULL) {
+	  n2 = p->node;
+	  if (n2 != n1) {
+		t2 = CountLinks(p->ref);
+		dE -= 2. * (cmat[n1][n2] - t1 * t2 * msfac);
+	  }
+	}
+	/* 2-New group */
+	p = glist[newg]->nodeList;
+	while ((p = p->next) != NULL) {
+	  n2 = p->node;
+	  t2 = CountLinks(p->ref);
+	  dE += 2. * (cmat[n1][n2] - t1 * t2 * msfac);
+	}
+
+	/* Accept the change according to the Boltzman factor */
+	if (gsl_rng_uniform(gen) < exp(dE/T)) {
+	  MoveNode(nlist[target], glist[oldg], glist[newg]);
+	  energy += dE;
+	}
+	  }
+
+	  /* Update the no-change counter */
+	  if (fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD ||
+	  fabs(energyant) < EPSILON_MOD)
+	count++;
+	  else
+	count = 0;
+
+	  /* Update the last energy */
+	  energyant = energy;
+
+	  /* Update the temperature */
+	  T = T * Ts;
+
+	} /* End of temperature loop */
+
+  } /* End of else (network is connected) */
+
+  if (cluster_sw == 1) {
+	RemovePartition(split);
+	RemoveGraph(net);
+	RemoveBipart(binet);
+	FreeLabelDict(dict);
+  }
+  else {
+	free(nlist);
+  }
+
+  /* Done */
+  return;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Splits one group into two new groups (thermalized with the outer
+  SA), checking first if the network contains disconnected clusters.
+  For Weighted Bipartite Networks.
+  ---------------------------------------------------------------------
+*/
+void
+SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
+			   double Ti, double Tf, double Ts,
+			   double cluster_prob,
+			   double *strength,
+			   double **swwmat, double Wafac,
+			   gsl_rng *gen)
+{
+  struct group *glist[2], *g = NULL, *split = NULL;
+  struct node_gra **nlist;
+  struct node_lis *p = NULL;
+  int nnod = 0;
+  int i;
+  int n1, n2;
+  int target, oldg, newg;
+  double dE = 0.0;
+  double T;
+  double dice;
+  struct node_gra *net;
+  struct binet *binet;
+  int SZ1 = target_g->size;
+  int cluster_sw;
+  void *dict=NULL;
+  double energy, energyant;
+  int count = 0, limit = 5;
+
+  /* Initialize */
+  glist[0] = target_g;
+  glist[1] = empty_g;
+
+  /* Are we going to use clusters? */
+  if (gsl_rng_uniform(gen) < cluster_prob)
+	cluster_sw = 1;
+
+  /*
+	If cluster_sw, check if the network is disconnected
+  */
+  if (cluster_sw == 1) {
+	/* Build a network from the nodes in the target group and find disconected clusters  */
+	binet = CreateBipart();
+	binet->net1 = BuildNetFromGroup(target_g);
+	binet->net2 = CreateHeaderGraph();
+	net = ProjectBipart(binet);
+	/* This trick to generate the projection works, although it is not elegant */
+	/*
+	  Note: This projection uses NCommonLinksBipart to determine
+	  weights in the projected network, and the original, bipartite
+	  weights are disregarded. But that's ok, since the projected
+	  network is just used to find clusters.
+	*/
+	split = ClustersPartition(net);
+  }
+
+  /*
+	If cluster_sw==1 and the network is disconnected, then use the clusters
+  */
+  if (cluster_sw == 1 && NGroups(split) > 1) {
+	/* Build a dictionary for fast access to nodes */
+	dict = MakeLabelDict(binet->net1);
+
+	/* Move the nodes in some (that is, approximately half) of the clusters to the empty group */
+	g = split;
+	while ((g = g->next) != NULL) {
+	  if (gsl_rng_uniform(gen) < 0.500000) { // With prob=0.5 move to empty
+		p = g->nodeList;
+		while ((p = p->next) != NULL) {
+		  MoveNodeFast(GetNodeDict(p->nodeLabel, dict), target_g, empty_g);
+		}
+	  }
+	}
+  }
+
+  /*
+	Else if the network is connected or cluster_sw... go SA!
+  */
+  else {
+	/* Allocate memory for a list of nodes for faster access */
+	nlist = (struct node_gra **) calloc(SZ1, sizeof(struct node_gra *));
+	nnod = 0;
+
+	/* Randomly assign the nodes to the groups */
+	p = target_g->nodeList;
+	while (p->next != NULL) {
+	  nlist[nnod++] = p->next->ref;
+	  dice = gsl_rng_uniform(gen);
+	  if (dice < 0.500000) {
+		MoveNodeFast(p->next->ref, target_g, empty_g);
+	  }
+	  else {
+		p = p->next;
+	  }
+	}
+
+	/* Do SA to "optimize" the splitting */
+	T = Ti;
+	energy = energyant = 0.0;
+	while ((T >= Tf) && (count < limit)) {
+
+	  /* Do nnod moves */
+	  for (i=0; i<nnod; i++) {
+		/* Determine target node */
+		target = floor(gsl_rng_uniform(gen) * (double)nnod);
+		if (nlist[target]->inGroup == target_g->label)
+		  oldg = 0;
+		else
+		  oldg = 1;
+		newg = 1 - oldg;
+
+		  /* Calculate the change of energy */
+		dE = 0.0;
+		n1 = nlist[target]->num;
+
+		/* 1-Old group */
+		p = glist[oldg]->nodeList;
+		while ((p = p->next) != NULL) {
+			n2 = p->node;
+		  if (n2 != n1) {
+			dE -= swwmat[n1][n2];
+		  }
+		}
+
+		/* 2-New group */
+		p = glist[newg]->nodeList;
+		while ((p = p->next) != NULL) {
+		  n2 = p->node;
+		  dE += swwmat[n1][n2];
+		}
+
+		  /* Accept the change according to the Boltzman factor */
+		if (gsl_rng_uniform(gen) < exp(dE/T)) {
+		  MoveNodeFast(nlist[target], glist[oldg], glist[newg]);
+		  energy += dE;
+		}
+	  }
+
+	  /* Update the no-change counter */
+	  if (fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD || fabs(energyant) < EPSILON_MOD)
+		  count++;
+	  else
+		count = 0;
+
+	  /* Update the last energy */
+	  energyant = energy;
+
+	  /* Update the temperature */
+	  T = T * Ts;
+
+	} /* End of temperature while loop */
+
+  } /* End of else (network is connected) */
+
+  if (cluster_sw == 1) {
+	RemovePartition(split);
+	RemoveGraph(net);
+	RemoveBipart(binet);
+	FreeLabelDict(dict);
+  }
+  else {
+	free(nlist);
+  }
+
+  /* Done */
+  return;
+}
+
+/*============================================================================*/
+// SA
+/*============================================================================*/
 
 /*
   ---------------------------------------------------------------------
@@ -550,168 +1044,14 @@ SACommunityIdent(struct node_gra *net,
 }
 
 
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
-#include <search.h>
-
-#include <gsl/gsl_rng.h>
-
-#include "tools.h"
-#include "graph.h"
-#include "modules.h"
-
-#define EPSILON_MOD 1.e-6
-
-struct group *ThermalPercNetworkSplitWeight(struct group *targ,
-						double Ti, double Tf,
-						gsl_rng *gen)
-{
-  struct group *glist[2];
-  struct group *split = NULL;
-  struct node_gra **nlist;
-  struct node_gra *net = NULL;
-  struct node_gra *p = NULL;
-  struct node_p;
-  int nnod = 0;
-  int i;
-  int des;
-  int target,oldg,newg;
-  double innew,inold,nlink;
-  double totallinks=0.0;
-  double dE=0.0, energy=0.0;
-  double T, Ts = 0.95;
-  int ngroups, g1, g2;
-  double prob = 0.5;
-
-  nlist = (struct node_gra**)calloc(targ->size,
-					   sizeof(struct node_gra *));
-
-  glist[0] = NULL;
-  glist[1] = NULL;
-
-  // Build a network from the nodes in the target group
-  net = BuildNetFromGroup(targ);
-
-  // Check if the network is connected
-  split = ClustersPartition(net);
-  ngroups = NGroups(split);
-
-  if ( ngroups > 1 && gsl_rng_uniform(gen) < prob) { // Network is not
-						   // connected
-
-	// Merge groups randomly until only two are left
-	while (ngroups > 2) {
-	  // Select two random groups
-	  g1 = ceil(gsl_rng_uniform(gen)* (double)ngroups);
-	  do {
-	g2 = ceil(gsl_rng_uniform(gen)* (double)ngroups);
-	  } while (g2 == g1);
-
-	  glist[0] = split;
-	  for(i=0; i<g1; i++)
-	glist[0] = glist[0]->next;
-	  glist[1] = split;
-	  for(i=0; i<g2; i++)
-	glist[1] = glist[1]->next;
-
-	  // Merge
-	  MergeGroups(glist[0], glist[1]);
-	  split = CompressPart(split);
-	  ngroups--;
-	}
-  }
-
-  else { // Network IS connected
-	// Remove SCS partition
-	RemovePartition(split);
-	ResetNetGroup(net);
-
-	// Create the groups
-	split = CreateHeaderGroup();
-	glist[0] = CreateGroup(split,0);
-	glist[1] = CreateGroup(split,1);
-
-	// Randomly assign the nodes to the groups
-	p = net;
-	while(p->next != NULL){
-	  p = p->next;
-	  nlist[nnod] = p;
-	  totallinks += NodeStrength(p);
-	  nnod++;
-
-	  des = floor(gsl_rng_uniform(gen)*2.0);
-	  AddNodeToGroup(glist[des],p);
-	}
-
-	totallinks /= 2.0;
-
-	// Do the SA to "optimize" the splitting
-	if ( totallinks > 0 ) {
-	  T = Ti;
-	  while( T > Tf){
-
-	for (i=0; i< nnod; i++){
-	  target = floor(gsl_rng_uniform(gen) * (double)nnod);
-	  oldg = nlist[target]->inGroup;
-	  if(oldg == 0)
-		newg = 1;
-	  else
-		newg = 0;
-
-	  // Calculate the change of energy
-	  inold = StrengthToGroup(nlist[target],glist[oldg]);
-	  innew = StrengthToGroup(nlist[target],glist[newg]);
-	  nlink = NodeStrength(nlist[target]);
-
-	  dE = 0.0;
-
-	  dE -= (double)(2 * glist[oldg]->inlinksW) /
-		(double)totallinks -
-		(double)(glist[oldg]->totlinksW+glist[oldg]->inlinksW) *
-		(double)(glist[oldg]->totlinksW+glist[oldg]->inlinksW) /
-		((double)totallinks * (double)totallinks);
-
-	  dE -= (double)(2 * glist[newg]->inlinksW) /
-		(double)totallinks -
-		(double)(glist[newg]->totlinksW+glist[newg]->inlinksW) *
-		(double)(glist[newg]->totlinksW+glist[newg]->inlinksW) /
-		((double)totallinks * (double)totallinks);
-
-	  dE += (double)(2*glist[oldg]->inlinksW - 2*inold) /
-		(double)totallinks -
-		(double)(glist[oldg]->totlinksW + glist[oldg]->inlinksW -
-			 nlink ) *
-		(double)(glist[oldg]->totlinksW + glist[oldg]->inlinksW -
-			 nlink ) /
-		((double)totallinks * (double)totallinks);
-
-	  dE += (double)(2*glist[newg]->inlinksW + 2*innew) /
-		(double)totallinks -
-		(double)(glist[newg]->totlinksW + glist[newg]->inlinksW +
-			 nlink ) *
-		(double)(glist[newg]->totlinksW + glist[newg]->inlinksW +
-			 nlink ) /
-		((double)totallinks * (double)totallinks);
-
-	  // Accept the change according to the Boltzman factor
-	  if( (dE >= 0.0) || (gsl_rng_uniform(gen) < exp(dE/T)) ){
-		MoveNode(nlist[target],glist[oldg],glist[newg]);
-		energy += dE;
-	  }
-	}
-
-	T = T * Ts;
-	  } // End of temperature loop
-	} // End if totallinks > 0
-  }
-
-  RemoveGraph(net);
-  return split;
-}
 
 // merge = 0 => No group merging
-struct group *SACommunityIdentWeight(struct node_gra *net,double Ti,double Tf,double Ts,double fac, int merge, gsl_rng *gen)
+struct group *
+SACommunityIdentWeight(struct node_gra *net,
+						double Ti, double Tf, double Ts,
+						double fac,
+						int merge,
+						gsl_rng *gen)
 {
   int i;
   struct group *part = NULL;
@@ -743,8 +1083,8 @@ struct group *SACommunityIdentWeight(struct node_gra *net,double Ti,double Tf,do
 
   nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
   glist = (struct group **) calloc(nnod, sizeof(struct group *));
-  trans = (int *) calloc(nnod,sizeof(int)); 
-	
+  trans = (int *) calloc(nnod,sizeof(int));
+
   nlist[0] = p;
   trans[p->num] = 0;
   glist[0] = CreateGroup(part,0);
@@ -851,9 +1191,7 @@ struct group *SACommunityIdentWeight(struct node_gra *net,double Ti,double Tf,do
 	}
 
 	if (empty >= 0 ){ // if there are no empty groups, do nothing
-/*	  split = BestNetworkSplitWeight(glist[target],gen); */
-/*	  split = ThermalNetworkSplitWeight(glist[target],Ti,T,gen); */
-	  split = ThermalPercNetworkSplitWeight(glist[target],
+	  split = SAGroupSplitWeight(glist[target],
 						Ti, T, gen);
 
 	  // Split the group
@@ -976,347 +1314,6 @@ struct group *SACommunityIdentWeight(struct node_gra *net,double Ti,double Tf,do
 /*   printf("energy = %lf\n",energy); */
 
   return CompressPart(part);
-}
-
-/*
-  ---------------------------------------------------------------------
-  Splits one group into two new groups (thermalized with the outer
-  SA), checking first if the network contains disconnected clusters.
-  ---------------------------------------------------------------------
-*/
-void
-SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
-		   double Ti, double Tf, double Ts,
-		   double cluster_prob,
-		   double **cmat, double msfac,
-		   gsl_rng *gen)
-{
-  struct group *glist[2], *g = NULL, *split = NULL;
-  struct node_gra **nlist;
-  struct node_lis *p = NULL;
-  int nnod = 0;
-  int i;
-  int n1, n2, t1, t2;
-  int target, oldg, newg;
-  double dE = 0.0;
-  double T;
-  double dice;
-  struct node_gra *net;
-  struct binet *binet;
-  int S1 = target_g->size;
-  int cluster_sw;
-  void *dict=NULL;
-  double energy, energyant;
-  int count = 0, limit = 5;
-
-  /* Initialize */
-  glist[0] = target_g;
-  glist[1] = empty_g;
-
-  /* Are we going to use clusters? */
-  if (gsl_rng_uniform(gen) < cluster_prob)
-	cluster_sw = 1;
-
-  /*
-	If cluster_sw, check if the network is disconnected
-  */
-  if (cluster_sw == 1) {
-	/* Build a network from the nodes in the target group and find
-	   disconected clusters  */
-	binet = CreateBipart();
-	binet->net1 = BuildNetFromGroup(target_g);
-	binet->net2 = CreateHeaderGraph();
-	net = ProjectBipart(binet); /* This trick to generate the projection
-				  works, although it is not elegant */
-	split = ClustersPartition(net);
-  }
-
-  /*
-	If cluster_sw==1 and the network is disconnected, then use the
-	clusters
-  */
-  if (cluster_sw == 1 && NGroups(split) > 1) {
-	/* Build a dictionary for fast access to nodes */
-	dict = MakeLabelDict(binet->net1);
-
-	/* Move the nodes in some (half) of the clusters to empty module */
-	g = split;
-	while ((g = g->next) != NULL) {
-	  if (gsl_rng_uniform(gen) < 0.500000) { // With prob=0.5 move to empty
-	p = g->nodeList;
-	while ((p = p->next) != NULL) {
-	  MoveNode(GetNodeDict(p->nodeLabel, dict), target_g, empty_g);
-	}
-	  }
-	}
-  }
-
-  /*
-	Else if the network is connected or cluster_sw... go SA!
-  */
-  else {
-	/* Allocate memory for a list of nodes for faster access */
-	nlist = (struct node_gra **) calloc(S1, sizeof(struct node_gra *));
-	nnod = 0;
-
-	/* Randomly assign the nodes to the groups */
-	p = target_g->nodeList;
-	while (p->next != NULL) {
-	  nlist[nnod++] = p->next->ref;
-	  dice = gsl_rng_uniform(gen);
-	  if (dice < 0.500000) {
-	MoveNode(p->next->ref, target_g, empty_g);
-	  }
-	  else {
-	p = p->next;
-	  }
-	}
-
-	/* Do SA to "optimize" the splitting */
-	T = Ti;
-	energy = energyant = 0.0;
-	while ((T >= Tf) && (count < limit)) {
-
-	  /* Do nnod moves */
-	  for (i=0; i<nnod; i++) {
-
-	/* Determine target node */
-	target = floor(gsl_rng_uniform(gen) * (double)nnod);
-	if (nlist[target]->inGroup == target_g->label)
-	  oldg = 0;
-	else
-	  oldg = 1;
-	newg = 1 - oldg;
-
-	/* Calculate the change of energy */
-	dE = 0.0;
-	n1 = nlist[target]->num;
-	t1 = CountLinks(nlist[target]);
-	/* 1-Old group */
-	p = glist[oldg]->nodeList;
-	while ((p = p->next) != NULL) {
-	  n2 = p->node;
-	  if (n2 != n1) {
-		t2 = CountLinks(p->ref);
-		dE -= 2. * (cmat[n1][n2] - t1 * t2 * msfac);
-	  }
-	}
-	/* 2-New group */
-	p = glist[newg]->nodeList;
-	while ((p = p->next) != NULL) {
-	  n2 = p->node;
-	  t2 = CountLinks(p->ref);
-	  dE += 2. * (cmat[n1][n2] - t1 * t2 * msfac);
-	}
-
-	/* Accept the change according to the Boltzman factor */
-	if (gsl_rng_uniform(gen) < exp(dE/T)) {
-	  MoveNode(nlist[target], glist[oldg], glist[newg]);
-	  energy += dE;
-	}
-	  }
-
-	  /* Update the no-change counter */
-	  if (fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B ||
-	  fabs(energyant) < EPSILON_MOD_B)
-	count++;
-	  else
-	count = 0;
-
-	  /* Update the last energy */
-	  energyant = energy;
-
-	  /* Update the temperature */
-	  T = T * Ts;
-
-	} /* End of temperature loop */
-
-  } /* End of else (network is connected) */
-
-  if (cluster_sw == 1) {
-	RemovePartition(split);
-	RemoveGraph(net);
-	RemoveBipart(binet);
-	FreeLabelDict(dict);
-  }
-  else {
-	free(nlist);
-  }
-
-  /* Done */
-  return;
-}
-
-/*
-  ---------------------------------------------------------------------
-  Splits one group into two new groups (thermalized with the outer
-  SA), checking first if the network contains disconnected clusters.
-  For Weighted Bipartite Networks.
-  ---------------------------------------------------------------------
-*/
-void
-SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
-			   double Ti, double Tf, double Ts,
-			   double cluster_prob,
-			   double *strength,
-			   double **swwmat, double Wafac,
-			   gsl_rng *gen)
-{
-  struct group *glist[2], *g = NULL, *split = NULL;
-  struct node_gra **nlist;
-  struct node_lis *p = NULL;
-  int nnod = 0;
-  int i;
-  int n1, n2;
-  int target, oldg, newg;
-  double dE = 0.0;
-  double T;
-  double dice;
-  struct node_gra *net;
-  struct binet *binet;
-  int SZ1 = target_g->size;
-  int cluster_sw;
-  void *dict=NULL;
-  double energy, energyant;
-  int count = 0, limit = 5;
-
-  /* Initialize */
-  glist[0] = target_g;
-  glist[1] = empty_g;
-
-  /* Are we going to use clusters? */
-  if (gsl_rng_uniform(gen) < cluster_prob)
-	cluster_sw = 1;
-
-  /*
-	If cluster_sw, check if the network is disconnected
-  */
-  if (cluster_sw == 1) {
-	/* Build a network from the nodes in the target group and find disconected clusters  */
-	binet = CreateBipart();
-	binet->net1 = BuildNetFromGroup(target_g);
-	binet->net2 = CreateHeaderGraph();
-	net = ProjectBipart(binet);
-	/* This trick to generate the projection works, although it is not elegant */
-	/*
-	  Note: This projection uses NCommonLinksBipart to determine
-	  weights in the projected network, and the original, bipartite
-	  weights are disregarded. But that's ok, since the projected
-	  network is just used to find clusters.
-	*/
-	split = ClustersPartition(net);
-  }
-
-  /*
-	If cluster_sw==1 and the network is disconnected, then use the clusters
-  */
-  if (cluster_sw == 1 && NGroups(split) > 1) {
-	/* Build a dictionary for fast access to nodes */
-	dict = MakeLabelDict(binet->net1);
-
-	/* Move the nodes in some (that is, approximately half) of the clusters to the empty group */
-	g = split;
-	while ((g = g->next) != NULL) {
-	  if (gsl_rng_uniform(gen) < 0.500000) { // With prob=0.5 move to empty
-		p = g->nodeList;
-		while ((p = p->next) != NULL) {
-		  MoveNodeFast(GetNodeDict(p->nodeLabel, dict), target_g, empty_g);
-		}
-	  }
-	}
-  }
-
-  /*
-	Else if the network is connected or cluster_sw... go SA!
-  */
-  else {
-	/* Allocate memory for a list of nodes for faster access */
-	nlist = (struct node_gra **) calloc(SZ1, sizeof(struct node_gra *));
-	nnod = 0;
-
-	/* Randomly assign the nodes to the groups */
-	p = target_g->nodeList;
-	while (p->next != NULL) {
-	  nlist[nnod++] = p->next->ref;
-	  dice = gsl_rng_uniform(gen);
-	  if (dice < 0.500000) {
-		MoveNodeFast(p->next->ref, target_g, empty_g);
-	  }
-	  else {
-		p = p->next;
-	  }
-	}
-
-	/* Do SA to "optimize" the splitting */
-	T = Ti;
-	energy = energyant = 0.0;
-	while ((T >= Tf) && (count < limit)) {
-
-	  /* Do nnod moves */
-	  for (i=0; i<nnod; i++) {
-		/* Determine target node */
-		target = floor(gsl_rng_uniform(gen) * (double)nnod);
-		if (nlist[target]->inGroup == target_g->label)
-		  oldg = 0;
-		else
-		  oldg = 1;
-		newg = 1 - oldg;
-
-		  /* Calculate the change of energy */
-		dE = 0.0;
-		n1 = nlist[target]->num;
-
-		/* 1-Old group */
-		p = glist[oldg]->nodeList;
-		while ((p = p->next) != NULL) {
-			n2 = p->node;
-		  if (n2 != n1) {
-			dE -= swwmat[n1][n2];
-		  }
-		}
-
-		/* 2-New group */
-		p = glist[newg]->nodeList;
-		while ((p = p->next) != NULL) {
-		  n2 = p->node;
-		  dE += swwmat[n1][n2];
-		}
-
-		  /* Accept the change according to the Boltzman factor */
-		if (gsl_rng_uniform(gen) < exp(dE/T)) {
-		  MoveNodeFast(nlist[target], glist[oldg], glist[newg]);
-		  energy += dE;
-		}
-	  }
-
-	  /* Update the no-change counter */
-	  if (fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B || fabs(energyant) < EPSILON_MOD_B)
-		  count++;
-	  else
-		count = 0;
-
-	  /* Update the last energy */
-	  energyant = energy;
-
-	  /* Update the temperature */
-	  T = T * Ts;
-
-	} /* End of temperature while loop */
-
-  } /* End of else (network is connected) */
-
-  if (cluster_sw == 1) {
-	RemovePartition(split);
-	RemoveGraph(net);
-	RemoveBipart(binet);
-	FreeLabelDict(dict);
-  }
-  else {
-	free(nlist);
-  }
-
-  /* Done */
-  return;
 }
 
 /*
@@ -1608,7 +1605,7 @@ SACommunityIdentBipart(struct binet *binet,
 	  /* Accept the change according to "inverse" Metroppolis.
 		 Inverse means that the algor is applied to the split and
 		 NOT to the merge! */
-	  if ((dE > EPSILON_MOD_B) && (gsl_rng_uniform(gen) > exp(-dE/T))) {
+	  if ((dE > EPSILON_MOD) && (gsl_rng_uniform(gen) > exp(-dE/T))) {
 		/* Undo the split */
 		MergeGroups(glist[target],glist[empty]);
 	  }
@@ -1621,15 +1618,15 @@ SACommunityIdentBipart(struct binet *binet,
 	} /* End of 'if collective_sw==1' loop */
 
 	/* Update the no-change counter */
-	if (((T < Ti / 1000.) || (Ti < EPSILON_MOD_B)) &&
-	(fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B ||
-	fabs(energyant) < EPSILON_MOD_B)) {
+	if (((T < Ti / 1000.) || (Ti < EPSILON_MOD)) &&
+	(fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD ||
+	fabs(energyant) < EPSILON_MOD)) {
 	  count++;
 
 	  /* If the SA is ready to stop (count==limit) but the current
 	 partition is not the best one so far, replace the current
 	 partition by the best one and continue from there. */
-	  if ((count == limit) && (energy + EPSILON_MOD_B < best_E)) {
+	  if ((count == limit) && (energy + EPSILON_MOD < best_E)) {
 	switch (output_sw) {
 	case 'n':
 	  break;
@@ -2030,7 +2027,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 			case 'd':
 			  if (-dE < 0 && strcmp(accepted,"ACCEPTED")==0  && (T < Ti/1.0e6)) {
 				fprintf(stderr, "Cicle 2 Split %s: %i -> %i (sz %i) and %i (sz %i) dE=%g dE>-en*Epsilon/10=%i prob=%g T=%g\n",
-						  accepted, target, target, glist[target]->size, empty, glist[empty]->size, -dE, -dE>-fabs(energyant)*EPSILON_MOD_B/10, exp(-dE/T), T);
+						  accepted, target, target, glist[target]->size, empty, glist[empty]->size, -dE, -dE>-fabs(energyant)*EPSILON_MOD/10, exp(-dE/T), T);
 			  }
 			  accepted = "REJECTED";
 			}
@@ -2040,7 +2037,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 
 	/* Update the no-change counter */
 	// condition (T < Ti / 1000.) && removed (stpdescent)
-	if ((fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD_B || fabs(energyant) < EPSILON_MOD_B)) {
+	if ((fabs(energy - energyant) / fabs(energyant) < EPSILON_MOD || fabs(energyant) < EPSILON_MOD)) {
 	  count++;
 
 
@@ -2053,7 +2050,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
 		fprintf(stderr, "# Limit reached.\n");
 	  }
 
-	  if ((count == limit) && (energy + EPSILON_MOD_B < best_E)) {
+	  if ((count == limit) && (energy + EPSILON_MOD < best_E)) {
 		switch (output_sw) {
 		case 'n':
 		  break;
