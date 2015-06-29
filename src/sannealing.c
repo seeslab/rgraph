@@ -8,8 +8,10 @@
 #include "tools.h"
 #include "graph.h"
 #include "modules.h"
+#include "bipartite.h"
 
 #define EPSILON_MOD 1.e-6
+#define EPSILON_MOD_B 1.e-6
 
 
 /*
@@ -567,7 +569,7 @@ struct group *ThermalPercNetworkSplitWeight(struct group *targ,
 {
   struct group *glist[2];
   struct group *split = NULL;
-  struct node_gra *nlist[max_size];
+  struct node_gra **nlist;
   struct node_gra *net = NULL;
   struct node_gra *p = NULL;
   struct node_p;
@@ -582,9 +584,9 @@ struct group *ThermalPercNetworkSplitWeight(struct group *targ,
   int ngroups, g1, g2;
   double prob = 0.5;
 
-  for(i=0; i<max_size; i++){
-	nlist[i] = NULL;
-  }
+  nlist = (struct node_gra**)calloc(targ->size,
+					   sizeof(struct node_gra *));
+
   glist[0] = NULL;
   glist[1] = NULL;
 
@@ -714,8 +716,8 @@ struct group *SACommunityIdentWeight(struct node_gra *net,double Ti,double Tf,do
   int i;
   struct group *part = NULL;
   struct group *split = NULL, *g = NULL;
-  struct group *glist[max_size];
-  struct node_gra *nlist[max_size];
+  struct group **glist;
+  struct node_gra **nlist;
   struct node_gra *p;
   struct node_lis *nod;
   int target,empty;
@@ -730,7 +732,7 @@ struct group *SACommunityIdentWeight(struct node_gra *net,double Ti,double Tf,do
   int count = 0, limit = 25; // to stop the search if the energy
 						  // does not change
   int cicle1,cicle2;
-  int trans[maxim_int];
+  int *trans;
 
 
   // Create the groups and assign each node to one group
@@ -739,6 +741,10 @@ struct group *SACommunityIdentWeight(struct node_gra *net,double Ti,double Tf,do
   p = net->next;
   ResetNetGroup(net); // All nodes reset to group -1
 
+  nlist = (struct node_gra **) calloc(nnod, sizeof(struct node_gra *));
+  glist = (struct group **) calloc(nnod, sizeof(struct group *));
+  trans = (int *) calloc(nnod,sizeof(int)); 
+	
   nlist[0] = p;
   trans[p->num] = 0;
   glist[0] = CreateGroup(part,0);
