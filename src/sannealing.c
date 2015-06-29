@@ -28,9 +28,10 @@
 */
 struct group *
 SAGroupSplit(struct group *targ,
-			   double Ti, double Tf, double Ts,
-			   int cluster_sw,
-			   gsl_rng *gen)
+			 double Ti, double Tf, double Ts,
+			 int cluster_sw,
+			 int weighted,
+			 gsl_rng *gen)
 {
   struct group *glist[2];
   struct group *split = NULL;
@@ -42,15 +43,15 @@ SAGroupSplit(struct group *targ,
   int i;
   int des;
   int target, oldg, newg;
-  int innew, inold, nlink;
-  int totallinks=0;
   double dE=0.0, energy=0.0;
   double T;
   int ngroups, g1, g2;
   double prob = 0.5;
+  
+  double innew, inold, nlink;
+  double totallinks=0.0;
 
-  nodeList = (struct node_gra**)calloc(targ->size,
-					   sizeof(struct node_gra *));
+  nodeList = (struct node_gra**)calloc(targ->size, sizeof(struct node_gra *));
   glist[0] = NULL;
   glist[1] = NULL;
 
@@ -72,15 +73,15 @@ SAGroupSplit(struct group *targ,
 	  /* Select two random groups */
 	  g1 = ceil(gsl_rng_uniform(gen)* (double)ngroups);
 	  do {
-	g2 = ceil(gsl_rng_uniform(gen)* (double)ngroups);
+		g2 = ceil(gsl_rng_uniform(gen)* (double)ngroups);
 	  } while (g2 == g1);
 
 	  glist[0] = split;
 	  for(i=0; i<g1; i++)
-	glist[0] = glist[0]->next;
+		glist[0] = glist[0]->next;
 	  glist[1] = split;
 	  for(i=0; i<g2; i++)
-	glist[1] = glist[1]->next;
+		glist[1] = glist[1]->next;
 
 	  /* Merge */
 	  MergeGroups(glist[0], glist[1]);
@@ -103,9 +104,12 @@ SAGroupSplit(struct group *targ,
 	p = net;
 	while ((p = p->next) != NULL) {
 	  nodeList[nnod] = p;
-	  totallinks += CountLinks(p);
+	  if (!weighted)
+		totallinks += (double) CountLinks(p);
+	  else
+		totallinks += NodeStrength(p);
 	  nnod++;
-
+	  
 	  des = floor(gsl_rng_uniform(gen) * 2.0);
 	  AddNodeToGroup(glist[des], p);
 	}
@@ -119,41 +123,47 @@ SAGroupSplit(struct group *targ,
 	for (i=0; i<nnod; i++) {
 	  target = floor(gsl_rng_uniform(gen) * (double)nnod);
 	  oldg = nodeList[target]->inGroup;
-	  if(oldg == 0)
-		newg = 1;
-	  else
-		newg = 0;
 
+	  // If oldg == 1, newg = 0 and conversely.
+	  newg = !oldg;
+	  	  
 	  /* Calculate the change of energy */
-	  inold = NLinksToGroup(nodeList[target],glist[oldg]);
-	  innew = NLinksToGroup(nodeList[target],glist[newg]);
-	  nlink = CountLinks(nodeList[target]);
+
+	  if (!weighted){
+		inold = (double) NLinksToGroup(nodeList[target],glist[oldg]);
+		innew = (double) NLinksToGroup(nodeList[target],glist[newg]);
+		nlink = (double) CountLinks(nodeList[target]);}
+	  else {
+		inold = StrengthToGroup(nodeList[target],glist[oldg]);
+		innew = StrengthToGroup(nodeList[target],glist[newg]);
+		nlink = NodeStrength(nodeList[target]);
+	  }
 
 	  dE = 0.0;
-	  dE -= (double)(2 * glist[oldg]->inlinks) /
-		(double)totallinks -
-		(double)(glist[oldg]->totlinks+glist[oldg]->inlinks) *
-		(double)(glist[oldg]->totlinks+glist[oldg]->inlinks) /
-		((double)totallinks * (double)totallinks);
-	  dE -= (double)(2 * glist[newg]->inlinks) /
-	  (double)totallinks -
-		(double)(glist[newg]->totlinks+glist[newg]->inlinks) *
-		(double)(glist[newg]->totlinks+glist[newg]->inlinks) /
-		((double)totallinks * (double)totallinks);
-	  dE += (double)(2*glist[oldg]->inlinks - 2*inold) /
-		(double)totallinks -
-		(double)(glist[oldg]->totlinks + glist[oldg]->inlinks -
-			 nlink ) *
-		(double)(glist[oldg]->totlinks + glist[oldg]->inlinks -
-			 nlink ) /
-		((double)totallinks * (double)totallinks);
-	  dE += (double)(2*glist[newg]->inlinks + 2*innew) /
-		(double)totallinks -
-		(double)(glist[newg]->totlinks + glist[newg]->inlinks +
-			 nlink ) *
-		(double)(glist[newg]->totlinks + glist[newg]->inlinks +
-			 nlink ) /
-		((double)totallinks * (double)totallinks);
+
+	  // - Old group
+	  dE -= (double)(2 * glist[oldg]->inlinks) / totallinks;
+	  dE -= (double)(glist[oldg]->totlinks+glist[oldg]->inlinks) 
+		* (double)(glist[oldg]->totlinks+glist[oldg]->inlinks) 
+		/ (totallinks * totallinks);
+
+	  // - New group
+	  dE -= (double)(2 * glist[newg]->inlinks) / totallinks; 
+	  dE -= (double)(glist[newg]->totlinks+glist[newg]->inlinks) 
+		* (double)(glist[newg]->totlinks+glist[newg]->inlinks) 
+		/ (totallinks * totallinks);
+
+	  // + Old group
+	  dE += (double)(2*glist[oldg]->inlinks - 2*inold) / totallinks
+	  dE -= (double)(glist[oldg]->totlinks + glist[oldg]->inlinks -  nlink) 
+		* (double)(glist[oldg]->totlinks + glist[oldg]->inlinks - nlink)
+		/ (totallinks * totallinks);
+
+	  // - New group. 
+	  dE += (double)(2*glist[newg]->inlinks + 2*innew) / totallinks
+	  dE -= (double)(glist[newg]->totlinks + glist[newg]->inlinks +  nlink ) 
+		* (double)(glist[newg]->totlinks + glist[newg]->inlinks + nlink ) 
+		/ (totallinks * totallinks);
 
 	  /* Accept the move according to Metropolis */
 	  if( (dE >=0.0) || (gsl_rng_uniform(gen) < exp(dE/T)) ){
@@ -174,155 +184,6 @@ SAGroupSplit(struct group *targ,
   /* Done */
   return split;
 }
-
-struct group *
-SAGroupSplitWeight(struct group *targ,
-						double Ti, double Tf,
-						gsl_rng *gen)
-{
-  struct group *glist[2];
-  struct group *split = NULL;
-  struct node_gra **nlist;
-  struct node_gra *net = NULL;
-  struct node_gra *p = NULL;
-  struct node_p;
-  int nnod = 0;
-  int i;
-  int des;
-  int target,oldg,newg;
-  double innew,inold,nlink;
-  double totallinks=0.0;
-  double dE=0.0, energy=0.0;
-  double T, Ts = 0.95;
-  int ngroups, g1, g2;
-  double prob = 0.5;
-
-  nlist = (struct node_gra**)calloc(targ->size,
-					   sizeof(struct node_gra *));
-
-  glist[0] = NULL;
-  glist[1] = NULL;
-
-  // Build a network from the nodes in the target group
-  net = BuildNetFromGroup(targ);
-
-  // Check if the network is connected
-  split = ClustersPartition(net);
-  ngroups = NGroups(split);
-
-  if ( ngroups > 1 && gsl_rng_uniform(gen) < prob) { // Network is not
-						   // connected
-
-	// Merge groups randomly until only two are left
-	while (ngroups > 2) {
-	  // Select two random groups
-	  g1 = ceil(gsl_rng_uniform(gen)* (double)ngroups);
-	  do {
-	g2 = ceil(gsl_rng_uniform(gen)* (double)ngroups);
-	  } while (g2 == g1);
-
-	  glist[0] = split;
-	  for(i=0; i<g1; i++)
-	glist[0] = glist[0]->next;
-	  glist[1] = split;
-	  for(i=0; i<g2; i++)
-	glist[1] = glist[1]->next;
-
-	  // Merge
-	  MergeGroups(glist[0], glist[1]);
-	  split = CompressPart(split);
-	  ngroups--;
-	}
-  }
-
-  else { // Network IS connected
-	// Remove SCS partition
-	RemovePartition(split);
-	ResetNetGroup(net);
-
-	// Create the groups
-	split = CreateHeaderGroup();
-	glist[0] = CreateGroup(split,0);
-	glist[1] = CreateGroup(split,1);
-
-	// Randomly assign the nodes to the groups
-	p = net;
-	while(p->next != NULL){
-	  p = p->next;
-	  nlist[nnod] = p;
-	  totallinks += NodeStrength(p);
-	  nnod++;
-
-	  des = floor(gsl_rng_uniform(gen)*2.0);
-	  AddNodeToGroup(glist[des],p);
-	}
-
-	totallinks /= 2.0;
-
-	// Do the SA to "optimize" the splitting
-	if ( totallinks > 0 ) {
-	  T = Ti;
-	  while( T > Tf){
-
-	for (i=0; i< nnod; i++){
-	  target = floor(gsl_rng_uniform(gen) * (double)nnod);
-	  oldg = nlist[target]->inGroup;
-	  if(oldg == 0)
-		newg = 1;
-	  else
-		newg = 0;
-
-	  // Calculate the change of energy
-	  inold = StrengthToGroup(nlist[target],glist[oldg]);
-	  innew = StrengthToGroup(nlist[target],glist[newg]);
-	  nlink = NodeStrength(nlist[target]);
-
-	  dE = 0.0;
-
-	  dE -= (double)(2 * glist[oldg]->inlinksW) /
-		(double)totallinks -
-		(double)(glist[oldg]->totlinksW+glist[oldg]->inlinksW) *
-		(double)(glist[oldg]->totlinksW+glist[oldg]->inlinksW) /
-		((double)totallinks * (double)totallinks);
-
-	  dE -= (double)(2 * glist[newg]->inlinksW) /
-		(double)totallinks -
-		(double)(glist[newg]->totlinksW+glist[newg]->inlinksW) *
-		(double)(glist[newg]->totlinksW+glist[newg]->inlinksW) /
-		((double)totallinks * (double)totallinks);
-
-	  dE += (double)(2*glist[oldg]->inlinksW - 2*inold) /
-		(double)totallinks -
-		(double)(glist[oldg]->totlinksW + glist[oldg]->inlinksW -
-			 nlink ) *
-		(double)(glist[oldg]->totlinksW + glist[oldg]->inlinksW -
-			 nlink ) /
-		((double)totallinks * (double)totallinks);
-
-	  dE += (double)(2*glist[newg]->inlinksW + 2*innew) /
-		(double)totallinks -
-		(double)(glist[newg]->totlinksW + glist[newg]->inlinksW +
-			 nlink ) *
-		(double)(glist[newg]->totlinksW + glist[newg]->inlinksW +
-			 nlink ) /
-		((double)totallinks * (double)totallinks);
-
-	  // Accept the change according to the Boltzman factor
-	  if( (dE >= 0.0) || (gsl_rng_uniform(gen) < exp(dE/T)) ){
-		MoveNode(nlist[target],glist[oldg],glist[newg]);
-		energy += dE;
-	  }
-	}
-
-	T = T * Ts;
-	  } // End of temperature loop
-	} // End if totallinks > 0
-  }
-
-  RemoveGraph(net);
-  return split;
-}
-
 
 /*
   ---------------------------------------------------------------------
@@ -916,7 +777,7 @@ SACommunityIdent(struct node_gra *net,
 
 	if (empty >= 0) { /*  if there are no empty groups, do nothing */
 	  /* Find a reasonable split */
-	  split = SAGroupSplit(glist[dice], Ti, T, 0.95, 1, gen);
+	  split = SAGroupSplit(glist[dice], Ti, T, 0.95, 1, 0, gen);
 
 	  /* Split the group */
 	  nod = (split->next)->nodeList;
@@ -1191,8 +1052,7 @@ SACommunityIdentWeight(struct node_gra *net,
 	}
 
 	if (empty >= 0 ){ // if there are no empty groups, do nothing
-	  split = SAGroupSplitWeight(glist[target],
-						Ti, T, gen);
+	  split = SAGroupSplit(glist[target], Ti, T, 0.95, 1, 1, gen);
 
 	  // Split the group
 	  nod = (split->next)->nodeList;

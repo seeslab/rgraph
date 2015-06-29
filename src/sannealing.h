@@ -7,12 +7,8 @@ struct group *
 SAGroupSplit(struct group *targ,
 			   double Ti, double Tf, double Ts,
 			   int cluster_sw,
+			   int weighted,
 			   gsl_rng *gen);
-
-struct group *
-SAGroupSplitWeight(struct group *targ,
-					 double Ti, double Tf,
-					 gsl_rng *gen);
 
 
 void
