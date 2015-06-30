@@ -190,7 +190,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
   struct node_gra *net;
   struct binet *binet;
   int S1 = target_g->size;
-  int cluster_sw;
+  int cluster_sw = 1;
   void *dict=NULL;
   double energy, energyant;
   int count = 0, limit = 5;
@@ -361,7 +361,7 @@ SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
   struct node_gra *net;
   struct binet *binet;
   int SZ1 = target_g->size;
-  int cluster_sw;
+  int cluster_sw = 1;
   void *dict=NULL;
   double energy, energyant;
   int count = 0, limit = 5;
@@ -1151,7 +1151,9 @@ SACommunityIdentWeight(struct node_gra *net,
   }
 
 /*   printf("energy = %lf\n",energy); */
-
+  free(glist);
+  free(nlist);
+  free(trans);
   return CompressPart(part);
 }
 

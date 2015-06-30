@@ -119,6 +119,7 @@ FBuildNetworkBipart(FILE *inFile,
   /* Free memory */
   FreeLabelDict(dict1);
   FreeLabelDict(dict2);
+  free(line);
 
   /* Create the bipartite network and return */
   net = CreateBipart();
