@@ -322,7 +322,7 @@ AddNodeToGroup(struct group *g, struct node_gra *node)
 
   /* Update the properties of the group */
   g->size++;
-  totlink = CountLinks(node);
+  totlink = NodeDegree(node);
   inlink = NLinksToGroup(node, g);
   totweight = NodeStrength(node);
   inweight = StrengthToGroup(node, g);
@@ -440,7 +440,7 @@ RemoveNodeFromGroup(struct group *g, struct node_gra *node)
 
     /* Update the properties of the group */
     g->size--;
-    totlink = CountLinks(node);
+    totlink = NodeDegree(node);
     inlink = NLinksToGroup(node, g);
     totweight = NodeStrength(node);
     inweight = StrengthToGroup(node, g);
@@ -1222,7 +1222,7 @@ MapPartToNet(struct group *part, struct node_gra *net)
   while ((g = g->next) != NULL) {
     nod = g->nodeList;
     while ((nod = nod->next) != NULL) {
-      totlink = CountLinks(nod->ref);
+      totlink = NodeDegree(nod->ref);
       inlink = NLinksToGroup(nod->ref,g);
       totlinkW = NodeStrength(nod->ref);
       inlinkW = StrengthToGroup(nod->ref, g);
@@ -1291,9 +1291,9 @@ MapPartToNetFast(struct group *part, struct node_gra *net)
   while ((g = g->next) != NULL) {
     nod = g->nodeList;
     while ((nod = nod->next) != NULL) {
-      totlink = CountLinks(nod->ref);
+      totlink = NodeDegree(nod->ref);
       inlink = NLinksToGroup(nod->ref,g);
-      totlinkW = NodeStrengthFast(nod->ref);
+      totlinkW = NodeStrength(nod->ref);
       inlinkW = StrengthToGroup(nod->ref, g);
       g->totlinks += totlink;
       g->inlinks += inlink;
@@ -1809,7 +1809,7 @@ ParticipationCoefficient(struct node_gra *node)
   struct node_lis *nei = node->neig;
   int toGroup;
   double P = 0.0;
-  int nlink = CountLinks(node);
+  int nlink = NodeDegree(node);
 
   // Go through the neighbors. 
   if (nlink != 0) {
@@ -1840,10 +1840,10 @@ WeightedParticipationCoefficient(struct node_gra *node,  struct group *part)
 {
   double toGroup;
   double P = 0.0;
-  double strength = NodeStrengthFast(node);
+  double strength = NodeStrength(node);
   double squared_st = strength*strength;
   //  printf ("%s: %f \n",node->label,strength);
-  int nlink = CountLinks(node);
+  int nlink = NodeDegree(node);
   struct group *group=NULL;
   
   group = part;
@@ -2194,7 +2194,7 @@ int GetRole(double P, double z){
 /*   while(p->next != NULL){ */
 /*     p = p->next; */
 /*     nlist[nnod] = p; */
-/*     totallinks += CountLinks(p); */
+/*     totallinks += NodeDegree(p); */
 /*     nnod++; */
 
 /*     des = floor(gsl_rng_uniform(gen)*2.0); */
@@ -2223,7 +2223,7 @@ int GetRole(double P, double z){
 /*       // Calculate the change of energy */
 /*       inold = NLinksToGroup(nlist[target],glist[oldg]); */
 /*       innew = NLinksToGroup(nlist[target],glist[newg]); */
-/*       nlink = CountLinks(nlist[target]); */
+/*       nlink = NodeDegree(nlist[target]); */
 
 /*       Anew = A - glist[newg]->size + innew + */
 /* 	glist[oldg]->size - inold; */
@@ -2285,7 +2285,7 @@ int GetRole(double P, double z){
 /*   trans[p->num] = 0; */
 /*   glist[0] = CreateGroup(part,0); */
 /*   AddNodeToGroup(glist[0],p); */
-/*   totallinks += CountLinks(p); */
+/*   totallinks += NodeDegree(p); */
   
 /*   for( i=1; i<nnod; i++ ) { */
 /*     p = p->next; */
@@ -2294,7 +2294,7 @@ int GetRole(double P, double z){
 /*     trans[p->num] = i; */
 /*     glist[i] = CreateGroup(glist[i-1],i); */
 /*     AddNodeToGroup(glist[i],p); */
-/*     totallinks += CountLinks(p); */
+/*     totallinks += NodeDegree(p); */
 /*   } */
 
 /*   // Number of iterations at each temperature */
@@ -2344,7 +2344,7 @@ int GetRole(double P, double z){
 /*       // Calculate the change of energy */
 /*       inold = NLinksToGroup(nlist[target],glist[oldg]); */
 /*       innew = NLinksToGroup(nlist[target],glist[newg]); */
-/*       nlink = CountLinks(nlist[target]); */
+/*       nlink = NodeDegree(nlist[target]); */
 
 /*       Anew = A + (-glist[newg]->size + innew + */
 /* 			glist[oldg]->size - 1 - inold); */
@@ -2597,7 +2597,7 @@ int GetRole(double P, double z){
 /*   nlist[0] = p; */
 /*   glist[0] = CreateGroup(part,0); */
 /*   AddNodeToGroup(glist[0],p); */
-/*   totallinks += CountLinks(p); */
+/*   totallinks += NodeDegree(p); */
   
 /*   for( i=1; i<nnod; i++ ) { */
 /*     p = p->next; */
@@ -2605,7 +2605,7 @@ int GetRole(double P, double z){
 /*     nlist[i] = p; */
 /*     glist[i] = CreateGroup(glist[i-1],i); */
 /*     AddNodeToGroup(glist[i],p); */
-/*     totallinks += CountLinks(p); */
+/*     totallinks += NodeDegree(p); */
 /*   } */
 
 /*   // Calculate the initial value of eij */
@@ -2960,7 +2960,7 @@ int GetRole(double P, double z){
 /*   for (i=0; i<nnod; i++) { */
 /*     p = p->next; */
 /*     nlist[i] = p; */
-/*     totallinks += CountLinks(p); */
+/*     totallinks += NodeDegree(p); */
 
 /*     target = floor(gsl_rng_uniform(gen) * (double)ngroup); */
 /*     AddNodeToGroup(glist[target],p); */

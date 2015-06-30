@@ -109,7 +109,7 @@ main()
   p = net;
   while ((p = p->next) != NULL) {
     fprintf(outFile,"%s %d %lf %lf\n",
-	    p->label, CountLinks(p),
+	    p->label, NodeDegree(p),
 	    ParticipationCoefficient(p),
 	    WithinModuleRelativeDegree(p, part));
   }

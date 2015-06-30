@@ -63,13 +63,13 @@ struct group * LOUVCommunityIdentBipart(struct binet *binet, double epsilon, int
   focal = binet->net2;
   if (weighted == 0){
 	while ((focal = focal->next) != NULL) {
-	  links = (double)CountLinks(focal);
+	  links = (double)NodeDegree(focal);
 	  fac1 += links * (links - 1);
 	  fac2 += links;
 	}}
   else{
 	while ((focal = focal->next) != NULL) {
-	  links = (double)NodeStrengthFast(focal);
+	  links = (double)NodeStrength(focal);
 	  min = links;
 	  neigh = focal->neig;
 	  while ((neigh = neigh->next) != NULL){
@@ -90,7 +90,7 @@ struct group * LOUVCommunityIdentBipart(struct binet *binet, double epsilon, int
   focal = agents;
   if (weighted == 0){
 	while ((focal = focal->next) != NULL) {
-	  degree[focal->num] = fac2 * (double)CountLinks(focal);
+	  degree[focal->num] = fac2 * (double)NodeDegree(focal);
 	  node = agents;
 	  while ((node = node->next) != NULL)
 		cooc[focal->num][node->num] = fac1 * (double)NCommonLinksBipart(focal, node);
@@ -98,7 +98,7 @@ struct group * LOUVCommunityIdentBipart(struct binet *binet, double epsilon, int
   }
   else{
 	while ((focal = focal->next) != NULL) {
-	  degree[focal->num] = fac2 * (double)NodeStrengthFast(focal);
+	  degree[focal->num] = fac2 * (double)NodeStrength(focal);
 	  node = agents;
 	  while ((node = node->next) != NULL)
 		cooc[focal->num][node->num] = fac1 * (double)SumProductsOfCommonWeightsBipart(focal, node);

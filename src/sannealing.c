@@ -109,7 +109,7 @@ SAGroupSplit(struct group *targ,
 	while ((p = p->next) != NULL) {
 	  nodeList[nnod] = p;
 	  if (!weighted)
-		totallinks += (double) CountLinks(p);
+		totallinks += (double) NodeDegree(p);
 	  else
 		totallinks += NodeStrength(p);
 	  nnod++;
@@ -134,7 +134,7 @@ SAGroupSplit(struct group *targ,
 		  if (!weighted){
 			inold = (double) NLinksToGroup(nodeList[target],glist[oldg]);
 			innew = (double) NLinksToGroup(nodeList[target],glist[newg]);
-			nlink = (double) CountLinks(nodeList[target]);}
+			nlink = (double) NodeDegree(nodeList[target]);}
 		  else {
 			inold = StrengthToGroup(nodeList[target],glist[oldg]);
 			innew = StrengthToGroup(nodeList[target],glist[newg]);
@@ -277,13 +277,13 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 	/* Calculate the change of energy */
 	dE = 0.0;
 	n1 = nlist[target]->num;
-	t1 = CountLinks(nlist[target]);
+	t1 = NodeDegree(nlist[target]);
 	/* 1-Old group */
 	p = glist[oldg]->nodeList;
 	while ((p = p->next) != NULL) {
 	  n2 = p->node;
 	  if (n2 != n1) {
-		t2 = CountLinks(p->ref);
+		t2 = NodeDegree(p->ref);
 		dE -= 2. * (cmat[n1][n2] - t1 * t2 * msfac);
 	  }
 	}
@@ -291,7 +291,7 @@ SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
 	p = glist[newg]->nodeList;
 	while ((p = p->next) != NULL) {
 	  n2 = p->node;
-	  t2 = CountLinks(p->ref);
+	  t2 = NodeDegree(p->ref);
 	  dE += 2. * (cmat[n1][n2] - t1 * t2 * msfac);
 	}
 
@@ -590,7 +590,7 @@ SACommunityIdent(struct node_gra *net,
 	  glist[p->num] = CreateGroup(part, p->num);
 	  nlist[p->num] = p;
 	  AddNodeToGroup(glist[p->num], p);
-	  totallinks += CountLinks(p);
+	  totallinks += NodeDegree(p);
 	}
 	break;
 
@@ -603,7 +603,7 @@ SACommunityIdent(struct node_gra *net,
 	  nlist[p->num] = p;
 	  dice = floor(gsl_rng_uniform(gen)* (double)ngroup);
 	  AddNodeToGroup(glist[dice], p);
-	  totallinks += CountLinks(p);
+	  totallinks += NodeDegree(p);
 	}
 	break;
   }
@@ -668,7 +668,7 @@ SACommunityIdent(struct node_gra *net,
 	  /* Calculate the change of energy */
 	  inold = NLinksToGroup(nlist[dice], glist[oldg]);
 	  innew = NLinksToGroup(nlist[dice], glist[newg]);
-	  nlink = CountLinks(nlist[dice]);
+	  nlink = NodeDegree(nlist[dice]);
 	  dE = 0.0;
 	  dE -= (double)(2 * glist[oldg]->inlinks) /
 	(double)totallinks -
@@ -1262,8 +1262,8 @@ SACommunityIdentBipart(struct binet *binet,
   /* Calculate s2ms=(sum m_s)^2 and sms2=sum(m_s^2) */
   p = net2;
   while ((p = p->next) != NULL) {
-	sms += (double)CountLinks(p);
-	sms2 += (double)(CountLinks(p) * CountLinks(p));
+	sms += (double)NodeDegree(p);
+	sms2 += (double)(NodeDegree(p) * NodeDegree(p));
   }
   msfac = 1. / (sms * sms);
 
@@ -1273,7 +1273,7 @@ SACommunityIdentBipart(struct binet *binet,
   nlink = allocate_i_vec(nnod);
   p = net1;
   while ((p = p->next) != NULL) {
-	nlink[p->num] = CountLinks(p);
+	nlink[p->num] = NodeDegree(p);
 	p2 = net1;
 	while ((p2 = p2->next) != NULL) {
 	  cmat[p->num][p2->num] = (double)NCommonLinksBipart(p, p2) /
@@ -1646,7 +1646,7 @@ SACommunityIdentBipartWeighted(struct binet *binet,
   /* Calculate s2Wa=(sum W_a)^2 and sWa2=sum(W_a^2) */
   p = net2;
   while ((p = p->next) != NULL) {
-	s = (double)NodeStrengthFast(p);
+	s = (double)NodeStrength(p);
 	sWa += s;
 	sWa2 += s * s;
   }
@@ -1659,10 +1659,10 @@ SACommunityIdentBipartWeighted(struct binet *binet,
   swwmat = allocate_d_mat(nnod, nnod);
   p = net1;
   while ((p = p->next) != NULL) {
-	s1 = (double)NodeStrengthFast(p);
+	s1 = (double)NodeStrength(p);
 	p2 = net1;
 	while ((p2 = p2->next) != NULL) {
-	  s2 = (double)NodeStrengthFast(p2);
+	  s2 = (double)NodeStrength(p2);
 	  if(swwmat[p2->num][p->num] != 0)
 		swwmat[p->num][p2->num] = swwmat[p2->num][p->num];
 	  else{

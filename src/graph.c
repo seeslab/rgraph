@@ -31,7 +31,8 @@ CreateHeaderGraph()
   temp->ivar1 = -1;
   temp->dvar1 = -1.;
   temp->trans = -1;
-  temp->strength = -1;
+  temp->strength = 0;
+  temp->degree = 0;
 
   return temp;
 }
@@ -68,7 +69,8 @@ CreateNodeGraph(struct node_gra *p, char *label)
   (p->next)->coorZ = -1.0;
   (p->next)->dvar1 = -1.0;
   (p->next)->trans = -1;
-  (p->next)->strength = -1;
+  (p->next)->strength = 0;
+  (p->next)->degree = 0;
 
   return p->next;
 }
@@ -130,6 +132,12 @@ AddAdjacency(struct node_gra *node1,
   }
   // ...otherwise go ahead and try to create the link
   else {
+	// Reset degree/strength of the nodes:
+	node1->degree = 0;
+	node2->degree = 0;
+	node1->strength = 0;
+	node2->strength = 0;
+  	
     adja = node1->neig;
     while (adja->next != NULL) {
       adja = adja->next;
@@ -231,6 +239,11 @@ RewireAdjacencyByLabel(struct node_gra *net)
   // Point the adjacency pointers to the nodes
   p = net;
   while ((p = p->next) != NULL) {
+
+	// Reset degree/strength of the nodes:
+	p->degree = 0;
+	p->strength = 0;
+  
     adja = p->neig;
     while ((adja = adja->next) != NULL) {
       adja->ref = GetNodeDict(adja->nodeLabel, nodeDict);
@@ -265,6 +278,10 @@ RewireAdjacencyByNum(struct node_gra *net)
   // Point the adjacency pointers to the nodes and add the labels
   p = net;
   while ((p = p->next) != NULL) {
+	// Reset degree/strength of the nodes:
+	p->degree = 0;
+	p->strength = 0;
+  	
     adja = p->neig;
     while ((adja = adja->next) != NULL) {
       adja->ref = nlist[adja->node];
@@ -432,6 +449,13 @@ RemoveLink(struct node_gra *n1, struct node_gra *n2,
   struct node_lis *temp1;
   struct node_lis *temp2;
 
+  // Reset degree/strength of the nodes:
+  n1->degree = 0;
+  n2->degree = 0;
+  n1->strength = 0;
+  n2->strength = 0;
+  
+  
   // Link n1-n2
   nn1 = n1->neig;
   while ((nn1->next)->ref != n2) {
@@ -590,7 +614,7 @@ void
 FPrintDegrees(FILE *file, struct node_gra *p)
 {
   while ((p = p->next) !=  NULL)
-    fprintf(file, "%s %d\n", p->label, CountLinks(p));
+    fprintf(file, "%s %d\n", p->label, NodeDegree(p));
 }
 
 // ---------------------------------------------------------------------
@@ -815,7 +839,7 @@ RemoveIsolatedNodes(struct node_gra *root)
   // Revome isolated nodes
   p = root;
   while (p->next !=  NULL) {
-    if (CountLinks(p->next) ==  0) {
+    if (NodeDegree(p->next) ==  0) {
       temp = p->next;
       p->next = (p->next)->next;
       free(temp);
@@ -851,6 +875,10 @@ CleanAdjacencies(struct node_gra *net)
   // Clean the adjacencies
   p = net;
   while ((p = p->next) != NULL) {
+	// Reset degree/strength of the nodes:
+	p->degree = 0;
+	p->strength = 0;
+  
     nei = p->neig;
     while (nei->next != NULL) {
       if (GetNodeDict(nei->next->nodeLabel, nodeDict) == NULL) {
@@ -1341,36 +1369,22 @@ CountNodes(struct node_gra *p)
   return nodes;
 }
 
+
+
 // ---------------------------------------------------------------------
 // Counts the degree of a node
 // ---------------------------------------------------------------------
-int
-CountLinks(struct node_gra *node)
-{
-  struct node_lis *p=node->neig;
-  int count = 0;
 
-  while ((p = p->next) != NULL)
-    count++;
-  return count;
+unsigned int NodeDegree(struct node_gra *node)
+{
+  if(!node->degree && node->neig->next != NULL){
+    struct node_lis *p=node->neig;
+    while ((p = p->next) != NULL)
+      node->degree++;
+  }
+  return node->degree;
 }
 
-/*
-   ---------------------------------------------------------------------
-   Sums the weights of the connections of a node
-   (returns the strength)
-   ---------------------------------------------------------------------
-double
-SumWeights(struct node_gra *node)
-{
-  struct node_lis *p=node->neig;
-  int strength = 0;
-
-  while ((p = p->next) != NULL)
-    strength += p->weight;
-  return strength;
-}
-*/
 
 /*
   ---------------------------------------------------------------------
@@ -1405,7 +1419,7 @@ AverageSquaredDegree(struct node_gra *root)
 
   while ((p = p->next) != NULL) {
     nnod++;
-    k = CountLinks(p);
+    k = NodeDegree(p);
     k2sum += k * k;
   }
 
@@ -1426,7 +1440,7 @@ TotalNLinks(struct node_gra *p, int symmetric_sw)
   int total = 0;
 
   while((p = p->next) != NULL){
-    total += CountLinks(p);
+    total += NodeDegree(p);
   }
   
   if (symmetric_sw == 0)
@@ -1444,32 +1458,12 @@ TotalNLinks(struct node_gra *p, int symmetric_sw)
 double
 NodeStrength(struct node_gra *node)
 {
-  struct node_lis *p=node->neig;
-  double count = 0.0;
-
-  while ((p = p->next) != NULL)
-    count +=  p->weight;
-  return count;
-}
-
-/* 
-   ---------------------------------------------------------------------
-   Calculates the strength of a node, that is, the sum of the weights
-   of all its links; also saves that value for future calculations
-   ---------------------------------------------------------------------
-*/
-double
-NodeStrengthFast(struct node_gra *node)
-{
-  if(node->strength != -1)
-    return node->strength;
-  else{
+  if(!node->strength && node->neig->next != NULL){
     struct node_lis *p=node->neig;
-    double strength = 0.0;
     while ((p = p->next) != NULL)
-      strength +=  p->weight;
-    return strength;
+      node->strength +=  p->weight;
   }
+  return node->strength;
 }
 
 // ---------------------------------------------------------------------
@@ -1995,7 +1989,7 @@ OneNodeSquareClustering(struct node_gra *node,
   size = &res_size;
   list = CreateHeaderList();
   
-  if(CountLinks(node) == 0)
+  if(NodeDegree(node) == 0)
     return -1;
 
   ResetNodesState(root);
@@ -2377,7 +2371,7 @@ Assortativity(struct node_gra *net)
   // Calculate nodes degrees
   p = net;
   while ((p = p->next) != NULL) {
-    deg[p->num] = CountLinks(p);
+    deg[p->num] = NodeDegree(p);
     M += deg[p->num];
   }
 
@@ -2414,7 +2408,7 @@ CalculateKnn(struct node_gra *node)
   int nneig=0, totdeg=0;
 
   while ((p = p->next) != NULL) {
-    totdeg += CountLinks(p->ref);
+    totdeg += NodeDegree(p->ref);
     nneig++;
   }
   
@@ -3004,8 +2998,8 @@ JaccardIndex(struct node_gra *n1, struct node_gra *n2)
   int k1, k2;
 
   /* Degrees of both nodes */
-  k1 = CountLinks(n1);
-  k2 = CountLinks(n2);
+  k1 = NodeDegree(n1);
+  k2 = NodeDegree(n2);
 
   /* Count the number of common neighbors */
   p = n1->neig;
@@ -3043,8 +3037,8 @@ TopologicalOverlap(struct node_gra *n1, struct node_gra *n2)
   int k1, k2;
 
   /* Degrees of both nodes */
-  k1 = CountLinks(n1);
-  k2 = CountLinks(n2);
+  k1 = NodeDegree(n1);
+  k2 = NodeDegree(n2);
 
   /* Determine the node with less neighbors */
   if (k1 < k2) {

@@ -28,6 +28,7 @@ struct node_gra{
   int ivar1;               // number of packets currently at the node
   double dvar1;            // rush variable to store doubles
   int trans;               // translation of the node (for visualization)
+  unsigned int degree;     // The length of neig (to speed up modularity computation). 
   double strength;		   // the sum of all link weights (to speed up modularity calculations)
 };
 
@@ -236,7 +237,7 @@ struct node_gra *RandomizeSymmetricNetwork(struct node_gra *net,
   ---------------------------------------------------------------------
 */
 int CountNodes(struct node_gra *p);
-int CountLinks(struct node_gra *node);
+unsigned int NodeDegree(struct node_gra *node);
 //double SumWeights(struct node_gra *node);
 double AverageDegree(struct node_gra *root,
 		     int symmetric_sw);
@@ -244,7 +245,7 @@ double AverageSquaredDegree(struct node_gra *root);
 int TotalNLinks(struct node_gra *p,
 		int symmetric_sw);
 double NodeStrength(struct node_gra *node);
-double NodeStrengthFast(struct node_gra *node);
+
 
 /* Distance and related functions */
 void FPrintDistanceHistogram(FILE *file,

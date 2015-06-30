@@ -395,7 +395,7 @@ RemoveNodeBipart(struct binet *binet, char *label, int set)
   nei = node->neig;
   while (nei->next != NULL) {
     RemoveLink(node, nei->next->ref, 1);
-    fprintf(stderr, "degree: %d\n", CountLinks(node));
+    fprintf(stderr, "degree: %d\n", NodeDegree(node));
   }
 
   /* Remove the node */
@@ -543,7 +543,7 @@ NLinksBipart(struct binet *binet)
   int nlink = 0;
 
   while ((p = p->next) !=  NULL)
-    nlink +=  CountLinks(p);
+    nlink +=  NodeDegree(p);
 
   return nlink;
 }
@@ -857,8 +857,8 @@ ModularityBipart(struct binet *binet, struct group *part)
 
   /* Calculate sms=sum(m_s) and sms2=sum(m_s^2) */
   while ((p = p->next) != NULL) {
-    sms += (double)CountLinks(p);
-    sms2 += (double)(CountLinks(p) * CountLinks(p));
+    sms += (double)NodeDegree(p);
+    sms2 += (double)(NodeDegree(p) * NodeDegree(p));
   }
   s2ms = sms * sms;
 
@@ -869,8 +869,8 @@ ModularityBipart(struct binet *binet, struct group *part)
     while ((n2 = n1 = n1->next) != NULL) {
       while ((n2 = n2->next) != NULL) {
         c12 = NCommonLinksBipart(n1->ref, n2->ref);
-        t1 = CountLinks(n1->ref);
-        t2 = CountLinks(n2->ref);
+        t1 = NodeDegree(n1->ref);
+        t2 = NodeDegree(n2->ref);
 
 	      bimod += (double)c12 / (sms2 - sms) - (double)(t1 * t2) / s2ms;
       }
@@ -1124,8 +1124,8 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*     while ((n2 = n1 = n1->next) != NULL) { */
 /*       while ((n2 = n2->next) != NULL) { */
 /* 	if ( n1->ref->ivar1 != n2->ref->ivar1 ) { */
-/* 	  t1 = CountLinks(n1->ref); */
-/* 	  t2 = CountLinks(n2->ref); */
+/* 	  t1 = NodeDegree(n1->ref); */
+/* 	  t2 = NodeDegree(n2->ref); */
 /* 	  bimod += (IsThereLink(n1->ref, n2->node) -  */
 /* 		    (double)(t1 * t2) / (double)(L)) / (double)L; */
 /* 	} */
@@ -1263,7 +1263,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*   while ((p = p->next) != NULL) { */
 /*     p->trans = nnod++; */
 /*     nlist[p->trans] = p; */
-/*     nlinks[p->trans] = CountLinks(p); */
+/*     nlinks[p->trans] = NodeDegree(p); */
 /*     dice = gsl_rng_uniform(gen); */
 /*     if (dice < 0.5) { */
 /*       AddNodeToGroup(glist[0], p); */
@@ -1276,7 +1276,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*   while ((p = p->next) != NULL) { */
 /*     p->trans = nnod++; */
 /*     nlist[p->trans] = p; */
-/*     nlinks[p->trans] = CountLinks(p); */
+/*     nlinks[p->trans] = NodeDegree(p); */
 /*     dice = gsl_rng_uniform(gen); */
 /*     if (dice < 0.5) { */
 /*       AddNodeToGroup(glist[0], p); */
@@ -1534,7 +1534,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*     // Randomly assign the nodes to the groups and count their links */
 /*     p = module_binet->net1; */
 /*     while ((p = p->next) != NULL) { */
-/*       nlinks[p->trans] = CountLinks(p); */
+/*       nlinks[p->trans] = NodeDegree(p); */
 /*       dice = gsl_rng_uniform(gen); */
 /*       if (dice < 0.5) { */
 /* 	AddNodeToGroup(glist[0], p); */
@@ -1545,7 +1545,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*     } */
 /*     p = module_binet->net2; */
 /*     while ((p = p->next) != NULL) { */
-/*       nlinks[p->trans] = CountLinks(p); */
+/*       nlinks[p->trans] = NodeDegree(p); */
 /*       dice = gsl_rng_uniform(gen); */
 /*       if (dice < 0.5) { */
 /* 	AddNodeToGroup(glist[0], p); */
@@ -1752,8 +1752,8 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /* 	    nod2 = glist[g2]->nodeList; */
 /* 	    while ((nod2 = nod2->next) != NULL) { */
 /* 	      if (nod->ref->ivar1 != nod2->ref->ivar1) { */
-/* 		t1 = CountLinks(nod->ref); */
-/* 		t2 = CountLinks(nod2->ref); */
+/* 		t1 = NodeDegree(nod->ref); */
+/* 		t2 = NodeDegree(nod2->ref); */
 /* 		dE += (IsThereLink(nod->ref, nod2->node) -  */
 /* 		       (double)(t1 * t2) / (double)(L)) /  */
 /* 		  (double)L; */
@@ -1806,8 +1806,8 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /* 	    nod2 = glist[empty]->nodeList; */
 /* 	    while ((nod2 = nod2->next) != NULL) { */
 /* 	      if (nod->ref->ivar1 != nod2->ref->ivar1) { */
-/* 		t1 = CountLinks(nod->ref); */
-/* 		t2 = CountLinks(nod2->ref); */
+/* 		t1 = NodeDegree(nod->ref); */
+/* 		t2 = NodeDegree(nod2->ref); */
 /* 		dE += (IsThereLink(nod->ref, nod2->node) - */
 /* 		       (double)(t1 * t2) / (double)(L)) / (double)L; */
 /* 	      } */
@@ -1846,12 +1846,12 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 
 /*       // Calculate the change of energy */
 /*       dE = 0.0; */
-/*       t1 = CountLinks(nlist[target]); */
+/*       t1 = NodeDegree(nlist[target]); */
 /*       // Old group contribution */
 /*       nod = glist[oldg]->nodeList; */
 /*       while ((nod = nod->next) != NULL) { */
 /* 	if (nlist[target]->ivar1 != nod->ref->ivar1) { */
-/* 	  t2 = CountLinks(nod->ref); */
+/* 	  t2 = NodeDegree(nod->ref); */
 /* 	  dE -= (IsThereLink(nlist[target], nod->node) -  */
 /* 		 (double)(t1 * t2) / (double)(L)) / (double)L; */
 /* 	} */
@@ -1861,7 +1861,7 @@ StatisticsParticipationCoefficientBipart(struct node_gra *net,
 /*       nod = glist[newg]->nodeList; */
 /*       while ((nod = nod->next) != NULL) { */
 /* 	if (nlist[target]->ivar1 != nod->ref->ivar1) { */
-/* 	  t2 = CountLinks(nod->ref); */
+/* 	  t2 = NodeDegree(nod->ref); */
 /* 	  dE += (IsThereLink(nlist[target], nod->node) -  */
 /* 		 (double)(t1 * t2) / (double)(L)) / (double)L; */
 /* 	} */
