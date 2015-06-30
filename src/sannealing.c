@@ -19,9 +19,9 @@
   ---------------------------------------------------------------------
   Given a group, SAGroupSplit returns a split of the nodes into two
   subgroups. It uses SA, so initial and final temperature must be
-  provided. If cluster_sw == 1, then the function checks first whether
+  provided. If concomp_sw == 1, then the function checks first whether
   the group is disconnected; if it is, then it returns (with some
-  probability) a partition along the lines of the existing clusters
+  probability) a partition along the lines of the existing connected components
   without any SA (with complementary probability, it still does the
   SA).
   ---------------------------------------------------------------------
@@ -29,7 +29,7 @@
 struct group *
 SAGroupSplit(struct group *targ,
 			 double Ti, double Tf, double Ts,
-			 int cluster_sw,
+			 int concomp_sw,
 			 int weighted,
 			 gsl_rng *gen)
 {
@@ -43,13 +43,13 @@ SAGroupSplit(struct group *targ,
   int i;
   int des;
   int target, oldg, newg;
-  double dE=0.0, energy=0.0;
+  double dE=0.0;
   double T;
   int ngroups, g1, g2;
   double prob = 0.5;
   
   double innew, inold, nlink;
-  double totallinks=0.0;
+  double totallinks=0.0, invsqtotallinks = 0.0;
 
   nodeList = (struct node_gra**)calloc(targ->size, sizeof(struct node_gra *));
   glist[0] = NULL;
@@ -57,16 +57,18 @@ SAGroupSplit(struct group *targ,
 
   /* Build a network from the nodes in the target group */
   net = BuildNetFromGroup(targ);
-
-  /* Check if the network is connected */
-  split = ClustersPartition(net);
-  ngroups = NGroups(split);
-
-  if (
-	  cluster_sw == 1 &&         /*  cluster switch is on */
-	  ngroups > 1 &&             /*  network is not connected */
-	  gsl_rng_uniform(gen) < prob  /*  with some probability */
-	  ) {
+  
+  
+  if (concomp_sw){
+	split = ClustersPartition(net);
+	ngroups = NGroups(split);
+  } else {
+	ngroups = 1;
+  }
+  
+  if (ngroups > 1                     /*  network is not connected */
+	  && gsl_rng_uniform(gen) < prob)  /*  with some probability */
+	{
 
 	/* Merge groups randomly until only two are left */
 	while (ngroups > 2) {
@@ -89,10 +91,12 @@ SAGroupSplit(struct group *targ,
 	  ngroups--;
 	}
   }
+  else { /*  Network is connected or we want to ignore the component structure */
 
-  else { /*  Network is connected or we want to ignore the clusters */
+	
 	/* Remove SCS partition */
-	RemovePartition(split);
+	if (concomp_sw)
+	  RemovePartition(split);
 	ResetNetGroup(net);
 
 	/* Create the groups */
@@ -114,68 +118,43 @@ SAGroupSplit(struct group *targ,
 	  AddNodeToGroup(glist[des], p);
 	}
 	totallinks /= 2;
-
+	invsqtotallinks = 1 / (2 * totallinks * totallinks);
+	
 	/* Do the SA to "optimize" the splitting */
 	if (totallinks > 0) {
-	  T = Ti;
-	  while (T > Tf) {
+	  for (T=Ti; T > Tf; T = T*Ts) {
+		for (i=0; i<nnod; i++) {
 
-	for (i=0; i<nnod; i++) {
-	  target = floor(gsl_rng_uniform(gen) * (double)nnod);
-	  oldg = nodeList[target]->inGroup;
-
-	  // If oldg == 1, newg = 0 and conversely.
-	  newg = !oldg;
+		  // Select a random node and switch its group. 
+		  target = floor(gsl_rng_uniform(gen) * (double)nnod);
+		  oldg = nodeList[target]->inGroup;
+		  newg = !oldg; // If oldg == 1, newg = 0 and conversely.
 	  	  
-	  /* Calculate the change of energy */
+		  // Calculate the change of energy.
+		  if (!weighted){
+			inold = (double) NLinksToGroup(nodeList[target],glist[oldg]);
+			innew = (double) NLinksToGroup(nodeList[target],glist[newg]);
+			nlink = (double) CountLinks(nodeList[target]);}
+		  else {
+			inold = StrengthToGroup(nodeList[target],glist[oldg]);
+			innew = StrengthToGroup(nodeList[target],glist[newg]);
+			nlink = NodeStrength(nodeList[target]);
+		  }
 
-	  if (!weighted){
-		inold = (double) NLinksToGroup(nodeList[target],glist[oldg]);
-		innew = (double) NLinksToGroup(nodeList[target],glist[newg]);
-		nlink = (double) CountLinks(nodeList[target]);}
-	  else {
-		inold = StrengthToGroup(nodeList[target],glist[oldg]);
-		innew = StrengthToGroup(nodeList[target],glist[newg]);
-		nlink = NodeStrength(nodeList[target]);
-	  }
-
-	  dE = 0.0;
-
-	  // - Old group
-	  dE -= (double)(2 * glist[oldg]->inlinks) / totallinks;
-	  dE -= (double)(glist[oldg]->totlinks+glist[oldg]->inlinks) 
-		* (double)(glist[oldg]->totlinks+glist[oldg]->inlinks) 
-		/ (totallinks * totallinks);
-
-	  // - New group
-	  dE -= (double)(2 * glist[newg]->inlinks) / totallinks; 
-	  dE -= (double)(glist[newg]->totlinks+glist[newg]->inlinks) 
-		* (double)(glist[newg]->totlinks+glist[newg]->inlinks) 
-		/ (totallinks * totallinks);
-
-	  // + Old group
-	  dE += (double)(2*glist[oldg]->inlinks - 2*inold) / totallinks
-	  dE -= (double)(glist[oldg]->totlinks + glist[oldg]->inlinks -  nlink) 
-		* (double)(glist[oldg]->totlinks + glist[oldg]->inlinks - nlink)
-		/ (totallinks * totallinks);
-
-	  // - New group. 
-	  dE += (double)(2*glist[newg]->inlinks + 2*innew) / totallinks
-	  dE -= (double)(glist[newg]->totlinks + glist[newg]->inlinks +  nlink ) 
-		* (double)(glist[newg]->totlinks + glist[newg]->inlinks + nlink ) 
-		/ (totallinks * totallinks);
-
-	  /* Accept the move according to Metropolis */
-	  if( (dE >=0.0) || (gsl_rng_uniform(gen) < exp(dE/T)) ){
-		MoveNode(nodeList[target],glist[oldg],glist[newg]);
-		energy += dE;
-	  }
-	}
-
-	T = T * Ts;
+		  dE = 0.0;
+		  // Remove the node from its old group...
+		  dE -= inold/totallinks - (nlink * glist[oldg]->totlinks * invsqtotallinks);
+		  // Add the node to its new group. 
+		  dE += innew/totallinks  - (nlink * glist[newg]->totlinks * invsqtotallinks);
+		  
+		  /* Accept the move according to Metropolis */
+		  if( (dE >=0.0) || (gsl_rng_uniform(gen) < exp(dE/T)) )
+			MoveNode(nodeList[target],glist[oldg],glist[newg]);
+		  
+		} /* End of node loop */
 	  } /*  End of temperature loop */
 	} /*  End if totallinks > 0 */
-  }
+  } 
 
   /* Free memory */
   RemoveGraph(net);
