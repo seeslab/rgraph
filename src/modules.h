@@ -155,18 +155,6 @@ double CorrectlyClassified(struct group *refpart,
 */
 double Modularity(struct group *part);
 double ModularityWeight(struct group *part);
-struct group *SAGroupSplit(struct group *targ,
-			   double Ti, double Tf, double Ts,
-			   int cluster_sw,
-			   gsl_rng *gen);
-struct group *SACommunityIdent(struct node_gra *net,
-			       double Ti, double Tf, double Ts,
-			       double fac,
-			       int ngroup,
-			       char initial_sw,
-			       int collective_sw,
-			       char output_sw,
-			       gsl_rng *gen);
 
 /*
   ---------------------------------------------------------------------

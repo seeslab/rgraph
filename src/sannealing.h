@@ -1,6 +1,7 @@
 #include <gsl/gsl_rng.h>
 #include "graph.h"
 #include "modules.h"
+#include "bipartite.h"
 
 // Spliting group using SA
 struct group *

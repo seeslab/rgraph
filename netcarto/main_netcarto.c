@@ -12,6 +12,7 @@
 #include "tools.h"
 #include "graph.h"
 #include "modules.h"
+#include "sannealing.h"
 
 int
 main()

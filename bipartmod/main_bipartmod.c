@@ -9,6 +9,7 @@
 #include "graph.h"
 #include "modules.h"
 #include "bipartite.h"
+#include "sannealing.h"
 
 main(int argc, char **argv)
 {
