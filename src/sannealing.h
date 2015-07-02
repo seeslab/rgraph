@@ -3,18 +3,12 @@
 #include "modules.h"
 #include "bipartite.h"
 
-struct llist
-{
-  unsigned int value;
-  struct llist *next;
-};
-
 struct partition{
-  struct llist **group;
   unsigned int *module;
   unsigned int *size;
   unsigned int nmod;
   unsigned int nnod;
+  unsigned int nempty;
 };
 
 double **CostMatrix(struct node_gra *net);
@@ -81,3 +75,13 @@ GeneralSA(double **cmat, unsigned int N,
 		  double fac,
 		  double Ti, double Tf, double Ts,
 		  gsl_rng *gen);
+double
+dEMergeGroups(unsigned int group1,
+			  unsigned int group2,
+			  struct partition *part,
+			  double **cmat);
+double
+dEAddNodeToGroup(unsigned int nodeid,
+				 unsigned int groupid,
+				 struct partition *part,
+				 double **cmat);
