@@ -279,7 +279,7 @@ GeneralSAGroupSplit(unsigned int target, unsigned int empty,
   j = 0;
   for (i=0; i<part->nnod; i++){
 	if (part->module[i]==target){
-	  indices[j];
+	  indices[j]=i;
 	  count--;
 	  j++;
 	  if (!count) break;
