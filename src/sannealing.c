@@ -8,8 +8,11 @@
 #include "modules.h"
 #include "bipartite.h"
 #include "sannealing.h"
+#include "costmatrix.h"
 
 #define EPSILON_MOD 1.e-6
+
+////////////////////////////////////////////////////////////////////////////////////:
 
 /**
 Compute a the number of iterations for the SA.
@@ -18,7 +21,7 @@ Compute a the number of iterations for the SA.
 @param fac Iteration factor
 @param individual_movements A pointer to where to write the number of local movements.
 @param collective_movements A pointer to where to write the number of collectives movements.
- **/
+**/
 void iterationNumber(int nnod,
 					 double fac,
 					 int *individual_movements,
@@ -32,127 +35,6 @@ void iterationNumber(int nnod,
 	*collective_movements = 2;
   else
 	*collective_movements = floor(fac * (double)nnod);
-}
-
-struct group *
-SACommunityIdent(struct node_gra *net,
-				 double Ti, double Tf, double Ts,
-				 double fac,
-				 int ngroup,
-				 char initial_sw,
-				 int collective_sw,
-				 char output_sw,
-				 gsl_rng *gen){
-  struct group *ret;
-  double **cmat;
-  unsigned int N;
-  N = CountNodes(net);
-  cmat = CostMatrix(net);
-  int i, j;
-  for(i=0;i<N;i++){
-	for(j=0;j<N;j++){
-	  printf ("\t%e\t",cmat[i][j]);	  
-	}
-	printf ("\n");
-  }
-  
-  ret = GeneralSA(cmat, N, net,
-  				  fac, Ti, Tf,  Ts,
-  				  gen);
-  free(cmat);
-  return(ret);
-}
-
-struct group *
-SACommunityIdentWeight(struct node_gra *net,
-						 double Ti, double Tf, double Ts,
-						 double fac,
-						 int merge,
-						 gsl_rng *gen)
-{
-  struct group *ret;
-  double **cmat;
-  unsigned int N;
-  N = CountNodes(net);
-  cmat = CostMatrixWeighted(net);
-  int i,j;
-   for(i=0;i<N;i++){
-	for(j=0;j<N;j++){
-	  printf ("\t%e\t",cmat[i][j]);	  
-	}
-	printf ("\n");
-  }
- 
-  ret = GeneralSA(cmat, N, net,
-  				  fac, Ti, Tf,  Ts,
-  				  gen);
-  free(cmat);
-  return(ret);
-}
-
-struct group *
-SACommunityIdentBipart(struct binet *binet,
-						 double Ti, double Tf, double Ts,
-						 double fac,
-						 int ngroup,
-						 char initial_sw,
-						 int collective_sw,
-						 char output_sw,
-						 gsl_rng *gen)
-{
-  struct group *ret;
-  double **cmat;
-  struct node_gra *projected ;
-  unsigned int N;
-  N = CountNodes(binet->net1);
-  cmat = CostMatrixBipart(binet);
-  int i,j;
-   for(i=0;i<N;i++){
-	for(j=0;j<N;j++){
-	  printf ("\t%e\t",cmat[i][j]);	  
-	}
-	printf ("\n");
-  }
- 
-  projected = ProjectBipart(binet);
-  ret = GeneralSA(cmat, N, projected,
-  				  fac, Ti, Tf,  Ts,
-  				  gen);
-  free(cmat);
-  return(ret);
-}
-
-struct group *
-SACommunityIdentBipartWeighted(struct binet *binet,
-								 double Ti, double Tf, double Ts,
-								 double fac,
-								 int ngroup,
-								 char initial_sw,
-								 int collective_sw,
-								 char output_sw,
-								 gsl_rng *gen)
-
-{
-  struct group *ret;
-  double **cmat;
-  struct node_gra *projected ;
-  unsigned int N;
-  N = CountNodes(binet->net1);
-  cmat = CostMatrixBipartWeighted(binet);
-  int i,j;
-   for(i=0;i<N;i++){
-	for(j=0;j<N;j++){
-	  printf ("\t%e\t",cmat[i][j]);	  
-	}
-	printf ("\n");
-  }
- 
-  projected = ProjectBipart(binet);
-  ret = GeneralSA(cmat, N, projected,
-  				  fac, Ti, Tf,  Ts,
-  				  gen);
-  free(cmat);
-  return(ret);
 }
 
 
@@ -192,149 +74,6 @@ convertPartitionToGroup(struct partition *part, struct node_gra *net)
   return(CompressPart(group));
 }
 
-double **CostMatrix(struct node_gra *net){
-  struct node_gra *p, *q;
-  struct node_lis *neigh;
-  int nnod = CountNodes(net);
-  double **cmat = allocate_d_mat(nnod, nnod);
-  double links = 0, fac1=0, fac2=0, s1,s2;
-  
-  p = net;
-  while ((p = p->next) != NULL) {
-	links += (double)NodeDegree(p);
-  }
-  fac1 = 2/links;
-  fac2 = 1/(2*links*links);
-
-  p = net;
-  while ((p = p->next) != NULL) {
-	s1 = (double)NodeDegree(p);
-	q = net;
-	while ((q = q->next) != NULL) {
-	  s2 = (double)NodeDegree(q);
-	  if(cmat[q->num][p->num] != 0)
-		cmat[p->num][q->num] = cmat[q->num][p->num];
-	  else{
-		cmat[p->num][q->num] = - fac2 * s1 * s2;
-		neigh = p->neig;
-		while ((neigh = neigh->next) != NULL){
-		  if (neigh->node == q->num){
-			cmat[p->num][q->num] += fac1;
-			break;
-		  }
-		}
-	  }
-	}
-  }
-  return cmat;
-}
-
-double **CostMatrixWeighted(struct node_gra *net){
-  struct node_gra *p, *q;
-  struct node_lis *neigh;
-  int nnod = CountNodes(net);
-  double **cmat = allocate_d_mat(nnod, nnod);
-  double links = 0, fac1=0, fac2=0, s1,s2;
-  
-  p = net;
-  while ((p = p->next) != NULL) {
-	links += (double)NodeStrength(p);
-  }
-  fac1 = 2/links;
-  fac2 = 1/(2*links*links);
-
-  p = net;
-  while ((p = p->next) != NULL) {
-	s1 = (double)NodeStrength(p);
-	q = net;
-	while ((q = q->next) != NULL) {
-	  s2 = (double)NodeStrength(q);
-	  if(cmat[q->num][p->num] != 0)
-		cmat[p->num][q->num] = cmat[q->num][p->num];
-	  else{
-		cmat[p->num][q->num] = - fac2 * s1 * s2;
-		neigh = p->neig;
-		while ((neigh = neigh->next) != NULL){
-		  if (neigh->node == q->num){
-			cmat[p->num][q->num] += fac1*neigh->weight;
-			break;
-		  }
-		}
-	  }
-	}
-  }
-  return cmat;
-}
-
-	
-double **CostMatrixBipart(struct binet *binet){
-  struct node_gra *p, *q;
-  int nnod = CountNodes(binet->net1);
-  double **cmat = allocate_d_mat(nnod, nnod);
-  double links=0, fac1=0, fac2=0,s1=0,s2=0;
-  p = binet->net2;
-  
-  while ((p = p->next) != NULL) {
-	links = (double)NodeDegree(p);
-	fac1 += links * (links - 1);
-	fac2 += links;
-  }
-  fac1 = 1. / fac1; // 1/sum_a[m_a(m_a-1)]
-  fac2 = 1. / (fac2*fac2); // 1/(sum_a[m_a])**2
-
-  p = binet->net1;
-  while ((p = p->next) != NULL) {
-	s1 = (double)NodeDegree(p);
-	q = binet->net1;
-	while ((q = q->next) != NULL) {
-	  s2 = (double)NodeDegree(q);
-	  if(cmat[q->num][p->num] != 0)
-		cmat[p->num][q->num] = cmat[q->num][p->num];
-	  else
-		cmat[p->num][q->num] = fac1 * (double)NCommonLinksBipart(p, q) - fac2 * s1 * s2;
-	}
-  }
-  return cmat;
-}
-
-
-double **CostMatrixBipartWeighted(struct binet *binet){
-  struct node_gra *p, *q;
-  int nnod = CountNodes(binet->net1);
-  struct node_lis *neigh;
-  double **cmat = allocate_d_mat(nnod, nnod);
-  double links, fac1, fac2, s1, s2, min;
-  p = binet->net2;
-  
-  while ((p = p->next) != NULL) {
-	links = NodeStrength(p);
-	min = links;
-	neigh = p->neig;
-	while ((neigh = neigh->next) != NULL){
-	  if (neigh->weight < min){
-		min = neigh->weight;
-	  }
-	}
-	fac1 += links * (links - min);
-	fac2 += links;
-  }
-  fac1 = 1. / fac1; // 1/sum_a[m_a(m_a-1)]
-  fac2 = 1. / (fac2*fac2); // 1/(sum_a[m_a])**2
-
-  p = binet->net1;
-  while ((p = p->next) != NULL) {
-	s1 = (double)NodeStrength(p);
-	q = binet->net1;
-	while ((q = q->next) != NULL) {
-	  s2 = (double)NodeStrength(q);
-	  if(cmat[q->num][p->num] != 0)
-		cmat[p->num][q->num] = cmat[q->num][p->num];
-	  else
-		cmat[p->num][q->num] = fac1 * (double)SumProductsOfCommonWeightsBipart(p, q) - fac2 * s1 * s2;
-	}
-  }
-  return cmat;
-}
 
 
 struct partition * InitializePartition(unsigned int N){
@@ -382,8 +121,147 @@ void FreeSimplePartition(struct partition *part){
   free(part->size);
   free(part);
 }
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+Given an array of linked lists, move the value val from the linked list old to new.
+Return 0 if successfull. 
+**/
+unsigned int move(unsigned int target,
+				  unsigned int old, unsigned int new,
+				  struct partition *part){
+  int s, sum, j;
+  s = 0;
+  for(j=0;j<part->nmod;j++){
+	s+=part->size[j];
+  }
+  sum = s;
+  if(sum != part->nnod){
+	printf ("before: HHAAAAAAARG\n");
+  }
+
+  // Actually moving the node.
+  part->module[target] = new;
+
+  // Group size bookkeeping.
+  if(!part->size[new]) part->nempty--;
+  part->size[old]--;
+  part->size[new]++;
+  if(!part->size[old]) part->nempty++;
+
+  s = 0;
+  for(j=0;j<part->nmod;j++){
+	s+=part->size[j];
+  }
+  sum = s;
+  if(sum != part->nnod){
+	printf ("after: HHAAAAAAARG\n");
+  }
+
+  return(0);
+}
+
+/**
+Merge two modules.
+**/
+void merge(unsigned int g1,
+		   unsigned int g2,
+		   struct partition *part){
+
+  unsigned int ishort, ilong, i;
+
+  if (!part->size[g1]||!part->size[g2])
+	return;
+  
+  // Get the shorter list.
+  if (part->size[g1]>part->size[g2]){
+	ishort=g2;
+	ilong=g1;
+  }
+  else{
+	ishort=g1;
+	ilong=g2;
+  }
+  
+  part->size[ilong] += part->size[ishort];
+  for (i=0;i<part->nnod;i++){
+	if (part->module[i] == ishort){
+	  part->module[i] = ilong;
+	  part->size[ishort]--;
+	  if (part->size[ishort] == 0) break;
+	}
+  }
+  part->nempty++;
+  
+}
+double
+dEAddNodeToGroup(unsigned int nodeid,
+				 unsigned int groupid,
+				 struct partition *part,
+				 double **cmat){
+  unsigned int i, count;
+  double dE = 0.0;
+  dE = 0.0;
+  count = part->size[groupid];
+  for (i = 0; i<part->nnod;i++){
+	if(part->module[i]==groupid){
+	  dE += cmat[nodeid][i];
+	  count--;
+	  if(count==0) break;
+	}
+  }
+  return(dE);
+}
 
 double
+dEMergeGroups(unsigned int group1,
+			  unsigned int group2,
+			  struct partition *part,
+			  double **cmat){
+  unsigned int i,j,count_long,count_short, gshort, glong;
+  unsigned int *ishort, *ilong;
+  double dE = 0.0;
+  
+  if (part->size[group1] > part->size[group2]){
+	gshort = group2;
+	glong = group1;
+  }else{
+	gshort = group1;
+	glong = group2;
+  }
+  ishort = (unsigned int*) malloc(part->size[gshort]*sizeof(unsigned int));
+  ilong = (unsigned int*) malloc(part->size[glong]*sizeof(unsigned int));
+
+  count_short = part->size[gshort];
+  count_long = part->size[glong];
+  for (i = 0; i<part->nnod;i++){
+	if(count_short && part->module[i]==gshort){
+	  count_short--;
+	  ishort[count_short] = i;
+	  if(!count_short&&!count_long) break;}
+	else if(count_long && part->module[i]==glong){
+	  count_long--;
+	  ilong[count_long] = i;
+	  if(!count_short&&!count_long) break;}
+	}
+  
+  dE = 0.0;
+  for (i = 0; i<part->size[gshort];i++){
+	for (j = 0; j<part->size[glong];j++){
+	  dE += cmat[ishort[i]][ilong[j]];
+	}
+  }
+  free(ishort);
+  free(ilong);
+
+  return(dE);
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////:
+
+void
 GeneralSAGroupSplit(unsigned int target, unsigned int empty,
 					double Ti, double Tf, double Ts, double fac,
 					double cluster_prob, unsigned int nochange_limit,
@@ -596,140 +474,125 @@ GeneralSA(double **cmat, unsigned int N,
   return(grp);
 }
 
+//////////////////////////////////////////////////////::
 
+struct group *
+SACommunityIdent(struct node_gra *net,
+				 double Ti, double Tf, double Ts,
+				 double fac,
+				 int ngroup,
+				 char initial_sw,
+				 int collective_sw,
+				 char output_sw,
+				 gsl_rng *gen){
+  struct group *ret;
+  double **cmat;
+  unsigned int N;
+  N = CountNodes(net);
+  cmat = CostMatrix(net);
+  int i, j;
+  for(i=0;i<N;i++){
+	for(j=0;j<N;j++){
+	  printf ("\t%e\t",cmat[i][j]);	  
+	}
+	printf ("\n");
+  }
   
-
-
-/**
-Given an array of linked lists, move the value val from the linked list old to new.
-Return 0 if successfull. 
-**/
-unsigned int move(unsigned int target,
-				  unsigned int old, unsigned int new,
-				  struct partition *part){
-  int s, sum, j;
-  s = 0;
-  for(j=0;j<part->nmod;j++){
-	s+=part->size[j];
-  }
-  sum = s;
-  if(sum != part->nnod){
-	printf ("before: HHAAAAAAARG\n");
-  }
-
-  // Actually moving the node.
-  part->module[target] = new;
-
-  // Group size bookkeeping.
-  if(!part->size[new]) part->nempty--;
-  part->size[old]--;
-  part->size[new]++;
-  if(!part->size[old]) part->nempty++;
-
-  s = 0;
-  for(j=0;j<part->nmod;j++){
-	s+=part->size[j];
-  }
-  sum = s;
-  if(sum != part->nnod){
-	printf ("after: HHAAAAAAARG\n");
-  }
-
-  return(0);
+  ret = GeneralSA(cmat, N, net,
+  				  fac, Ti, Tf,  Ts,
+  				  gen);
+  free(cmat);
+  return(ret);
 }
 
-/**
-Merge two modules.
-**/
-void merge(unsigned int g1,
-		   unsigned int g2,
-		   struct partition *part){
-
-  unsigned int ishort, ilong, i;
-
-  if (!part->size[g1]||!part->size[g2])
-	return;
-  
-  // Get the shorter list.
-  if (part->size[g1]>part->size[g2]){
-	ishort=g2;
-	ilong=g1;
-  }
-  else{
-	ishort=g1;
-	ilong=g2;
-  }
-  
-  part->size[ilong] += part->size[ishort];
-  for (i=0;i<part->nnod;i++){
-	if (part->module[i] == ishort){
-	  part->module[i] = ilong;
-	  part->size[ishort]--;
-	  if (part->size[ishort] == 0) break;
+struct group *
+SACommunityIdentWeight(struct node_gra *net,
+						 double Ti, double Tf, double Ts,
+						 double fac,
+						 int merge,
+						 gsl_rng *gen)
+{
+  struct group *ret;
+  double **cmat;
+  unsigned int N;
+  N = CountNodes(net);
+  cmat = CostMatrixWeighted(net);
+  int i,j;
+   for(i=0;i<N;i++){
+	for(j=0;j<N;j++){
+	  printf ("\t%e\t",cmat[i][j]);	  
 	}
+	printf ("\n");
   }
-  part->nempty++;
-  
-}
-double
-dEAddNodeToGroup(unsigned int nodeid,
-				 unsigned int groupid,
-				 struct partition *part,
-				 double **cmat){
-  unsigned int i, count;
-  double dE = 0.0;
-  dE = 0.0;
-  count = part->size[groupid];
-  for (i = 0; i<part->nnod;i++){
-	if(part->module[i]==groupid){
-	  dE += cmat[nodeid][i];
-	  count--;
-	  if(count==0) break;
-	}
-  }
-  return(dE);
+ 
+  ret = GeneralSA(cmat, N, net,
+  				  fac, Ti, Tf,  Ts,
+  				  gen);
+  free(cmat);
+  return(ret);
 }
 
-double
-dEMergeGroups(unsigned int group1,
-			  unsigned int group2,
-			  struct partition *part,
-			  double **cmat){
-  unsigned int i,j,count_long,count_short, gshort, glong;
-  unsigned int *ishort, *ilong;
-  double dE = 0.0;
-  
-  if (part->size[group1] > part->size[group2]){
-	gshort = group2;
-	glong = group1;
-  }else{
-	gshort = group1;
-	glong = group2;
-  }
-  ishort = (unsigned int*) malloc(part->size[gshort]*sizeof(unsigned int));
-  ilong = (unsigned int*) malloc(part->size[glong]*sizeof(unsigned int));
-
-  count_short = part->size[gshort];
-  count_long = part->size[glong];
-  for (i = 0; i<part->nnod;i++){
-	if(count_short && part->module[i]==gshort){
-	  count_short--;
-	  ishort[count_short] = i;
-	  if(!count_short&&!count_long) break;}
-	else if(count_long && part->module[i]==glong){
-	  count_long--;
-	  ilong[count_long] = i;
-	  if(!count_short&&!count_long) break;}
+struct group *
+SACommunityIdentBipart(struct binet *binet,
+						 double Ti, double Tf, double Ts,
+						 double fac,
+						 int ngroup,
+						 char initial_sw,
+						 int collective_sw,
+						 char output_sw,
+						 gsl_rng *gen)
+{
+  struct group *ret;
+  double **cmat;
+  struct node_gra *projected ;
+  unsigned int N;
+  N = CountNodes(binet->net1);
+  cmat = CostMatrixBipart(binet);
+  int i,j;
+   for(i=0;i<N;i++){
+	for(j=0;j<N;j++){
+	  printf ("\t%e\t",cmat[i][j]);	  
 	}
-  
-  dE = 0.0;
-  for (i = 0; i<part->size[gshort];i++){
-	for (j = 0; j<part->size[glong];j++){
-	  dE += cmat[ishort[i]][ilong[j]];
-	}
+	printf ("\n");
   }
-  free(ishort);
-  free(ilong);
+ 
+  projected = ProjectBipart(binet);
+  ret = GeneralSA(cmat, N, projected,
+  				  fac, Ti, Tf,  Ts,
+  				  gen);
+  free(cmat);
+  return(ret);
+}
 
-  return(dE);
+struct group *
+SACommunityIdentBipartWeighted(struct binet *binet,
+								 double Ti, double Tf, double Ts,
+								 double fac,
+								 int ngroup,
+								 char initial_sw,
+								 int collective_sw,
+								 char output_sw,
+								 gsl_rng *gen)
+
+{
+  struct group *ret;
+  double **cmat;
+  struct node_gra *projected ;
+  unsigned int N;
+  N = CountNodes(binet->net1);
+  cmat = CostMatrixBipartWeighted(binet);
+  int i,j;
+   for(i=0;i<N;i++){
+	for(j=0;j<N;j++){
+	  printf ("\t%e\t",cmat[i][j]);	  
+	}
+	printf ("\n");
+  }
+ 
+  projected = ProjectBipart(binet);
+  ret = GeneralSA(cmat, N, projected,
+  				  fac, Ti, Tf,  Ts,
+  				  gen);
+  free(cmat);
+  return(ret);
 }
