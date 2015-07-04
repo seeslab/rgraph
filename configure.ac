@@ -46,8 +46,7 @@ AC_CHECK_FUNCS([floor pow sqrt])
 AC_CONFIG_FILES(lib/Makefile
 		src/Makefile
 		test/Makefile
-		netcarto/Makefile
-		bipartmod/Makefile
+		bin/Makefile
 		utils/Makefile
 		reliability/Makefile
 		recommender/Makefile
