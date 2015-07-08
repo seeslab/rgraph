@@ -70,7 +70,7 @@ struct node_lis *AddNodeToGroupSoft(struct group *g, char *label);
 int RemoveNodeFromGroup(struct group *g, struct node_gra *node);
 int MoveNode(struct node_gra *node,
       	     struct group *old,
-	     struct group *new);
+			 struct group *new);
 
 /* a la DB Stouffer */
 struct node_lis *AddNodeToGroupFast(struct group *g, struct node_gra *node);

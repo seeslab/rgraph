@@ -105,7 +105,36 @@ CreateGroup(struct group *part, int label)
   ---------------------------------------------------------------------
   ---------------------------------------------------------------------
 */
-
+/**
+Read a partition from a file, the file should contain a line by
+module, with the names of the nodes separated by tabulations.
+ **/
+struct group* 
+FReadPartition(FILE *inF){
+  char label[MAX_LABEL_LENGTH];
+  char sep[2];
+  int noReadItems = 0;
+  
+  struct group *g = NULL;
+  struct group *part = NULL;
+  int npart = 0, nfields = 0;
+  
+  part = CreateHeaderGroup();
+  g = CreateGroup(part, npart);
+  
+  while (!feof(inF)){
+	nfields=fscanf(inF,"%[^\t\n]%[\t\n]",&label,&sep);
+	if (nfields) {
+	  AddNodeToGroupSoft(g, label);
+	  if(sep[0]=='\n'){
+		npart++;
+		g = CreateGroup(part, npart);
+	  }
+	}
+  }
+  return(part);
+}
+  
 /*
   ---------------------------------------------------------------------
   Build a partition from a file. The file should contain
