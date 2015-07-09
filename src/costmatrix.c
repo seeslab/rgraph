@@ -71,7 +71,7 @@ ComputeCostBipart(struct binet *binet,
 	fac2 += links;
   }
   fac1 = 1. / fac1; // 1/sum_a[m_a(m_a-epsilon)]
-  fac2 = 1. / (fac2*fac2); // 1/(sum_a[m_a])**2  
+  fac2 = 1. / fac2; // 1/(sum_a[m_a])  
 
   node = projected;
   i = 0;
