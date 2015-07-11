@@ -11,6 +11,20 @@
 #include "partition.h"
 #include "costmatrix.h"
 
+#define VERBOSE
+
+#ifndef EXPLAIN
+#define explain(M, ...)
+#else
+#define explain(M, ...) fprintf(stderr,M, ##__VA_ARGS__)
+#endif
+
+#ifndef VERBOSE
+#define info(M, ...)
+#else
+#define info(M, ...) fprintf(stderr,M, ##__VA_ARGS__)
+#endif
+
 #define EPSILON_MOD 1.e-6
 
 struct group *
@@ -79,7 +93,9 @@ BipartiteNetworkClustering(struct binet *binet,
 	Ngroups = N;
 
   // Allocate the memory.
+
   part = CreatePartition(N,Ngroups);
+
   adj = CreateAdjaArray(N,E);
 
   // Initialization.
@@ -102,8 +118,6 @@ BipartiteNetworkClustering(struct binet *binet,
   return(g);
 }
 
-
-
 Partition *
 GeneralSA(Partition *part, AdjaArray *adj,
 		  double fac,
@@ -117,14 +131,17 @@ GeneralSA(Partition *part, AdjaArray *adj,
   unsigned int target, oldg, newg, i, g1, g2, j, empty, ncomponent;
   double T = Ti;
   unsigned int nochange_count=0;
-  double dE=0.0, E=0.0, previousE=0.0, best_E=-1.0/0.0; //initial best is -infinity.
 
+  double dE=0.0, E=0.0, previousE=0.0, best_E=-1.0/0.0;  //initial best is -infinity.
+  info ("#Simulated annealing:\n");
+  explain ("#Ti: %f Tf: %f c: %f fac: %f\n",Ti,Tf,Ts,fac);
+  explain ("#nochang_limit: %d, proba_components: %f \n",nochange_limit, proba_components);
   // Get the number of individual and collective movements.
   iterationNumber(part->N, fac, &individual_movements, &collective_movements);
-  printf ("#T\tE\n");
+  info ("#T\tE\tStop\n");
   /// SIMULATED ANNEALING ///
   for (T=Ti; T > Tf; T = T*Ts) {
-	printf ("%e\t%e\n",T,E);
+	info ("%e\t%e\t%d\n", T , E, nochange_count);
 	//// INDIVIDUAL MOVEMENTS. ////
 	for (i=individual_movements; i; i--) {
 	  //// Select a node and a target group.
@@ -137,15 +154,17 @@ GeneralSA(Partition *part, AdjaArray *adj,
 	  //// Computing the difference in energy.
 	  dE = dEChangeModule(target,newg,part,adj);
 
+	  //explain("Moving node %d from %d to %d, %e\n",target,oldg,newg,dE);
 	  //// Accept or reject the movement according to the
 	  //// Metropolis-Boltzman criterion.
 	  if (gsl_rng_uniform(gen) < exp(dE/T)){
 		ChangeModule(target,newg,part);
 		E += dE;
-	  } 
+	  }
 	}// End of individual movements
 
 	//// COLLECTIVE MOVEMENTS. ////
+
 	for (i=collective_movements; i; i--){
 	  //// MERGES ////
 	  //// Select two groups to merge
@@ -160,7 +179,7 @@ GeneralSA(Partition *part, AdjaArray *adj,
 
 		// Compute the differences in energy.
 		dE = dEMergeModules(g1,g2,part,adj);
-
+		explain("Merging module %d (%d) and %d (%d), %e\n",g1,part->modules[g1]->size,g2,part->modules[g2]->size,dE);
 		//// Accept or reject the movement according to the
 		//// Metropolis-Boltzman criterion.
 		if (gsl_rng_uniform(gen) < exp(dE/T)){
@@ -189,34 +208,42 @@ GeneralSA(Partition *part, AdjaArray *adj,
 
 		// Try to split the module along connect components with a
 		// given probability.
-		
+		explain("Split modules %d (%d) and %d (%d) Proba: (%f)\n",target, part->modules[target]->size, empty,part->modules[empty]->size,proba_components);
 		ncomponent = 1;
 		if (gsl_rng_uniform(gen)>proba_components)
 		  ncomponent = SplitModuleByComponent(target, empty,
 											  part,adj,
 											  gen);
-		
+		  explain("Using connected components: %d cc\n",ncomponent);
+		}
+
 		// If the previous split was unsuccessful (or not even tried)
 		// try to split it with simulated annealing.
-		if (ncomponent==1)
+		if (ncomponent==1){
 		  SplitModuleSA(target, empty,
 						Ti, Tf, 0.95,
 						nochange_limit,
 						part, adj, gen);
+		  explain("Using a small SA.\n");
+		}
 
 		// Calculate dE for re-merging the groups.
 		dE = dEMergeModules(target,empty,part,adj);
 
+		explain("Merging splited module %d (%d) and %d (%d),%e\n",target, part->modules[target]->size, empty,part->modules[empty]->size, -dE);
 		// Accept or reject the movement according to the
-		// Metropolis-Boltzman criterion. (Note it is inversed,
-		// because dE is the energy for re-merging the groups).
-		if ((dE > 0.0) && (gsl_rng_uniform(gen) > exp(-dE/T)))
+		// Metropolis-Boltzman criterion.
+		if ((dE > 0.0) && (gsl_rng_uniform(gen) > exp(-dE/T))){
 		  MergeModules(target,empty,part); // Revert the split.
-		else
-		  E -= dE;
+		  explain("Reverted split\n");
+		}
+		else{
+		  E += -dE;
+		  explain("Accepted split\n");
+		}
 	  } // End of unless there is no empty group (=End of split).
 	} //End of collective movements
-   
+
 	//// BREAK THE LOOP IF NO CHANGES... ////
 	if ( (fabs(E - previousE) / fabs(previousE) < EPSILON_MOD)
 		 || (fabs(previousE) < EPSILON_MOD) )
@@ -224,24 +251,24 @@ GeneralSA(Partition *part, AdjaArray *adj,
 		nochange_count++;
 		// If we reach the limit...
 		if (nochange_count == nochange_limit){
-		  printf ("We reached the limit... (%d)\n",nochange_count);
+		  info ("# Too much rounds without changes (%d)... \n",nochange_count);
 		  // If the current partition is the best so far. Terminate the
 		  // SA by breaking out of the temperature loop.
-		  if (E + EPSILON_MOD >= best_E) break;
+		  if (E+EPSILON_MOD >= best_E) break;
 
 		  // Otherwise, reset the partition to the best one and proceed.
-		  printf ("Restarting from a better place (%e<%e)\n",E,best_E);
+		  info ("# Restarting from a better place (%e<%e)\n",E,best_E);
 		  E = best_E;
 		  nochange_count = 0;
 		}
 	  }
 	// update the previous energy level.
 	previousE = E;
-	
+
 	// Compare the current partition to the best partition so far and
 	// update it if needed.
-	if ( E > best_E + EPSILON_MOD) {
-	  printf ("Saving a new best partition (%e)\n",E);
+	if ( E > best_E) {
+	  info ("# Saving a new best partition (%e)\n",E);
 	  if (best_part!=NULL)
 		FreePartition(best_part);
 	  best_part = CopyPartitionStruct(part);
@@ -249,11 +276,8 @@ GeneralSA(Partition *part, AdjaArray *adj,
 	}	
   } // End of the Temperature loop (end of SA).
 
-  printf ("End of SA, best partition so far: %e\n",best_E);
-  
-  
+  info ("# End of SA, best partition so far: %e\n",best_E);
   FreePartition(part);
-  part = best_part;
   return(best_part);
 }
 
