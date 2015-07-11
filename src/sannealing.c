@@ -99,7 +99,7 @@ BipartiteNetworkClustering(struct binet *binet,
   adj = CreateAdjaArray(N,E);
 
   // Initialization.
-  ComputeCostBipart(binet,  adj, part, projected,weighted);
+  ComputeCostBipart(binet, adj, part, projected, weighted);
   AssignNodesToModules(part);
 
   // Actual simulated annealing.
@@ -210,7 +210,7 @@ GeneralSA(Partition *part, AdjaArray *adj,
 		// given probability.
 		explain("Split modules %d (%d) and %d (%d) Proba: (%f)\n",target, part->modules[target]->size, empty,part->modules[empty]->size,proba_components);
 		ncomponent = 1;
-		if (gsl_rng_uniform(gen)>proba_components)
+		if (gsl_rng_uniform(gen)<proba_components){
 		  ncomponent = SplitModuleByComponent(target, empty,
 											  part,adj,
 											  gen);
@@ -260,6 +260,8 @@ GeneralSA(Partition *part, AdjaArray *adj,
 		  info ("# Restarting from a better place (%e<%e)\n",E,best_E);
 		  E = best_E;
 		  nochange_count = 0;
+		  FreePartition(part);
+		  part = CopyPartitionStruct(best_part);
 		}
 	  }
 	// update the previous energy level.
