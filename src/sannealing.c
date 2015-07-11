@@ -273,7 +273,8 @@ GeneralSA(Partition *part, AdjaArray *adj,
 		FreePartition(best_part);
 	  best_part = CopyPartitionStruct(part);
 	  best_E = E;
-	}	
+	  nochange_count = 0;
+	}
   } // End of the Temperature loop (end of SA).
 
   info ("# End of SA, best partition so far: %e\n",best_E);
