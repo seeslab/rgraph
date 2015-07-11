@@ -189,22 +189,18 @@ double dEChangeModule(unsigned int nodeid,
   
   // Loop through the neighbors and compute the strength to
   // old and new group.
-
   for (i=adj->idx[nodeid]; i<=adj->idx[nodeid+1]-1; i++){
 	int j = adj->neighbors[i]; // The index of the neighbor.
-
 	if (part->nodes[j]->module == old)
-	  dE -= adj->strength[j]; // - k_(i,G)
+	  dE -= adj->strength[i]; // - k_(i,G)
 	else if (part->nodes[j]->module == newModuleid)
-	  dE += adj->strength[j]; // + k_(i,H)
+	  dE += adj->strength[i]; // + k_(i,H)
   }
-
-  // Groups properties. k_i * (K_H-k_i - K_g)
+  
+  // Group properties: k_i * ( K_H-k_i - K_G)
   dE += Node->strength * (OldModule->strength - Node->strength  - NewModule->strength);
   return(2*dE);
 }
-
-
 
 /**
 The variation in modularity induced by merging modules G and H is
@@ -244,10 +240,9 @@ dEMergeModules(unsigned int moduleId1,
 	for (i=adj->idx[node->id]; i<=adj->idx[(node->id)+1]-1; i++){
 	  int j = adj->neighbors[i]; // The index of the neighbor.
 	  if (nodes[j]->module == idlarge )
-		dE += adj->strength[j]; //
+		dE += adj->strength[i]; //
 	}
   }
-
   dE -= (part->modules[moduleId1]->strength
 		 * part->modules[moduleId2]->strength);
   return(2*dE);
