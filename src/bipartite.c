@@ -81,7 +81,7 @@ FBuildNetworkBipart(FILE *inFile,
 	  weight = 1;
     }
     else {
-      noReadItems = sscanf(line,"%s %s %lf\n", label1, label2, &weight);
+      noReadItems = sscanf(line,"%s %s %lf", label1, label2, &weight);
 	  if(noReadItems != 3){
 		printf ("Failed to read input: not enough fields in line %s (%d!=3). \n",line, noReadItems);
 		return NULL;
