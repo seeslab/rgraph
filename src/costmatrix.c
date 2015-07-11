@@ -73,19 +73,20 @@ ComputeCostBipart(struct binet *binet,
   fac1 = 1. / fac1; // 1/sum_a[m_a(m_a-epsilon)]
   fac2 = 1. / fac2; // 1/(sum_a[m_a])  
 
+  node = binet->net1;
+  while((node=node->next)!=NULL)
+	part->nodes[node->num]->strength = NodeStrength(node)*fac2;
+
   node = projected;
   i = 0;
   while((node=node->next)!=NULL){
 	adj->idx[node->num] = i; //Start of the index of the neighbors of the focal node.
-	
 	neigh = node->neig;
 	while((neigh=neigh->next)!=NULL){
 	  adj->neighbors[i] = neigh->node;
 	  adj->strength[i] = neigh->weight * fac1;
 	  i++;
 	}
-	
-	part->nodes[node->num]->strength = NodeStrength(node)*fac2;
   }
 }
 
