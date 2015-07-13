@@ -307,7 +307,7 @@ SplitModuleSA(unsigned int target, unsigned int empty,
   unsigned int N, *indices, nodeid, i;
   unsigned int oldg, newg, nochange_count = 0;
   Node * node;
-  double T, dE=0.0, E=0.0;
+  double T, dE=0.0;
 
   N = part->modules[target]->size;
 
@@ -335,17 +335,14 @@ SplitModuleSA(unsigned int target, unsigned int empty,
 
 	//// Accept or reject the movement according to the
 	//// Metropolis-Boltzman criterion.
-	if ((dE>=0) || (gsl_rng_uniform(gen) < exp(dE/T))){
+	if ((dE>=0) || (gsl_rng_uniform(gen) < exp(dE/T)))
 	  ChangeModule(nodeid,newg,part);
-	  E += dE;
-	} else{
+	else
 	  dE = 0;
-	}
-
+	
 	// If the change was to small, update the nochange count and break
 	// out the loop if the limit is reached.
-	if (fabs(dE) / fabs(E) < EPSILON_MOD
-		|| fabs(E) < EPSILON_MOD){
+	if (fabs(dE) < EPSILON_MOD){
 	  nochange_count++;
 	  if (nochange_count>nochange_limit) break;
 	}
