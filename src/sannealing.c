@@ -311,11 +311,14 @@ SplitModuleSA(unsigned int target, unsigned int empty,
 
   N = part->modules[target]->size;
 
-  // Build the array of indices of the group's nodes to be able to
-  // draw one at random.
+  // Randomly split the module into two, and build an array of
+  // indices to be able to draw one node at random.
   indices = (unsigned int*) calloc(N,sizeof(unsigned int));
-  for(node=part->modules[target]->first, i=0; node!=NULL; node = node->next,i++)
+  for(node=part->modules[target]->first, i=0; node!=NULL; node = node->next,i++){
 	indices[i] = node->id;
+	if (gsl_rng_uniform(gen) < 0.5)
+	  ChangeModule(node->id,empty,part);
+  }
 
   nochange_count = 0;
   for (T=Ti; T > Tf; T*=Ts) {
