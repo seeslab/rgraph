@@ -157,7 +157,7 @@ GeneralSA(Partition *part, AdjaArray *adj,
 	  //explain("Moving node %d from %d to %d, %e\n",target,oldg,newg,dE);
 	  //// Accept or reject the movement according to the
 	  //// Metropolis-Boltzman criterion.
-	  if (gsl_rng_uniform(gen) < exp(dE/T)){
+	  if ( (dE>=0) || (gsl_rng_uniform(gen) < exp(dE/T)) ){
 		ChangeModule(target,newg,part);
 		E += dE;
 	  }
@@ -182,7 +182,7 @@ GeneralSA(Partition *part, AdjaArray *adj,
 		explain("Merging module %d (%d) and %d (%d), %e\n",g1,part->modules[g1]->size,g2,part->modules[g2]->size,dE);
 		//// Accept or reject the movement according to the
 		//// Metropolis-Boltzman criterion.
-		if (gsl_rng_uniform(gen) < exp(dE/T)){
+		if ( (dE>=0) || (gsl_rng_uniform(gen) < exp(dE/T)) ){
 		  MergeModules(g1,g2,part);
 		  E += dE;
 		}
@@ -218,28 +218,34 @@ GeneralSA(Partition *part, AdjaArray *adj,
 		}
 
 		// If the previous split was unsuccessful (or not even tried)
-		// try to split it with simulated annealing.
+		// try to split it with a nested simulated annealing. Start
+		// with a high temperature (Ti) and do individual movements
+		// until it reaches the global SA temperature (T).
 		if (ncomponent==1){
 		  SplitModuleSA(target, empty,
-						Ti, Tf, 0.95,
+						Ti, T, 0.95,
 						nochange_limit,
 						part, adj, gen);
-		  explain("Using a small SA.\n");
+		  explain("Using a nested SA.\n");
 		}
 
 		// Calculate dE for re-merging the groups.
 		dE = dEMergeModules(target,empty,part,adj);
 
-		explain("Merging splited module %d (%d) and %d (%d),%e\n",target, part->modules[target]->size, empty,part->modules[empty]->size, -dE);
-		// Accept or reject the movement according to the
-		// Metropolis-Boltzman criterion.
-		if ((dE > 0.0) && (gsl_rng_uniform(gen) > exp(-dE/T))){
-		  MergeModules(target,empty,part); // Revert the split.
-		  explain("Reverted split\n");
+		explain("Merging splited module %d (%d) and %d (%d),%e",target, part->modules[target]->size, empty,part->modules[empty]->size, -dE);
+		
+		// Accept or revert the movement according to the
+		// Metropolis-Boltzman criterion. Note that the total energy
+		// is modified if we accecpt the split, i.e. reject the merge.
+		if ((dE >= 0) || (gsl_rng_uniform(gen) < exp(dE/T))){
+		  // Accpet the merge back = revert the split.
+		  MergeModules(target,empty,part);
+		  explain("... split rejected\n");
 		}
 		else{
+		  // Reject the merge back = accept the split.
 		  E += -dE;
-		  explain("Accepted split\n");
+		  explain("... split accepted\n");
 		}
 	  } // End of unless there is no empty group (=End of split).
 	} //End of collective movements
@@ -326,7 +332,7 @@ SplitModuleSA(unsigned int target, unsigned int empty,
 
 	//// Accept or reject the movement according to the
 	//// Metropolis-Boltzman criterion.
-	if (gsl_rng_uniform(gen) < exp(dE/T)){
+	if ((dE>=0) || (gsl_rng_uniform(gen) < exp(dE/T))){
 	  ChangeModule(nodeid,newg,part);
 	  E += dE;
 	} else{
