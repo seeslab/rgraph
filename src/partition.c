@@ -619,26 +619,51 @@ PartitionRolesMetrics(Partition *part, AdjaArray *adj, double *connectivity, dou
   free(strengthToModule);
 }
 
+/**
+Compute the modularity of a partition.
+
+The modularity is given by:
+M(P) = \sum[i!=j,P(i)==P(j)] A_ij - k_ik_j
+
+If diagonal term evaluate to true, the formula is:
+M(P) = \sum[(i,j),P(i)==P(j)] A_ij - k_ik_j
+
+**/
 double
-PartitionModularity(Partition *part, AdjaArray *adj){
+PartitionModularity(Partition *part, AdjaArray *adj, int diagonal_term){
   int mod;
   Node *node1, *node2;
   double modularity = 0.0;
   double aij;
   int i;
+
+  // For all modules...
   for(mod=0;mod<part->M;mod++){
+
+	// For all pair of node i!=j in a module...
 	for(node1 = part->modules[mod]->first;node1!=NULL; node1=node1->next){
 	  for(node2 = node1->next ; node2!=NULL; node2=node2->next){
+
+		// Get the value of the edge (if they are connected)
 		aij = 0;
 		for (i=adj->idx[node1->id]; i<=adj->idx[node1->id+1]-1; i++){
 		  if (adj->neighbors[i] == node2->id){
 			aij = adj->strength[i];
-			break;
+			break; // found the edge, we can stop.
 		  }
 		}
+
+		// Update modularity.
 		modularity += 2 * (aij - node1->strength*node2->strength);
 	  }
 	}
+  } // End looping through modules.
+
+  // If necessary remove the diagonal term (only switch the modularity
+  // by a constant as a node is always in the same module as itself).
+  if (diagonal_term){
+	for(i=0 ; i<part->N; i++)
+	  modularity -= part->nodes[i]->strength*part->nodes[i]->strength;
   }
 
   return(modularity);

@@ -113,7 +113,7 @@ void FreeStack(Stack *st);
 void AddToStack(unsigned int value, Stack * st);
 int PopFromStack(Stack *st);
 
-double PartitionModularity(Partition *part, AdjaArray *adj);
+double PartitionModularity(Partition *part, AdjaArray *adj, int diagonal_term);
 void PartitionRolesMetrics(Partition *part, AdjaArray *adj,  double connectivity[], double participartion[]);
 void CompressPartition(Partition *part);
 
