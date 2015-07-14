@@ -27,97 +27,19 @@
 
 #define EPSILON_MOD 1.e-6
 
-struct group *
-NetworkClustering(struct node_gra *net,
-				  double fac,
-				  double Ti, double Tf, double Ts,
-				  double cluster_prob,
-				  unsigned int nochange_limit, unsigned int Ngroups,
-				  gsl_rng *gen){
-  Partition *part = NULL;
-  AdjaArray *adj = NULL;
-  unsigned int N, E;
-  struct group *g;
+/**
+Modularity optimisation using simulated annealing.
 
-  // Count the number of links and nodes.
-  N = CountNodes(net);
-  E = TotalNLinks(net, 1);
-  if (!Ngroups)
-	Ngroups = N;
-
-  // Allocate the memory.
-  part = CreatePartition(N,Ngroups);
-  adj = CreateAdjaArray(N,E);
-
-  // Initialization.
-  ComputeCost(net, adj, part);
-  AssignNodesToModules(part);
-
-  // Actual simulated annealing.
-  part = GeneralSA(part, adj, fac,
-				   Ti, Tf, Ts,
-				   cluster_prob, nochange_limit,
-				   gen);
-
-  // Convert output.
-  g = ConvertPartitionToGroup(part,net);
-
-  // Free memory.
-  FreePartition(part);
-  FreeAdjaArray(adj);
-  return(g);
-}
-
-struct group *
-BipartiteNetworkClustering(struct binet *binet,
-						   double fac,
-						   double Ti, double Tf, double Ts,
-						   double cluster_prob,
-						   unsigned int nochange_limit, unsigned int Ngroups,
-						   unsigned int weighted,
-						   gsl_rng *gen){
-  Partition *part = NULL;
-  AdjaArray *adj = NULL;
-  unsigned int N, E;
-  struct group *g=NULL;
-  struct node_gra  *projected=NULL;
-  // Count the number of links and nodes.
-  N = CountNodes(binet->net1);
-  if (!weighted)
-	projected = ProjectBipart(binet);
-  else
-	projected = ProjectBipartWeighted(binet);
-
-  E = TotalNLinks(projected, 1);
-  if (!Ngroups)
-	Ngroups = N;
-
-  // Allocate the memory.
-
-  part = CreatePartition(N,Ngroups);
-
-  adj = CreateAdjaArray(N,E);
-
-  // Initialization.
-  ComputeCostBipart(binet, adj, part, projected, weighted);
-  AssignNodesToModules(part);
-
-  // Actual simulated annealing.
-  part = GeneralSA(part, adj, fac,
-				   Ti, Tf, Ts,
-				   cluster_prob, nochange_limit,
-				   gen);
-
-  // Convert output.
-  g = ConvertPartitionToGroup(part,projected);
-
-  // Free memory.
-  RemoveGraph(projected);
-  FreePartition(part);
-  FreeAdjaArray(adj);
-  return(g);
-}
-
+@param part Initial partition.
+@param adj Adjacency array.
+@param fac Iteration factor.
+@param Ti Initial temperature.
+@param Tf Finial temperature.
+@param Ts Cooling factor.
+@param proba_components probability to try using connected components to split a module.
+@param nochange_limit number of consecutive non improving step before stopping. 
+@param gen random number generator.
+**/
 Partition *
 GeneralSA(Partition *part, AdjaArray *adj,
 		  double fac,

@@ -36,6 +36,27 @@
 \t -L : Use Louvain's heuristic rather than simulated annealing to optimize the modularity,\n\
 \t -h : Display this message.\n"
 
+void
+TabularOutput(FILE *outf,
+			  struct node_gra *net,
+			  Partition *part,
+			  double *connectivity,
+			  double *participation){
+  struct node_gra *node;
+  int i;
+  node = net;
+  printf ("Label\tModule\tConnectivity\tParticipation\tRole\n");
+  while((node=node->next)!=NULL){
+	i = node->num;
+	printf ("%s\t%d\t%f\t%f\tR%d\n",
+			node->label,
+			part->nodes[i]->module,
+			connectivity[i],participation[i],
+			GetRole(participation[i],connectivity[i])+1);
+  }
+}
+
+
 int
 main(int argc, char **argv)
 {
@@ -74,7 +95,7 @@ main(int argc, char **argv)
   extern int optind;
   int c;
   fprintf(stderr, "This is Netcarto.\n");
-
+  int E;
   //// Arguments parsing
   
   if (argc == 1) {
@@ -190,24 +211,46 @@ main(int argc, char **argv)
   Tf = 0.;
   nochange_limit = 25;
   fprintf(stderr, "# %d nodes to cluster.\n", N);
+  if (!Ngroups)
+	Ngroups = N;
+  Partition *p = NULL;
+  AdjaArray *adj = NULL;
+  p = CreatePartition(N,Ngroups);
+  AssignNodesToModules(p);
   
-
   if (clustering){
-	if (!bipartite)
-	  part = NetworkClustering(net,
-							   fac,
-							   Ti, Tf, Ts,
-							   proba_components,
-							   nochange_limit, Ngroups,
-							   randGen);
-	else
-	  part = BipartiteNetworkClustering(binet,
-										fac,
-										Ti, Tf, Ts,
-										proba_components,
-										nochange_limit, Ngroups,
-										weighted,
-										randGen);
+	if (!bipartite){
+	  // Allocate the memory.
+	  E = TotalNLinks(net, 1);
+	  adj = CreateAdjaArray(N,E);
+	  
+	  // Initialization.
+	  ComputeCost(net, adj, p);
+	}
+	else{   
+	  if (!weighted)
+		projected = ProjectBipart(binet);
+	  else
+		projected = ProjectBipartWeighted(binet);
+
+	  // Allocate the memory for the static graph.
+	  E = TotalNLinks(projected, 1);
+	  adj = CreateAdjaArray(N,E);
+	  // Initialization of the static graph.
+	  ComputeCostBipart(binet, adj, p, projected, weighted);
+	}
+	p = GeneralSA(p, adj, fac,
+				  Ti, Tf, Ts,
+				  proba_components, nochange_limit,
+				  randGen);
+	CompressPartition(p);
+	double *connectivity, *participation;
+	int i;
+	connectivity = (double*) malloc(p->N*sizeof(double));
+	participation = (double*) malloc(p->N*sizeof(double));
+	PartitionRolesMetrics(p,adj, connectivity, participation);
+	part = ConvertPartitionToGroup(p,net);
+
   }
   else{
 	printf ("# Read partition from %s\n",file_name_part);
