@@ -1,4 +1,5 @@
 #include "partition.h"
+#include "math.h"
 
 /**
 Allocate the memory needed for an adjacency array
@@ -30,7 +31,7 @@ FreeAdjaArray(AdjaArray *adj){
 }
 
 /**
-Allocate the memory for a partition.
+Allocate the memory for a partition (nodes included).
 @param N number of nodes
 @param M number of modules
  **/
@@ -74,12 +75,15 @@ CopyPartitionStruct(Partition *part){
   copy = CreatePartition(part->N,part->M);
   copy->nempty = part->nempty;
 
+  // Copy the nodes...
   for(i=0;i<part->N;i++){
 	copy->nodes[i] = malloc(sizeof(Node));
 	copy->nodes[i]->id = part->nodes[i]->id;
 	copy->nodes[i]->module = part->nodes[i]->module;
 	copy->nodes[i]->strength = part->nodes[i]->strength;
   }
+
+  // Copy the modules...
   for(i=0;i<part->M;i++){
 	copy->modules[i] = malloc(sizeof(Module));
 	copy->modules[i]->id = part->modules[i]->id;
@@ -87,7 +91,7 @@ CopyPartitionStruct(Partition *part){
 	copy->modules[i]->size = part->modules[i]->size;
   }
 
-  // Copy the links
+  // Copy the links in the doubly linked list of nodes (=modules).
   for(i=0;i<part->N;i++){
 	if(part->nodes[i]->next != NULL)
 	  copy->nodes[i]->next = copy->nodes[part->nodes[i]->next->id];
@@ -127,7 +131,7 @@ FreePartition(Partition *part){
 }
 
 /**
-Convert a Partition structure to a group structure with
+Convert a Partition structure to a (legacy) group structure with
 the good bindings to the network net.
 **/
 struct group*
@@ -176,7 +180,10 @@ with
 - k_i the strength of i,
 - k_(i,H) the sum of the strength from i to H,
 - k_H the sum of the strength of nodes of H.
- **/
+
+@param nodeid the node to move.
+@param newModuleid the target module.
+**/
 double dEChangeModule(unsigned int nodeid,
 					  unsigned int newModuleid,
 					  Partition *part, AdjaArray *adj){
@@ -186,7 +193,7 @@ double dEChangeModule(unsigned int nodeid,
   Module * OldModule = part->modules[old];
   Module * NewModule = part->modules[newModuleid];
   Node * Node = part->nodes[nodeid];
-  
+
   // Loop through the neighbors and compute the strength to
   // old and new group.
   for (i=adj->idx[nodeid]; i<=adj->idx[nodeid+1]-1; i++){
@@ -196,7 +203,7 @@ double dEChangeModule(unsigned int nodeid,
 	else if (part->nodes[j]->module == newModuleid)
 	  dE += adj->strength[i]; // + k_(i,H)
   }
-  
+
   // Group properties: k_i * ( K_H-k_i - K_G)
   dE += Node->strength * (OldModule->strength - Node->strength  - NewModule->strength);
   return(2*dE);
@@ -212,7 +219,7 @@ with
 - k_i the strength of i,
 - k_(i,H) the sum of the strength from i to H,
 - k_H the sum of the strength of nodes of H.
- **/
+**/
 double
 dEMergeModules(unsigned int moduleId1,
 			   unsigned int moduleId2,
@@ -224,6 +231,7 @@ dEMergeModules(unsigned int moduleId1,
   int i;
   double dE=0;
   nodes = part->nodes;
+
   // Get the smaller and larger module.
   if (part->modules[moduleId1]->size
 	  > part->modules[moduleId2]->size){
@@ -234,15 +242,18 @@ dEMergeModules(unsigned int moduleId1,
 	idlarge = moduleId2;
   }
 
-  // For all node in the small module...
+  // Compute the strength to the large module of all nodes in the
+  // small module... (SUM_FOR_ALL_i_IN_G[k_{i,H}])
   for(node=small->first; node!=NULL; node = node->next){
 	// Loop through neigbors
 	for (i=adj->idx[node->id]; i<=adj->idx[(node->id)+1]-1; i++){
 	  int j = adj->neighbors[i]; // The index of the neighbor.
 	  if (nodes[j]->module == idlarge )
-		dE += adj->strength[i]; //
+		dE += adj->strength[i];
 	}
   }
+
+  // Product of the module strength. (-K_G*K_H)
   dE -= (part->modules[moduleId1]->strength
 		 * part->modules[moduleId2]->strength);
   return(2*dE);
@@ -251,6 +262,9 @@ dEMergeModules(unsigned int moduleId1,
 
 /**
  Change the module of a node within a partition.
+
+This involve, updating its properties, bookkeeping the module and
+partition properties and updating pointers in the doubly linked-list.
 **/
 void
 ChangeModule(unsigned int nodeId,
@@ -260,7 +274,7 @@ ChangeModule(unsigned int nodeId,
   unsigned int oldModuleId = part->nodes[nodeId]->module;
   Module *OldModule = part->modules[oldModuleId];
   Module *NewModule = part->modules[newModuleId];
-  
+
   // Changing the node property.
   node->module = NewModule->id;
 
@@ -290,21 +304,27 @@ ChangeModule(unsigned int nodeId,
 	node->next->prev = node->prev;
   else
 	OldModule->last = node->prev;
-  
+
   // G <-> N' => G <-> N <-> N'
   node->next = NewModule->first;
   node->prev = NULL;
   if (NewModule->first != NULL)
 	NewModule->first->prev = node; //Used to be NULL;
   else
-	NewModule->last = node; 
+	NewModule->last = node;
   NewModule->first = node;
 }
 
 
-
 /**
  Merge two modules of a partition.
+
+
+- Whithout effect if one of the modules is empty. Otherwise, append
+  the smaller to the begining of the bigger.
+
+@param id1,id2 Modules to merge.
+@param part Partition containing those modules.
 **/
 void
 MergeModules(unsigned int id1, unsigned int id2,
@@ -318,7 +338,7 @@ MergeModules(unsigned int id1, unsigned int id2,
 	return;
 
   // Get the smaller and larger module. Because we want to append the
-  // smaller to the begining of the longer linked list.	
+  // smaller to the begining of the longer linked list.
   if (part->modules[id1]->size > part->modules[id2]->size){
 	small = part->modules[id2];
 	large = part->modules[id1];
@@ -431,7 +451,7 @@ SplitModuleByComponent(unsigned int targetModuleId,
   // Move the nodes we marked for moving.
   while((i=PopFromStack(to_move))!=-1)
 	ChangeModule(i,emptyModuleId,part);
-  
+
   FreeStack(to_move);
   FreeStack(to_visit);
   free(visited);
@@ -507,27 +527,34 @@ AssignNodesToModules(Partition *part){
   }
 }
 
+/**
+Compute the modularity roles metrics of all nodes.
+
+@param part the Partition
+@param adj the adjacency array
+@param connectivity (must point to an array of size N). The within module degree z-score.
+@param participation (must point to an array of size N). The evenness of module degrees.
+ **/
 void
 PartitionRolesMetrics(Partition *part, AdjaArray *adj, double *connectivity, double *participation){
-  unsigned int N,M,i,j, mod; //number of non empty modules.
+  unsigned int N,M,i,j, mod;
   double *strengthToModule,*mean,*std;
 
-  // Number of nodes and non empty modules.
+  // Number of nodes and modules.
   N = adj->N;
   M = part->M;
-  
-  ////Compute all strengths to module.
-  strengthToModule = (double*) calloc(N*M,sizeof(double));
-  double s;
 
+  ////Compute all strengths from a node to a module.
+  strengthToModule = (double*) calloc(N*M,sizeof(double));
   for (i=0; i<N; i++){
 	for (j=adj->idx[i]; j<=adj->idx[i+1]-1; j++){
-	  mod = part->nodes[adj->neighbors[j]]->module; 
+	  mod = part->nodes[adj->neighbors[j]]->module;
 	  strengthToModule[i+N*mod] += adj->strength[j];
 	}
   }
-  
-  //connectivity is the within module z-score
+
+  //// Connectivity is the within module z-score
+  //// C_i = X-E(X)/STD(X) with X = K_iG if i is in module G.
   mean = (double*) calloc(M,sizeof(double));
   std = (double*) calloc(M,sizeof(double));
   for (i=0; i<N; i++){
@@ -536,11 +563,10 @@ PartitionRolesMetrics(Partition *part, AdjaArray *adj, double *connectivity, dou
 	std[mod] += strengthToModule[i+N*mod]*strengthToModule[i+N*mod];
   }
   for (j=0; j<M; j++){
-	mean[j] /= part->modules[j]->size;
-	std[j] /= part->modules[j]->size;
-	std[j] = sqrt(std[j] - mean[j]*mean[j]);
+	mean[j] /= part->modules[j]->size; // E(X)
+	std[j] /= part->modules[j]->size; // E(X^2)
+	std[j] = sqrt(std[j] - mean[j]*mean[j]); // V(X) = E(X^2) - E(X)^2
   }
-  
   for (i=0; i<N; i++){
 	mod = part->nodes[i]->module;
 	if (std[mod])
@@ -549,9 +575,9 @@ PartitionRolesMetrics(Partition *part, AdjaArray *adj, double *connectivity, dou
 	  connectivity[i] = 0;
   }
 
-  //participation is their 1-simpson index.
-  
-  // P_i = 1 - SUM(K_iG^2/k_i^2) 
+
+  // Participation is the 1-simpson index of node to modules strength.
+  // P_i = 1 - SUM(K_iG^2/k_i^2).
   for (i=0; i<N; i++){
 	//we cannot use part->nodes[i]->strength; because it is not
 	//correct for bipartite network thanks to the -epsilon.
@@ -563,7 +589,6 @@ PartitionRolesMetrics(Partition *part, AdjaArray *adj, double *connectivity, dou
 	participation[i] = 1.0 - participation[i]/(strength*strength);
   }
 
-  
   //free memory.
   free(mean);
   free(std);
@@ -595,6 +620,10 @@ PartitionModularity(Partition *part, AdjaArray *adj){
   return(modularity);
 }
 
+/**
+Remove empty modules from a partition. Consolidating their indices so
+that all modules have consecutive indices in 1...M.
+**/
 void
 CompressPartition(Partition *part){
   Module **newmodules;
@@ -603,9 +632,11 @@ CompressPartition(Partition *part){
 
   // If there is no empty modules, do nothing.
   if (!part->nempty) return;
+
+  // The new number of modules is M.
   M = part->M - part->nempty;
   newmodules =  (Module **) malloc(M*sizeof(Module*));
-  
+
   // Free the empty modules and store their ids.
   empty_id = (unsigned int *) calloc(part->nempty,sizeof(unsigned int));
   for (i=0;i<part->M;i++){
@@ -629,17 +660,17 @@ CompressPartition(Partition *part){
 	  part->modules[empty_id[j]] = part->modules[i];
 	  part->modules[empty_id[j]]->id = empty_id[j];
 	  j++;
-	} 
+	}
   }
+  free(empty_id);
 
-  // Fill the new module index
-  for (i=0;i<M;i++){
+  // Shorten the module index stored by the partition struct.
+  for (i=0;i<M;i++)
 	newmodules[i] = part->modules[i];
-  }
-	
-  // Settting partitons properties.
-  part->nempty = 0;
-  part->M = M;
   free(part->modules);
   part->modules = newmodules;
+
+  // Settting the Partiton properties.
+  part->nempty = 0;
+  part->M = M;
 }

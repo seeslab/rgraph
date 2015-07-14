@@ -37,7 +37,7 @@ Modularity optimisation using simulated annealing.
 @param Tf Finial temperature.
 @param Ts Cooling factor.
 @param proba_components probability to try using connected components to split a module.
-@param nochange_limit number of consecutive non improving step before stopping. 
+@param nochange_limit number of consecutive non improving step before stopping.
 @param gen random number generator.
 **/
 Partition *
@@ -154,20 +154,19 @@ GeneralSA(Partition *part, AdjaArray *adj,
 		// Calculate dE for re-merging the groups.
 		dE = dEMergeModules(target,empty,part,adj);
 
-		explain("Merging splited module %d (%d) and %d (%d),%e",target, part->modules[target]->size, empty,part->modules[empty]->size, -dE);
-		
+		explain("Merging splited module %d (%d) and %d (%d),%e",target, part->modules[target]->size, empty,part->modules[empty]->size, dE);
+
 		// Accept or revert the movement according to the
 		// Metropolis-Boltzman criterion. Note that the total energy
-		// is modified if we accecpt the split, i.e. reject the merge.
-		if ((dE >= 0) || (gsl_rng_uniform(gen) < exp(dE/T))){
-		  // Accpet the merge back = revert the split.
-		  MergeModules(target,empty,part);
-		  explain("... split rejected\n");
+		// is only modified if we accept the split, i.e. reject the
+		// merge.
+		if ((dE > 0.0) || (gsl_rng_uniform(gen) < exp(dE/T))){
+		  MergeModules(target,empty,part); // Revert the split.
+		  explain("... Reverted split\n");
 		}
 		else{
-		  // Reject the merge back = accept the split.
 		  E += -dE;
-		  explain("... split accepted\n");
+		  explain("... Accepted split\n");
 		}
 	  } // End of unless there is no empty group (=End of split).
 	} //End of collective movements
@@ -215,9 +214,16 @@ GeneralSA(Partition *part, AdjaArray *adj,
 
 
 /**
-Split the target module.
+Split the target module into two using a small nested simulated
+annealing.
 
-With proba proba_components first try to split by randomly merging modules
+This function start by randomly spliting the target modules into two
+modules (using the empty module id provided) and then perform an
+individual movement-only simulated annealing to get the best possible
+split.
+
+Note that the modularity cost are computed using the values in part
+and adj, so they are related to the global SA.
 **/
 void
 SplitModuleSA(unsigned int target, unsigned int empty,
@@ -232,7 +238,7 @@ SplitModuleSA(unsigned int target, unsigned int empty,
   double T, dE=0.0;
 
   N = part->modules[target]->size;
-  
+
   // Build an array of indices to be able to draw one node at random.
   indices = (unsigned int*) calloc(N,sizeof(unsigned int));
   for(node=part->modules[target]->first,  i = 0; node!=NULL; node = node->next,i++)
@@ -240,10 +246,10 @@ SplitModuleSA(unsigned int target, unsigned int empty,
 
   // Split the module randomly into two.
   for(i = 0; i<N; i++){
-  	if (gsl_rng_uniform(gen) < 0.5)
-	   ChangeModule(indices[i],empty,part); 
+	if (gsl_rng_uniform(gen) < 0.5)
+	   ChangeModule(indices[i],empty,part);
   }
-  
+
   for (T=Ti; T > Tf; T*=Ts) {
 	//// Select a random node in the module.
 	nodeid = floor(gsl_rng_uniform(gen) * (double)N);
@@ -262,7 +268,7 @@ SplitModuleSA(unsigned int target, unsigned int empty,
 	  ChangeModule(nodeid,newg,part);
 	else
 	  dE = 0;
-	
+
 	// If the change was to small, update the nochange count and break
 	// out the loop if the limit is reached.
 	if (fabs(dE) < EPSILON_MOD){
