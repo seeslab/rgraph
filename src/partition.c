@@ -506,3 +506,140 @@ AssignNodesToModules(Partition *part){
 	printf ("TODO!\n");
   }
 }
+
+void
+PartitionRolesMetrics(Partition *part, AdjaArray *adj, double *connectivity, double *participation){
+  unsigned int N,M,i,j, mod; //number of non empty modules.
+  double *strengthToModule,*mean,*std;
+
+  // Number of nodes and non empty modules.
+  N = adj->N;
+  M = part->M;
+  
+  ////Compute all strengths to module.
+  strengthToModule = (double*) calloc(N*M,sizeof(double));
+  double s;
+
+  for (i=0; i<N; i++){
+	for (j=adj->idx[i]; j<=adj->idx[i+1]-1; j++){
+	  mod = part->nodes[adj->neighbors[j]]->module; 
+	  strengthToModule[i+N*mod] += adj->strength[j];
+	}
+  }
+  
+  //connectivity is the within module z-score
+  mean = (double*) calloc(M,sizeof(double));
+  std = (double*) calloc(M,sizeof(double));
+  for (i=0; i<N; i++){
+	mod = part->nodes[i]->module;
+	mean[mod] += strengthToModule[i+N*mod];
+	std[mod] += strengthToModule[i+N*mod]*strengthToModule[i+N*mod];
+  }
+  for (j=0; j<M; j++){
+	mean[j] /= part->modules[j]->size;
+	std[j] /= part->modules[j]->size;
+	std[j] = sqrt(std[j] - mean[j]*mean[j]);
+  }
+  
+  for (i=0; i<N; i++){
+	mod = part->nodes[i]->module;
+	if (std[mod])
+	  connectivity[i] = (strengthToModule[i+N*mod] - mean[mod]) / std[mod];
+	else
+	  connectivity[i] = 0;
+  }
+
+  //participation is their 1-simpson index.
+  
+  // P_i = 1 - SUM(K_iG^2/k_i^2) 
+  for (i=0; i<N; i++){
+	//we cannot use part->nodes[i]->strength; because it is not
+	//correct for bipartite network thanks to the -epsilon.
+	double strength = 0;
+	for (j=0;j<M;j++){
+	  strength += strengthToModule[i+N*j];
+	  participation[i] += strengthToModule[i+N*j]*strengthToModule[i+N*j];
+	}
+	participation[i] = 1.0 - participation[i]/(strength*strength);
+  }
+
+  
+  //free memory.
+  free(mean);
+  free(std);
+  free(strengthToModule);
+}
+
+double
+PartitionModularity(Partition *part, AdjaArray *adj){
+  int mod;
+  Node *node1, *node2;
+  double modularity = 0.0;
+  double aij;
+  int i;
+  for(mod=0;mod<part->M;mod++){
+	for(node1 = part->modules[mod]->first;node1!=NULL; node1=node1->next){
+	  for(node2 = node1->next ; node2!=NULL; node2=node2->next){
+		aij = 0;
+		for (i=adj->idx[node1->id]; i<=adj->idx[node1->id+1]-1; i++){
+		  if (adj->neighbors[i] == node2->id){
+			aij = adj->strength[i];
+			break;
+		  }
+		}
+		modularity += 2 * (aij - node1->strength*node2->strength);
+	  }
+	}
+  }
+
+  return(modularity);
+}
+
+void
+CompressPartition(Partition *part){
+  Module **newmodules;
+  unsigned int M, i,j=0, *empty_id;
+  Node *node;
+
+  // If there is no empty modules, do nothing.
+  if (!part->nempty) return;
+  M = part->M - part->nempty;
+  newmodules =  (Module **) malloc(M*sizeof(Module*));
+  
+  // Free the empty modules and store their ids.
+  empty_id = (unsigned int *) calloc(part->nempty,sizeof(unsigned int));
+  for (i=0;i<part->M;i++){
+	if (!part->modules[i]->size){
+	  empty_id[j] = i;
+	  j++;
+	  free(part->modules[i]);
+	  part->modules[i]=NULL;
+	}
+  }
+
+  // Starting from the end, loop through the modules and move the ones
+  // that were not freed (!=NULL) to one of the empty ids in the
+  // begining of the list.
+  j = 0;
+  for (i=(part->M)-1;i>=M;i--){
+	if (part->modules[i]!=NULL) {
+	  for(node=part->modules[i]->first; node!=NULL; node = node->next){
+		node->module = empty_id[j];
+	  }
+	  part->modules[empty_id[j]] = part->modules[i];
+	  part->modules[empty_id[j]]->id = empty_id[j];
+	  j++;
+	} 
+  }
+
+  // Fill the new module index
+  for (i=0;i<M;i++){
+	newmodules[i] = part->modules[i];
+  }
+	
+  // Settting partitons properties.
+  part->nempty = 0;
+  part->M = M;
+  free(part->modules);
+  part->modules = newmodules;
+}

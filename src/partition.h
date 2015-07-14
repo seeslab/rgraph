@@ -112,4 +112,9 @@ Stack * CreateStack(unsigned int N);
 void FreeStack(Stack *st);
 void AddToStack(unsigned int value, Stack * st);
 int PopFromStack(Stack *st);
+
+double PartitionModularity(Partition *part, AdjaArray *adj);
+void PartitionRolesMetrics(Partition *part, AdjaArray *adj,  double connectivity[], double participartion[]);
+void CompressPartition(Partition *part);
+
 #endif
