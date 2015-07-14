@@ -72,7 +72,7 @@ Partition * CopyPartitionStruct(Partition *part);
 void FreePartition(Partition *part);
 struct group *
 ConvertPartitionToGroup(Partition *part, struct node_gra *net);
-void AssignNodesToModules(Partition *part);
+void AssignNodesToModules(Partition *part, 	gsl_rng *gen);
   
 // Node movements
 void ChangeModule(unsigned int nodeId,

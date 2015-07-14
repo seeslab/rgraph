@@ -507,12 +507,17 @@ PopFromStack(Stack *st){
 /**
 Given a partition, dispatch the nodes into modules.
 
-TODO: The case if there are less modules than nodes.
- **/
+If there are as many modules as nodes, each node goes in one module
+exactly. Otherwise, the nodes are dispatched at random between the
+modules (without checking if there are empty modules left).
+
+This must be done AFTER initializing the strenght of the nodes,
+otherwise, the initial module strength will be incorrect !
+**/
 void
-AssignNodesToModules(Partition *part){
+AssignNodesToModules(Partition *part, gsl_rng *gen){
+  unsigned int i,j;
   // if there is as many modules as nodes, assign each node to a module.
-  unsigned int i;
   if(part->N == part->M){
 	part->nempty = 0;
 	for (i=0; i<part->N; i++){
@@ -522,8 +527,27 @@ AssignNodesToModules(Partition *part){
 	  part->modules[i]->first = part->nodes[i];
 	  part->modules[i]->last = part->nodes[i];
 	}
-  }else{
-	printf ("TODO!\n");
+  }
+  // Otherwise dispatch the nodes at random. 
+  else{
+	for (i=0; i<part->N; i++){
+	  j = gsl_rng_uniform_int(gen,part->M);
+	  if (!part->modules[j]->size){
+		part->nodes[i]->module = j;
+		part->modules[j]->size = 1;
+		part->modules[j]->strength = part->nodes[i]->strength;
+		part->modules[j]->first = part->nodes[i];
+		part->modules[j]->last = part->nodes[i];
+	  }
+	  else{
+		part->nodes[i]->module = j;
+		part->modules[j]->size++;
+		part->modules[j]->strength += part->nodes[i]->strength;
+		part->modules[j]->last->next = part->nodes[i];
+		part->nodes[i]->prev = part->modules[j]->last; 
+		part->modules[j]->last = part->nodes[i];
+	  }
+	}
   }
 }
 
