@@ -283,11 +283,10 @@ ChangeModule(unsigned int nodeId,
   OldModule->size--;
   if (!OldModule->size){
 	part->nempty++;
-	OldModule->strength=0;
+	//OldModule->strength=0;
   }
   if (!NewModule->size){
 	part->nempty--;
-	NewModule->strength=0;
   }
   NewModule->strength += node->strength;
   NewModule->size++;
