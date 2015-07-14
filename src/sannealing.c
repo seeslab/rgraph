@@ -310,17 +310,18 @@ SplitModuleSA(unsigned int target, unsigned int empty,
   double T, dE=0.0;
 
   N = part->modules[target]->size;
-
-  // Randomly split the module into two, and build an array of
-  // indices to be able to draw one node at random.
+  
+  // Build an array of indices to be able to draw one node at random.
   indices = (unsigned int*) calloc(N,sizeof(unsigned int));
-  for(node=part->modules[target]->first, i=0; node!=NULL; node = node->next,i++){
+  for(node=part->modules[target]->first,  i = 0; node!=NULL; node = node->next,i++)
 	indices[i] = node->id;
-	if (gsl_rng_uniform(gen) < 0.5)
-	  ChangeModule(node->id,empty,part);
-  }
 
-  nochange_count = 0;
+  // Split the module randomly into two.
+  for(i = 0; i<N; i++){
+  	if (gsl_rng_uniform(gen) < 0.5)
+	   ChangeModule(indices[i],empty,part); 
+  }
+  
   for (T=Ti; T > Tf; T*=Ts) {
 	//// Select a random node in the module.
 	nodeid = floor(gsl_rng_uniform(gen) * (double)N);
@@ -345,6 +346,8 @@ SplitModuleSA(unsigned int target, unsigned int empty,
 	if (fabs(dE) < EPSILON_MOD){
 	  nochange_count++;
 	  if (nochange_count>nochange_limit) break;
+	} else{
+	  nochange_count=0;
 	}
   }// End of SA.
   free(indices);
