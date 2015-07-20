@@ -10,13 +10,13 @@
 #include "modules.h"
 #include "bipartite.h"
 #include "sannealing.h"
+#include "partition.h"
 
 #define USAGE "Usage:\n\
 \tnetcarto [-f FILE] [-o FILE] [-s SEED] [-i ITER] [-c COOL] [-S NUM] [-wmr]\n\
 \tnetcarto [-f FILE] [-o FILE] [-s SEED] [-i ITER] [-c COOL] [-S NUM] [-wmr] -b [-t]\n\
 \tnetcarto [-f FILE] [-o FILE] [-p FILE] [-w]\n\
 \tnetcarto [-f FILE] [-o FILE] [-p FILE] [-w] -b [-t]\n\
-\tnetcarto [-f FILE] [-o FILE] [-s SEED] -L [-T THRESHOLD]\n\
 \tnetcarto  -h\n"
 
 #define ARGUMENTS "Arguments:\n\
@@ -31,28 +31,39 @@
 \t -C PROBA: Proba of using connected components for the splits rather than SA. \n\
 \t -w : Read edge weights from the input's third column and uses the weighted modularity,\n\
 \t -b : Use bipartite modularity,\n\
+\t -r : Compute modularity roles,\n\
 \t -t : [with -b only] Find modules for the second column (default: first),\n\
 \t -a : Sum the weights if an edges is defined several times (default: ignore subsequent definitions).\n\
-\t -L : Use Louvain's heuristic rather than simulated annealing to optimize the modularity,\n\
 \t -h : Display this message.\n"
 
 void
 TabularOutput(FILE *outf,
-			  struct node_gra *net,
+			  char **labels,
 			  Partition *part,
 			  double *connectivity,
 			  double *participation){
-  struct node_gra *node;
   int i;
-  node = net;
   printf ("Label\tModule\tConnectivity\tParticipation\tRole\n");
-  while((node=node->next)!=NULL){
-	i = node->num;
+  for (i=0;i<part->N;i++){
 	printf ("%s\t%d\t%f\t%f\tR%d\n",
-			node->label,
+			labels[i],
 			part->nodes[i]->module,
 			connectivity[i],participation[i],
 			GetRole(participation[i],connectivity[i])+1);
+  }
+}
+
+void
+ClusteringOutput(FILE *outf,
+				 Partition *part,
+				 char **labels){
+  int mod;
+  Node *node;
+  for(mod=0;mod<part->M;mod++){
+	for(node = part->modules[mod]->first;node!=NULL; node=node->next){
+	  fprintf(outf,"%s\t",labels[node->id]);
+	}
+	fprintf(outf,"\n");
   }
 }
 
@@ -68,20 +79,23 @@ main(int argc, char **argv)
   struct binet *binet = NULL;
   struct node_gra *net = NULL;
   struct group *part = NULL;
-  struct group *roles = NULL;
+  int roles = 0;
   struct node_gra *projected = NULL;
   gsl_rng *randGen;
+  
   double degree_based = 0;
   double Ti, Tf;
   double Ts = 0.97;
   double fac = 1.0;
   double modularity = 0;
+  double modularity_diag = 0;
   char fn_array[256];
   char fno_array[256];
   char *file_name;
   char *file_name_part;
   char *file_name_out;
-  unsigned int N = 0, Ngroups, nochange_limit;
+  char **labels = NULL;
+  unsigned int N = 0, Ngroups=0, nochange_limit;
   double proba_components = .5;
   int invert = 0;
   int weighted = 0;
@@ -96,6 +110,9 @@ main(int argc, char **argv)
   int c;
   fprintf(stderr, "This is Netcarto.\n");
   int E;
+  double *connectivity, *participation;
+  int i;
+
   //// Arguments parsing
   
   if (argc == 1) {
@@ -110,6 +127,9 @@ main(int argc, char **argv)
 	  case 'h':
 		printf(USAGE ARGUMENTS);
 		return -1;
+		break;
+	  case 'r':
+		roles = 1;
 		break;
 	  case 'f':
 		if(*optarg != '-')
@@ -146,9 +166,6 @@ main(int argc, char **argv)
 		break;
 	  case 'T':
 		louvain_threshold = atof(optarg);
-		break;
-	  case 'r':
-		output_type = 2;
 		break;
 	  case 'o':
 		if(*optarg != '-')
@@ -199,14 +216,18 @@ main(int argc, char **argv)
 	printf("Error reading input. \n");
 	return(1);
   }
-
+  
   /*
     ------------------------------------------------------------------
 	Find the modules or load the partition.
     ------------------------------------------------------------------
   */
   N = CountNodes(net);
-  Ngroups = N;
+  labels = (char**) malloc(N*sizeof(char*));
+  struct node_gra *node = net;
+  while ((node=node->next)!=NULL)
+	labels[node->num] = node->label;
+  
   Ti = 1. / (double)N;
   Tf = 0.;
   nochange_limit = 25;
@@ -216,66 +237,53 @@ main(int argc, char **argv)
   Partition *p = NULL;
   AdjaArray *adj = NULL;
   p = CreatePartition(N,Ngroups);
-  AssignNodesToModules(p);
-  
-  if (clustering){
-	if (!bipartite){
-	  // Allocate the memory.
-	  E = TotalNLinks(net, 1);
-	  adj = CreateAdjaArray(N,E);
-	  
-	  // Initialization.
-	  ComputeCost(net, adj, p);
-	}
-	else{   
-	  if (!weighted)
-		projected = ProjectBipart(binet);
-	  else
-		projected = ProjectBipartWeighted(binet);
 
-	  // Allocate the memory for the static graph.
-	  E = TotalNLinks(projected, 1);
-	  adj = CreateAdjaArray(N,E);
-	  // Initialization of the static graph.
-	  ComputeCostBipart(binet, adj, p, projected, weighted);
-	}
+  if (!bipartite){
+	// Allocate the memory.
+	E = TotalNLinks(net, 1);
+	adj = CreateAdjaArray(N,E);
+	// Initialization.
+	ComputeCost(net, adj, p);
+  }
+  else{   
+	if (!weighted)
+	  projected = ProjectBipart(binet);
+	else
+	  projected = ProjectBipartWeighted(binet);
+
+	// Allocate the memory for the static graph.
+	E = TotalNLinks(projected, 1);
+	adj = CreateAdjaArray(N,E);
+	// Initialization of the static graph.
+	ComputeCostBipart(binet, adj, p, projected, weighted);
+  }
+  if (clustering){
+	AssignNodesToModules(p,randGen);
 	p = GeneralSA(p, adj, fac,
 				  Ti, Tf, Ts,
 				  proba_components, nochange_limit,
 				  randGen);
 	CompressPartition(p);
-	double *connectivity, *participation;
-	int i;
-	connectivity = (double*) malloc(p->N*sizeof(double));
-	participation = (double*) malloc(p->N*sizeof(double));
-	PartitionRolesMetrics(p,adj, connectivity, participation);
-	part = ConvertPartitionToGroup(p,net);
-
-  }
-  else{
+  } else{
 	printf ("# Read partition from %s\n",file_name_part);
 	inF = fopen(file_name_part, "r");
 	if (inF == NULL){
 		printf("ERROR: No such file or directory (%s). \n", file_name_part);
 		return(1);
 	}
-	part = FReadPartition(inF);
-	MapPartToNet(part,net);
 	fclose(inF);
+	printf ("# Not implemented yet ! \n");
+  }
+  
+  modularity = PartitionModularity(p,adj,0);
+  modularity_diag = PartitionModularity(p,adj,1);
+  
+  if(roles){
+	connectivity = (double*) malloc(p->N*sizeof(double));
+	participation = (double*) malloc(p->N*sizeof(double));
+	PartitionRolesMetrics(p,adj, connectivity, participation);
   }
 
-  // compute the roles
-  roles = CatalogRoleIdent(net, part);
-  
-  // Compute partition modularity
-  if (bipartite && !weighted)
-	modularity = ModularityBipart(binet,part);
-  else if (bipartite && weighted)
-	modularity = ModularityBipartWeighted(binet,part);
-  else if (!bipartite && weighted)
-	modularity = ModularityWeight(part);
-  else if (!bipartite && !weighted)
-	modularity = Modularity(part);
 
   /* ------------------------------------------------------------
     Output
@@ -291,20 +299,19 @@ main(int argc, char **argv)
   } else outF = stdout;
 
   // Print output
-  fprintf(outF, "# Modularity: %g\n", modularity);
-  fprintf(outF, "# Partition:\n");
-  FPrintPartition(outF, part, 0);
-  fprintf(outF, "# Roles:\n");
-  FPrintPartition(outF, roles, 0);
+  fprintf(outF,"# Modularity: %f\n",modularity);
+  fprintf(outF,"# Modularity (with diagonal): %f\n",modularity_diag);
   
+  if (roles)
+	TabularOutput(outF, labels, p, connectivity, participation);
+  else
+	ClusteringOutput(outF, p, labels);
+
   // Close file if we need to. 
   if (to_file == 1)	fclose(outF);
-
-
   
   // Free memory
-  RemovePartition(roles);
-  RemovePartition(part);
+  free(labels);
   if (bipartite)
 	RemoveBipart(binet);
   else
