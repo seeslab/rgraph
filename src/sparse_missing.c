@@ -597,7 +597,7 @@ SparseGibbsLinkScore(struct node_gra *net,
 	  if (glist[j]->size > 0) {
 	    l = G2G[i][j];
 	    r = glist[i]->size * glist[j]->size;
-	    contrib = (float)(l + 1) / (float)(r + 2);
+	    contrib = (float)(l + a) / (float)(r + a + b);
 	    p1 = glist[i]->nodeList;
 	    while ((p1 = p1->next) != NULL) {
 	      p2 = glist[j]->nodeList;
