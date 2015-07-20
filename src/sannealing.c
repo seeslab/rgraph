@@ -12,7 +12,6 @@
 #include "costmatrix.h"
 
 #define VERBOSE
-
 #ifndef EXPLAIN
 #define explain(M, ...)
 #else
@@ -151,23 +150,31 @@ GeneralSA(Partition *part, AdjaArray *adj,
 		  explain("Using a nested SA.\n");
 		}
 
-		// Calculate dE for re-merging the groups.
-		dE = dEMergeModules(target,empty,part,adj);
+		// If the split actually gave two non empty modules...
+		if ((part->modules[target]->size) && (part->modules[empty]->size)){
 
-		explain("Merging splited module %d (%d) and %d (%d),%e",target, part->modules[target]->size, empty,part->modules[empty]->size, dE);
+		  // The energy variation when splitting a group is equal to the
+		  // opposite of the energy variation when merging them back.
+		  dE = -dEMergeModules(target,empty,part,adj);
+		  
+		  explain("Splitted modules: %d (%d) and %d (%d), %e",
+				  target, part->modules[target]->size,
+				  empty, part->modules[empty]->size,
+				  dE);
 
-		// Accept or revert the movement according to the
-		// Metropolis-Boltzman criterion. Note that the total energy
-		// is only modified if we accept the split, i.e. reject the
-		// merge.
-		if ((dE > 0.0) || (gsl_rng_uniform(gen) < exp(dE/T))){
-		  MergeModules(target,empty,part); // Revert the split.
-		  explain("... Reverted split\n");
+		  // Accept or revert the movement according to the
+		  // Metropolis-Boltzman criterion.
+		  if ((dE >= 0) || (gsl_rng_uniform(gen) < exp(dE/T))){
+			E += dE;
+			explain("... Accepted split\n");		  		  
+		  } else{
+			MergeModules(target,empty,part); // Revert the split.
+			explain("... Reverted split\n");
+		  }
+		} else { //If one of the module post split is still empty.
+		  explain("Trivial split\n");
 		}
-		else{
-		  E += -dE;
-		  explain("... Accepted split\n");
-		}
+		
 	  } // End of unless there is no empty group (=End of split).
 	} //End of collective movements
 
