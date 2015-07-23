@@ -42,7 +42,7 @@ CreatePartition(unsigned int N, unsigned int M){
   part = malloc(sizeof(Partition));
   part->N = N;
   part->M = M;
-  part->nempty = 0;
+  part->nempty = M;
   part->nodes = (Node **) malloc(N*sizeof(Node*));
   part->modules = (Module **) malloc(N*sizeof(Module*));
 
@@ -532,6 +532,7 @@ AssignNodesToModules(Partition *part, gsl_rng *gen){
 	for (i=0; i<part->N; i++){
 	  j = gsl_rng_uniform_int(gen,part->M);
 	  if (!part->modules[j]->size){
+		part->nempty --;
 		part->nodes[i]->module = j;
 		part->modules[j]->size = 1;
 		part->modules[j]->strength = part->nodes[i]->strength;

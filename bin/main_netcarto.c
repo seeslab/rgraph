@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <search.h>
 
 #include <gsl/gsl_rng.h>
 #include "tools.h"
@@ -43,13 +44,13 @@ TabularOutput(FILE *outf,
 			  double *connectivity,
 			  double *participation){
   int i;
-  printf ("Label\tModule\tConnectivity\tParticipation\tRole\n");
+  fprintf (outf, "Label\tModule\tConnectivity\tParticipation\tRole\n");
   for (i=0;i<part->N;i++){
-	printf ("%s\t%d\t%f\t%f\tR%d\n",
-			labels[i],
-			part->nodes[i]->module,
-			connectivity[i],participation[i],
-			GetRole(participation[i],connectivity[i])+1);
+	fprintf (outf, "%s\t%d\t%f\t%f\tR%d\n",
+			 labels[i],
+			 part->nodes[i]->module,
+			 connectivity[i],participation[i],
+			 GetRole(participation[i],connectivity[i])+1);
   }
 }
 
@@ -66,6 +67,62 @@ ClusteringOutput(FILE *outf,
 	fprintf(outf,"\n");
   }
 }
+
+
+  
+int
+AssignNodesToModulesFromFile(FILE *inF,
+							 Partition *part,
+							 char **labels){
+  int mod;
+  Node *node;
+  char label[MAX_LABEL_LENGTH];
+  char sep[2];
+  int j = 0, nfields = 0, nnode = part->N;
+  hcreate(part->N);
+  int i;
+  ENTRY e, *ep;
+  
+  for (i=0;i<nnode;i++){
+	e.key = labels[i];
+	e.data = (void *) i;
+	ep = hsearch(e, ENTER);
+  }
+
+  while (!feof(inF)){
+	nfields=fscanf(inF,"%[^\t\n]%[\t\n]",&label,&sep);
+	if (nfields) {
+	  e.key = label;
+	  ep = hsearch(e, FIND);
+	  i = ep->data;
+	  nnode--;
+	  
+	  if (!part->modules[j]->size){
+		part->nempty --;
+		part->nodes[i]->module = j;
+		part->modules[j]->size = 1;
+		part->modules[j]->strength = part->nodes[i]->strength;
+		part->modules[j]->first = part->nodes[i];
+		part->modules[j]->last = part->nodes[i];
+	  }
+	  else{
+		part->nodes[i]->module = j;
+		part->modules[j]->size++;
+		part->modules[j]->strength += part->nodes[i]->strength;
+		part->modules[j]->last->next = part->nodes[i];
+		part->nodes[i]->prev = part->modules[j]->last; 
+		part->modules[j]->last = part->nodes[i];
+	  }
+	  if(sep[0]=='\n')
+		j++;
+	}
+  }
+
+  CompressPartition(part);
+  hdestroy();
+  return nnode;
+}
+
 
 
 int
@@ -271,8 +328,13 @@ main(int argc, char **argv)
 		printf("ERROR: No such file or directory (%s). \n", file_name_part);
 		return(1);
 	}
+	int i;
+	i = AssignNodesToModulesFromFile(inF,p,labels);
+	if (i){
+	  printf ("Error: %d nodes are missing from the partition file.\n",i);
+	}
 	fclose(inF);
-	printf ("# Not implemented yet ! \n");
+	printf ("# %d modules read \n",p->M);
   }
   
   modularity = PartitionModularity(p,adj,0);
