@@ -213,7 +213,7 @@ double dEChangeModule(unsigned int nodeid,
 
   // Loop through the neighbors and compute the strength to
   // old and new group.
-  for (i=adj->idx[nodeid]; i<=adj->idx[nodeid+1]-1; i++){
+  for (i=adj->idx[nodeid]; i<adj->idx[nodeid+1]; i++){
 	int j = adj->neighbors[i]; // The index of the neighbor.
 	if (part->nodes[j]->module == old)
 	  dE -= adj->strength[i]; // - k_(i,G)
@@ -263,7 +263,7 @@ dEMergeModules(unsigned int moduleId1,
   // small module... (SUM_FOR_ALL_i_IN_G[k_{i,H}])
   for(node=small->first; node!=NULL; node = node->next){
 	// Loop through neigbors
-	for (i=adj->idx[node->id]; i<=adj->idx[(node->id)+1]-1; i++){
+	for (i=adj->idx[node->id]; i<adj->idx[(node->id)+1]; i++){
 	  int j = adj->neighbors[i]; // The index of the neighbor.
 	  if (nodes[j]->module == idlarge )
 		dE += adj->strength[i];
@@ -453,7 +453,7 @@ SplitModuleByComponent(unsigned int targetModuleId,
 		}
 
 		//loop through neighbors and add them to the queue.
-		for (i=adj->idx[j];i<=adj->idx[j+1]-1;i++){
+		for (i=adj->idx[j];i<adj->idx[j+1];i++){
 		  k = adj->neighbors[i]; // The index of the neighbor.
 
 		  if(!visited[k]){
@@ -676,7 +676,7 @@ PartitionModularity(Partition *part, AdjaArray *adj, int diagonal_term){
 
 		// Get the value of the edge (if they are connected)
 		aij = 0;
-		for (i=adj->idx[node1->id]; i<=adj->idx[node1->id+1]-1; i++){
+		for (i=adj->idx[node1->id]; i<adj->idx[node1->id+1]; i++){
 		  if (adj->neighbors[i] == node2->id){
 			aij = adj->strength[i];
 			break; // found the edge, we can stop.
