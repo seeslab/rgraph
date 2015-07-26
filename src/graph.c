@@ -419,6 +419,7 @@ FreeNode(struct node_gra *node)
   }
   free(node->label);
   free(node);
+  node = NULL;
   return;
 }
 
@@ -604,6 +605,7 @@ FBuildNetwork(FILE *inFile,
   }
 
   // Done
+  free(line);
   FreeLabelDict(node_dict);
   return root;
 }
