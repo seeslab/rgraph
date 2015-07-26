@@ -633,14 +633,20 @@ PartitionRolesMetrics(Partition *part, AdjaArray *adj, double *connectivity, dou
   // Participation is the 1-simpson index of node to modules strength.
   // P_i = 1 - SUM(K_iG^2/k_i^2).
   for (i=0; i<N; i++){
-	//we cannot use part->nodes[i]->strength; because it is not
-	//correct for bipartite network thanks to the -epsilon.
-	double strength = 0;
-	for (j=0;j<M;j++){
-	  strength += strengthToModule[i+N*j];
-	  participation[i] += strengthToModule[i+N*j]*strengthToModule[i+N*j];
+	// Participation coefficient of unconnected nodes is null.
+	if(adj->idx[i]==adj->idx[i+1]) //Node i is of null degree.
+	  participation[i] = 0;
+	else{
+	  //we cannot use part->nodes[i]->strength for denominator because
+	  //it is not correct for bipartite network thanks to the
+	  //-epsilon.
+	  double strength = 0;
+	  for (j=0;j<M;j++){
+		strength += strengthToModule[i+N*j];
+		participation[i] += strengthToModule[i+N*j]*strengthToModule[i+N*j];
+	  }
+	  participation[i] = 1.0 - participation[i]/(strength*strength);
 	}
-	participation[i] = 1.0 - participation[i]/(strength*strength);
   }
 
   //free memory.
