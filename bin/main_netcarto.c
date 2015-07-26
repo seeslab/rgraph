@@ -43,14 +43,16 @@ TabularOutput(FILE *outf,
 			  Partition *part,
 			  double *connectivity,
 			  double *participation){
-  int i;
+  int i=0;
+  int rolenb;
   fprintf (outf, "Label\tModule\tConnectivity\tParticipation\tRole\n");
   for (i=0;i<part->N;i++){
+	rolenb = GetRole(participation[i],connectivity[i])+1;
 	fprintf (outf, "%s\t%d\t%f\t%f\tR%d\n",
 			 labels[i],
 			 part->nodes[i]->module,
 			 connectivity[i],participation[i],
-			 GetRole(participation[i],connectivity[i])+1);
+			 rolenb);
   }
 }
 
@@ -131,29 +133,37 @@ main(int argc, char **argv)
   FILE *outF, *inF;
   int rgm;
   unsigned int seed = 1111;
-  int to_file = 0;
-  int from_file = 0;
+  
   struct binet *binet = NULL;
   struct node_gra *net = NULL;
-  struct group *part = NULL;
-  int roles = 0;
   struct node_gra *projected = NULL;
+
+  Partition *part = NULL;
+  AdjaArray *adj = NULL;
   gsl_rng *randGen;
   
-  double degree_based = 0;
   double Ti, Tf;
   double Ts = 0.97;
   double fac = 1.0;
   double modularity = 0;
   double modularity_diag = 0;
+  
   char fn_array[256];
   char fno_array[256];
+  
   char *file_name;
   char *file_name_part;
   char *file_name_out;
+  
   char **labels = NULL;
+  
   unsigned int N = 0, Ngroups=0, nochange_limit;
+  
   double proba_components = .5;
+
+  int to_file = 0;
+  int from_file = 0;
+  int roles = 0;
   int invert = 0;
   int weighted = 0;
   int output_type = 0;
@@ -161,14 +171,15 @@ main(int argc, char **argv)
   int louvain = 0;
   int bipartite = 0;
   int clustering = 1;
-  double louvain_threshold = 0;
-  extern char *optarg;
-  extern int optind;
   int c;
-  fprintf(stderr, "This is Netcarto.\n");
   int E;
   double *connectivity, *participation;
   int i;
+
+  extern char *optarg;
+  extern int optind;
+
+  fprintf(stderr, "This is Netcarto.\n");
 
   //// Arguments parsing
   
@@ -179,7 +190,7 @@ main(int argc, char **argv)
   }  
   
   else{
-	while ((c = getopt(argc, argv, "hbwtrmdLaf:s:i:c:o:T:S:p:C:")) != -1)
+	while ((c = getopt(argc, argv, "hbwtrmaf:s:i:c:o:S:p:C:")) != -1)
 	  switch (c) {
 	  case 'h':
 		printf(USAGE ARGUMENTS);
@@ -218,12 +229,6 @@ main(int argc, char **argv)
 	  case 'a':
 		add_weight = 1;
 		break;
-	  case 'L':
-		louvain = 1;
-		break;
-	  case 'T':
-		louvain_threshold = atof(optarg);
-		break;
 	  case 'o':
 		if(*optarg != '-')
 		  to_file = 1;
@@ -232,10 +237,6 @@ main(int argc, char **argv)
 	  case 'w':
 		weighted = 1;
 		break;
-	  case 'd':
-		degree_based = 1;
-		break;
-
 	  }
   }
 
@@ -281,6 +282,10 @@ main(int argc, char **argv)
   */
   N = CountNodes(net);
   labels = (char**) malloc(N*sizeof(char*));
+  if (labels==NULL){
+	perror("Error while setting labels");
+	exit(1);
+  }
   struct node_gra *node = net;
   while ((node=node->next)!=NULL)
 	labels[node->num] = node->label;
@@ -291,16 +296,15 @@ main(int argc, char **argv)
   fprintf(stderr, "# %d nodes to cluster.\n", N);
   if (!Ngroups)
 	Ngroups = N;
-  Partition *p = NULL;
-  AdjaArray *adj = NULL;
-  p = CreatePartition(N,Ngroups);
+  
+  part = CreatePartition(N,Ngroups);
 
   if (!bipartite){
 	// Allocate the memory.
 	E = TotalNLinks(net, 1);
 	adj = CreateAdjaArray(N,E);
 	// Initialization.
-	ComputeCost(net, adj, p);
+	ComputeCost(net, adj, part);
   }
   else{   
 	if (!weighted)
@@ -311,17 +315,25 @@ main(int argc, char **argv)
 	// Allocate the memory for the static graph.
 	E = TotalNLinks(projected, 1);
 	adj = CreateAdjaArray(N,E);
+	
 	// Initialization of the static graph.
-	ComputeCostBipart(binet, adj, p, projected, weighted);
+	ComputeCostBipart(binet, adj, part, projected, weighted);
   }
+
+  // SIMULATED ANNEALING CLUSTERING
   if (clustering){
-	AssignNodesToModules(p,randGen);
-	p = GeneralSA(p, adj, fac,
-				  Ti, Tf, Ts,
-				  proba_components, nochange_limit,
-				  randGen);
-	CompressPartition(p);
-  } else{
+	AssignNodesToModules(part,randGen);
+	
+	GeneralSA(&part, adj, fac,
+			  Ti, Tf, Ts,
+			  proba_components, nochange_limit,
+			  randGen);
+	
+	CompressPartition(part);
+  }
+
+  // READ PARTITION FROM A FILE.
+  else {
 	printf ("# Read partition from %s\n",file_name_part);
 	inF = fopen(file_name_part, "r");
 	if (inF == NULL){
@@ -329,21 +341,25 @@ main(int argc, char **argv)
 		return(1);
 	}
 	int i;
-	i = AssignNodesToModulesFromFile(inF,p,labels);
+	i = AssignNodesToModulesFromFile(inF,part,labels);
+	fclose(inF);
 	if (i){
 	  printf ("Error: %d nodes are missing from the partition file.\n",i);
 	}
-	fclose(inF);
-	printf ("# %d modules read \n",p->M);
+	printf ("# %d modules read \n",part->M);
   }
   
-  modularity = PartitionModularity(p,adj,0);
-  modularity_diag = PartitionModularity(p,adj,1);
+  modularity = PartitionModularity(part,adj,0);
+  modularity_diag = PartitionModularity(part,adj,1);
   
   if(roles){
-	connectivity = (double*) malloc(p->N*sizeof(double));
-	participation = (double*) malloc(p->N*sizeof(double));
-	PartitionRolesMetrics(p,adj, connectivity, participation);
+	connectivity = (double*) calloc(part->N,sizeof(double));
+	participation = (double*) calloc(part->N,sizeof(double));
+	if (connectivity==NULL || participation == NULL ){
+	  perror("Error while setting roles metrics");
+	  exit(1);
+	}
+	PartitionRolesMetrics(part, adj, connectivity, participation);
   }
 
 
@@ -365,18 +381,25 @@ main(int argc, char **argv)
   fprintf(outF,"# Modularity (with diagonal): %f\n",modularity_diag);
   
   if (roles)
-	TabularOutput(outF, labels, p, connectivity, participation);
+	TabularOutput(outF, labels, part, connectivity, participation);
   else
-	ClusteringOutput(outF, p, labels);
+	ClusteringOutput(outF, part, labels);
 
   // Close file if we need to. 
   if (to_file == 1)	fclose(outF);
   
   // Free memory
-  free(labels);
   if (bipartite)
 	RemoveBipart(binet);
   else
-	RemoveGraph(net);
+  	RemoveGraph(net);
+  if (roles){
+	free(connectivity);
+	free(participation);
+  }
+  free(labels);
+  FreeAdjaArray(adj);
+  FreePartition(part);  
   gsl_rng_free(randGen);
+  return 0;
 }

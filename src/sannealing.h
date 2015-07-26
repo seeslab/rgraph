@@ -21,18 +21,15 @@ BipartiteNetworkClustering(struct binet *binet,
 						   unsigned int weighted,
 						   gsl_rng *gen);
 
-void iterationNumber(int nnod, double fac,
-					 unsigned int *individual_movements, unsigned int *collective_movements);
-
-Partition *
-GeneralSA(Partition *part, AdjaArray *adj,
+unsigned int
+GeneralSA(Partition **ppart, AdjaArray *adj,
 		  double fac,
 		  double Ti, double Tf, double Ts,
 		  double cluster_prob,
 		  unsigned int nochange_limit,
 		  gsl_rng *gen);
 
-void
+unsigned int
 SplitModuleSA(unsigned int target, unsigned int empty,
 			  double Ti, double Tf, double Ts,
 			  unsigned int nochange_limit,

@@ -1,5 +1,6 @@
 #include "partition.h"
 #include "math.h"
+#include <stdio.h>
 
 /**
 Allocate the memory needed for an adjacency array
@@ -10,12 +11,16 @@ AdjaArray *
 CreateAdjaArray(unsigned int N, unsigned int E){
   AdjaArray *adj;
   adj = (AdjaArray *) malloc(sizeof(AdjaArray));
+  if (adj==NULL)
+	perror("Error while allocating adjacency array");
   adj->N = N;
   adj->E = E;
   adj->idx = (unsigned int *) calloc(N+1,sizeof(unsigned int ));
   adj->neighbors = (unsigned int *) calloc(2*E+1,sizeof(unsigned int ));
   adj->idx[N] = 2*E;
   adj->strength = (double *) calloc(2*E+1,sizeof(double));
+  if (adj->idx==NULL || adj->neighbors == NULL || adj->strength == NULL)
+	perror("Error while allocating adjacency array elements");
   return adj;
 }
 
@@ -28,6 +33,7 @@ FreeAdjaArray(AdjaArray *adj){
   free(adj->neighbors);
   free(adj->strength);
   free(adj);
+  adj = NULL;
 }
 
 /**
@@ -40,14 +46,23 @@ CreatePartition(unsigned int N, unsigned int M){
   Partition * part = NULL;
   int i;
   part = malloc(sizeof(Partition));
+  if (part==NULL)
+	perror("Error while allocating partition");
+
   part->N = N;
   part->M = M;
   part->nempty = M;
   part->nodes = (Node **) malloc(N*sizeof(Node*));
   part->modules = (Module **) malloc(N*sizeof(Module*));
+  if (part->nodes==NULL || part->modules == NULL)
+	perror("Error while allocating partition component");
 
+  
   for(i=0;i<N;i++){
 	part->nodes[i] = malloc(sizeof(Node));
+	if (part->nodes[i]==NULL)
+	  perror("Error while allocating node");
+
 	part->nodes[i]->id = i;
 	part->nodes[i]->module = 0;
 	part->nodes[i]->strength = 0;
@@ -56,6 +71,9 @@ CreatePartition(unsigned int N, unsigned int M){
   }
   for(i=0;i<M;i++){
 	part->modules[i] = malloc(sizeof(Module));
+	if (part->modules[i]==NULL)
+	  perror("Error while allocating module");
+
 	part->modules[i]->id=i;
 	part->modules[i]->strength = 0;
 	part->modules[i]->size=0;
@@ -77,7 +95,6 @@ CopyPartitionStruct(Partition *part){
 
   // Copy the nodes...
   for(i=0;i<part->N;i++){
-	copy->nodes[i] = malloc(sizeof(Node));
 	copy->nodes[i]->id = part->nodes[i]->id;
 	copy->nodes[i]->module = part->nodes[i]->module;
 	copy->nodes[i]->strength = part->nodes[i]->strength;
@@ -85,7 +102,6 @@ CopyPartitionStruct(Partition *part){
 
   // Copy the modules...
   for(i=0;i<part->M;i++){
-	copy->modules[i] = malloc(sizeof(Module));
 	copy->modules[i]->id = part->modules[i]->id;
 	copy->modules[i]->strength = part->modules[i]->strength;
 	copy->modules[i]->size = part->modules[i]->size;
@@ -128,6 +144,7 @@ FreePartition(Partition *part){
   free(part->nodes);
   free(part->modules);
   free(part);
+  part = NULL;
 }
 
 /**
@@ -148,7 +165,7 @@ ConvertPartitionToGroup(Partition *part, struct node_gra *net)
 
   // Create a grouplist for faster access.
   glist = (struct group **) calloc(part->N, sizeof(struct group *));
-
+  
   // Create the groups
   for (i=0;i<part->M;i++){
 	if (part->modules[i]->size != 0){
@@ -398,6 +415,9 @@ SplitModuleByComponent(unsigned int targetModuleId,
   unsigned int components = 0;
   unsigned int add_to_empty, j, i, k;
   unsigned int *visited = calloc(part->N,sizeof(unsigned int));
+  if (visited==NULL)
+	  perror("Error while splitting module by connected component");
+
   to_visit = CreateStack(part->N);
   to_move = CreateStack(target->size);
   to_find = target->size;
@@ -466,7 +486,10 @@ CreateStack(unsigned int N){
   st->maxsize = N;
   st->top = -1;
   st->items = (int*) calloc(N,sizeof(int));
+  if (st==NULL || st->items==NULL)
+	  perror("Error while allocating stack");
   return(st);
+  
 }
 
 /**
@@ -476,6 +499,7 @@ void
 FreeStack(Stack *st){
   free(st->items);
   free(st);
+  st = NULL;
 }
 
 /**
@@ -570,8 +594,11 @@ PartitionRolesMetrics(Partition *part, AdjaArray *adj, double *connectivity, dou
 
   ////Compute all strengths from a node to a module.
   strengthToModule = (double*) calloc(N*M,sizeof(double));
+  if (strengthToModule==NULL)
+	  perror("Error while computing roles metrics");
+
   for (i=0; i<N; i++){
-	for (j=adj->idx[i]; j<=adj->idx[i+1]-1; j++){
+	for (j=adj->idx[i]; j<adj->idx[i+1]; j++){
 	  mod = part->nodes[adj->neighbors[j]]->module;
 	  strengthToModule[i+N*mod] += adj->strength[j];
 	}
@@ -581,6 +608,9 @@ PartitionRolesMetrics(Partition *part, AdjaArray *adj, double *connectivity, dou
   //// C_i = X-E(X)/STD(X) with X = K_iG if i is in module G.
   mean = (double*) calloc(M,sizeof(double));
   std = (double*) calloc(M,sizeof(double));
+  if (mean==NULL || std ==NULL)
+	  perror("Error while computing roles metrics");
+
   for (i=0; i<N; i++){
 	mod = part->nodes[i]->module;
 	mean[mod] += strengthToModule[i+N*mod];
@@ -685,9 +715,15 @@ CompressPartition(Partition *part){
   // The new number of modules is M.
   M = part->M - part->nempty;
   newmodules =  (Module **) malloc(M*sizeof(Module*));
+  if (newmodules==NULL)
+	  perror("Error while compressing partition");
 
+  
   // Free the empty modules and store their ids.
   empty_id = (unsigned int *) calloc(part->nempty,sizeof(unsigned int));
+  if (empty_id==NULL)
+	perror("Error while compressing partition");
+	
   for (i=0;i<part->M;i++){
 	if (!part->modules[i]->size){
 	  empty_id[j] = i;

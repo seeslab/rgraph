@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <math.h>
 #include <string.h>
 #include <gsl/gsl_rng.h>
@@ -39,17 +40,18 @@ Modularity optimisation using simulated annealing.
 @param nochange_limit number of consecutive non improving step before stopping.
 @param gen random number generator.
 **/
-Partition *
-GeneralSA(Partition *part, AdjaArray *adj,
+unsigned int
+GeneralSA(Partition **ppart, AdjaArray *adj,
 		  double fac,
 		  double Ti, double Tf, double Ts,
 		  double proba_components,
 		  unsigned int nochange_limit,
 		  gsl_rng *gen)
 {
+  Partition *part = *ppart;
   Partition *best_part = NULL;
   unsigned int individual_movements, collective_movements;
-  unsigned int target, oldg, newg, i, g1, g2, j, empty, ncomponent;
+  unsigned int target, oldg, newg, i, g1, g2, j, empty, ncomponent, err;
   double T = Ti;
   unsigned int nochange_count=0;
 
@@ -57,8 +59,17 @@ GeneralSA(Partition *part, AdjaArray *adj,
   info ("#Simulated annealing:\n");
   explain ("#Ti: %f Tf: %f c: %f fac: %f\n",Ti,Tf,Ts,fac);
   explain ("#nochang_limit: %d, proba_components: %f \n",nochange_limit, proba_components);
+
   // Get the number of individual and collective movements.
-  iterationNumber(part->N, fac, &individual_movements, &collective_movements);
+  if (fac * (double)(part->N * part->N) < 10)
+	individual_movements = 10;
+  else
+	individual_movements = floor(fac * (double)(part->N * part->N));
+  if (fac * (double)part->N < 2)
+	collective_movements = 2;
+  else
+	collective_movements = floor(fac * (double)part->N);
+  
   info ("#T\tE\tStop\n");
   /// SIMULATED ANNEALING ///
   for (T=Ti; T > Tf; T = T*Ts) {
@@ -143,10 +154,12 @@ GeneralSA(Partition *part, AdjaArray *adj,
 		// with a high temperature (Ti) and do individual movements
 		// until it reaches the global SA temperature (T).
 		if (ncomponent==1){
-		  SplitModuleSA(target, empty,
-						Ti, T, 0.95,
-						nochange_limit,
-						part, adj, gen);
+		  err = SplitModuleSA(target, empty,
+							  Ti, T, 0.95,
+							  nochange_limit,
+							  part, adj, gen);
+		  if (err)
+			return 2;
 		  explain("Using a nested SA.\n");
 		}
 
@@ -207,7 +220,7 @@ GeneralSA(Partition *part, AdjaArray *adj,
 	  info ("# Saving a new best partition (%e)\n",E);
 	  if (best_part!=NULL)
 		FreePartition(best_part);
-	  best_part = CopyPartitionStruct(part);
+	  best_part = CopyPartitionStruct(part);	  
 	  best_E = E;
 	  nochange_count = 0;
 	}
@@ -215,7 +228,8 @@ GeneralSA(Partition *part, AdjaArray *adj,
 
   info ("# End of SA, best partition so far: %e\n",best_E);
   FreePartition(part);
-  return(best_part);
+  *ppart = best_part;
+  return(0);
 }
 
 
@@ -232,7 +246,7 @@ split.
 Note that the modularity cost are computed using the values in part
 and adj, so they are related to the global SA.
 **/
-void
+unsigned int
 SplitModuleSA(unsigned int target, unsigned int empty,
 			  double Ti, double Tf, double Ts,
 			  unsigned int nochange_limit,
@@ -248,6 +262,9 @@ SplitModuleSA(unsigned int target, unsigned int empty,
 
   // Build an array of indices to be able to draw one node at random.
   indices = (unsigned int*) calloc(N,sizeof(unsigned int));
+  if (indices == NULL){
+	perror("Error while splitting module");
+	return 1;}
   for(node=part->modules[target]->first,  i = 0; node!=NULL; node = node->next,i++)
 	indices[i] = node->id;
 
@@ -286,27 +303,6 @@ SplitModuleSA(unsigned int target, unsigned int empty,
 	}
   }// End of SA.
   free(indices);
+  return 0;
 }
 
-/**
-Compute a the number of iterations for the SA.
-
-@param nnod Number of nodes
-@param fac Iteration factor
-@param individual_movements A pointer to where to write the number of local movements.
-@param collective_movements A pointer to where to write the number of collectives movements.
-**/
-void iterationNumber(int nnod,
-					 double fac,
-					 unsigned int *individual_movements,
-					 unsigned int *collective_movements){
-  if (fac * (double)(nnod * nnod) < 10)
-	*individual_movements = 10;
-  else
-	*individual_movements = floor(fac * (double)(nnod * nnod));
-
-  if (fac * (double)nnod < 2)
-	*collective_movements = 2;
-  else
-	*collective_movements = floor(fac * (double)nnod);
-}
