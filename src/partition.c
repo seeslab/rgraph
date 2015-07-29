@@ -611,16 +611,23 @@ PartitionRolesMetrics(Partition *part, AdjaArray *adj, double *connectivity, dou
   if (mean==NULL || std ==NULL)
 	  perror("Error while computing roles metrics");
 
+  // We compute the mean µ and then the std(X-µ)=std(X) to acheive
+  // numerical stability.
   for (i=0; i<N; i++){
 	mod = part->nodes[i]->module;
 	mean[mod] += strengthToModule[i+N*mod];
-	std[mod] += strengthToModule[i+N*mod]*strengthToModule[i+N*mod];
   }
-  for (j=0; j<M; j++){
-	mean[j] /= part->modules[j]->size; // E(X)
-	std[j] /= part->modules[j]->size; // E(X^2)
-	std[j] = sqrt(std[j] - mean[j]*mean[j]); // V(X) = E(X^2) - E(X)^2
+  for (j=0; j<M; j++)
+	mean[j] /= part->modules[j]->size;
+
+  for (i=0; i<N; i++){
+	mod = part->nodes[i]->module;
+	std[mod] += (strengthToModule[i+N*mod]-mean[mod]) * (strengthToModule[i+N*mod]-mean[mod]);
   }
+  for (j=0; j<M; j++)
+	std[j] = sqrt(std[j]/part->modules[j]->size);
+
+  // Compute the z-score. 
   for (i=0; i<N; i++){
 	mod = part->nodes[i]->module;
 	if (std[mod])
