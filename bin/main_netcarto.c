@@ -237,6 +237,9 @@ main(int argc, char **argv)
 	  case 'w':
 		weighted = 1;
 		break;
+	  case 't':
+		invert = 1;
+		break;
 	  }
   }
 
