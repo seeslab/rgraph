@@ -211,12 +211,9 @@ GeneralSA(Partition **ppart, AdjaArray *adj,
 		  part = CopyPartitionStruct(best_part);
 		}
 	  }
-	// update the previous energy level.
-	previousE = E;
-
 	// Compare the current partition to the best partition so far and
 	// update it if needed.
-	if ( E > best_E) {
+	else if ( E > best_E) {
 	  info ("# Saving a new best partition (%e)\n",E);
 	  if (best_part!=NULL)
 		FreePartition(best_part);
@@ -224,6 +221,9 @@ GeneralSA(Partition **ppart, AdjaArray *adj,
 	  best_E = E;
 	  nochange_count = 0;
 	}
+   	// update the previous energy level.
+	previousE = E;
+
   } // End of the Temperature loop (end of SA).
 
   info ("# End of SA, best partition so far: %e\n",best_E);
