@@ -45,10 +45,10 @@ TabularOutput(FILE *outf,
 			  double *participation){
   int i=0;
   int rolenb;
-  fprintf (outf, "Label\tModule\tConnectivity\tParticipation\tRole\n");
+  fprintf (outf, "%-30s\tModule\tConnectivity\tParticipation\tRole\n","Label");
   for (i=0;i<part->N;i++){
 	rolenb = GetRole(participation[i],connectivity[i])+1;
-	fprintf (outf, "%s\t%d\t%f\t%f\tR%d\n",
+	fprintf (outf, "%-30s\t%d\t%f\t%f\tR%d\n",
 			 labels[i],
 			 part->nodes[i]->module,
 			 connectivity[i],participation[i],
