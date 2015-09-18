@@ -8,6 +8,7 @@
 #include "tools.h"
 #include "louvain.c"
 #include "graph.h"
+#include "io.h"
 #include "modules.h"
 #include "bipartite.h"
 #include "sannealing.h"
@@ -36,96 +37,6 @@
 \t -t : [with -b only] Find modules for the second column (default: first),\n\
 \t -a : Sum the weights if an edges is defined several times (default: ignore subsequent definitions).\n\
 \t -h : Display this message.\n"
-
-void
-TabularOutput(FILE *outf,
-			  char **labels,
-			  Partition *part,
-			  double *connectivity,
-			  double *participation){
-  int i=0;
-  int rolenb;
-  fprintf (outf, "%-30s\tModule\tConnectivity\tParticipation\tRole\n","Label");
-  for (i=0;i<part->N;i++){
-	rolenb = GetRole(participation[i],connectivity[i])+1;
-	fprintf (outf, "%-30s\t%d\t%f\t%f\tR%d\n",
-			 labels[i],
-			 part->nodes[i]->module,
-			 connectivity[i],participation[i],
-			 rolenb);
-  }
-}
-
-void
-ClusteringOutput(FILE *outf,
-				 Partition *part,
-				 char **labels){
-  int mod;
-  Node *node;
-  for(mod=0;mod<part->M;mod++){
-	for(node = part->modules[mod]->first;node!=NULL; node=node->next){
-	  fprintf(outf,"%s\t",labels[node->id]);
-	}
-	fprintf(outf,"\n");
-  }
-}
-
-
-  
-int
-AssignNodesToModulesFromFile(FILE *inF,
-							 Partition *part,
-							 char **labels){
-  int mod;
-  Node *node;
-  char label[MAX_LABEL_LENGTH];
-  char sep[2];
-  int j = 0, nfields = 0, nnode = part->N;
-  hcreate(part->N);
-  int i;
-  ENTRY e, *ep;
-  
-  for (i=0;i<nnode;i++){
-	e.key = labels[i];
-	e.data = (void *) i;
-	ep = hsearch(e, ENTER);
-  }
-
-  while (!feof(inF)){
-	nfields=fscanf(inF,"%[^\t\n]%[\t\n]",&label,&sep);
-	if (nfields) {
-	  e.key = label;
-	  ep = hsearch(e, FIND);
-	  i = ep->data;
-	  nnode--;
-	  
-	  if (!part->modules[j]->size){
-		part->nempty --;
-		part->nodes[i]->module = j;
-		part->modules[j]->size = 1;
-		part->modules[j]->strength = part->nodes[i]->strength;
-		part->modules[j]->first = part->nodes[i];
-		part->modules[j]->last = part->nodes[i];
-	  }
-	  else{
-		part->nodes[i]->module = j;
-		part->modules[j]->size++;
-		part->modules[j]->strength += part->nodes[i]->strength;
-		part->modules[j]->last->next = part->nodes[i];
-		part->nodes[i]->prev = part->modules[j]->last; 
-		part->modules[j]->last = part->nodes[i];
-	  }
-	  if(sep[0]=='\n')
-		j++;
-	}
-  }
-
-  CompressPartition(part);
-  hdestroy();
-  return nnode;
-}
-
-
 
 int
 main(int argc, char **argv)
@@ -294,7 +205,7 @@ main(int argc, char **argv)
 	labels[node->num] = node->label;
   
   Ti = 1. / (double)N;
-  Tf = 0.;
+  Tf = 1e-200;
   nochange_limit = 25;
   fprintf(stderr, "# %d nodes to cluster.\n", N);
   if (!Ngroups)
