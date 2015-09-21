@@ -203,3 +203,110 @@ EdgeListToAdjaArray(int *nd_in, int *nd_out, double *weight,
   }
   return 0;
 }
+
+
+/**
+Compare Edges structures (used with Qsort)
+
+This function compare two edges structures starting by the target node
+(if they are equal it compare the source node).
+
+It returns 0 if the edges are identiqual or -1 (resp 1) if the first edge has
+smaller (resp. bigger) node ids.
+**/
+static int
+compare_edges(const void *p1, const void *p2)
+{
+        unsigned int y1 = ((Edge*)p1)->node2;
+        unsigned int y2 = ((Edge*)p2)->node2;
+        if (y1 < y2)
+          return -1;
+        else if (y1>y2)
+          return 1;
+        y1 = ((Edge*)p1)->node1;
+        y2 = ((Edge*)p2)->node1;
+        if (y1 < y2)
+          return -1;
+        else if (y1>y2)
+          return 1;
+        return 0;
+}
+
+
+
+/**
+Bipartite projection according to the second column
+**/
+unsigned int
+project_bipart(unsigned int *nd_in, unsigned int *nd_out, double *weights, int E,
+               unsigned int *proj1, unsigned int *proj2, double *projW){
+
+  // Sort the edges by the nodes to project with.
+  int i, count = E;
+  Edge *ed = malloc(count*sizeof(Edge));
+  for (i = 0; i < count; i++) {
+    ed[i].node1 = nd_in[i];
+    ed[i].node2 = nd_out[i];
+    ed[i].strength = weights[i];
+  }
+  qsort(ed, count, sizeof(Edge), compare_edges);
+
+  // Count the degree of each node and assign a first data structure for the
+  // projected network.
+  unsigned int degree = 0, Emax = 0;
+  for (i = 0; i <= count-1; i++) {
+    degree++;
+    if (ed[i].node2 !=ed[i+1].node2 || i == count-1) {
+      Emax += (degree)*(degree-1) / 2;
+      degree = 0;
+    }
+  }
+  Edge *projected = malloc(Emax*sizeof(Edge));
+
+  // Generate all projected edges
+  degree = 0;
+  unsigned int j = 0, x, y, x0 = 0;
+  for (i = 0; i <= count-1; i++) {
+    degree++;
+    if (ed[i].node2 !=ed[i+1].node2 || i == count-1) {
+      for (x = x0; x < i+1; x++){
+        for (y = x0; y < x; y++) {
+          if (ed[x].node1 < ed[y].node1){
+            projected[j].node1 = ed[x].node1;
+            projected[j].node2 = ed[y].node1;
+          }else{
+            projected[j].node1 = ed[x].node1;
+            projected[j].node2 = ed[y].node1;
+          }
+          projected[j].strength = ed[x].strength * ed[y].strength;
+          j++;
+        }
+      }
+      degree = 0;
+      x0 = i+1;
+  }
+  }
+
+  // Count the number of unique edges
+  qsort(projected, j, sizeof(Edge), compare_edges);
+  E = j;
+  for (i = 0; i < j-1; i++) {
+    if (compare_edges(&projected[i],&projected[i+1]) == 0)
+      E --;
+  }
+
+  // Fill the output array
+  unsigned int *nodes1 = malloc(E*sizeof(unsigned int));
+  unsigned int *nodes2 = malloc(E*sizeof(unsigned int));
+  double *strength = calloc(E,sizeof(double));
+
+  unsigned int k = 0;
+  for (i = 0; i < j; i++) {
+    nodes1[k] = projected[i].node1;
+    nodes2[k] = projected[i].node2;
+    strength[k] += projected[i].strength;
+    if (compare_edges(&projected[i],&projected[i+1]) != 0)
+      k++;
+    }
+  return E;
+}
