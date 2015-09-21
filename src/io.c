@@ -239,7 +239,7 @@ Bipartite projection according to the second column
 **/
 unsigned int
 project_bipart(unsigned int *nd_in, unsigned int *nd_out, double *weights, int E,
-               unsigned int *proj1, unsigned int *proj2, double *projW){
+               unsigned int **proj1, unsigned int **proj2, double **projW){
 
   // Sort the edges by the nodes to project with.
   int i, count = E;
@@ -286,7 +286,7 @@ project_bipart(unsigned int *nd_in, unsigned int *nd_out, double *weights, int E
       x0 = i+1;
   }
   }
-
+  free(ed);
   // Count the number of unique edges
   qsort(projected, j, sizeof(Edge), compare_edges);
   E = j;
@@ -296,17 +296,19 @@ project_bipart(unsigned int *nd_in, unsigned int *nd_out, double *weights, int E
   }
 
   // Fill the output array
-  unsigned int *nodes1 = malloc(E*sizeof(unsigned int));
-  unsigned int *nodes2 = malloc(E*sizeof(unsigned int));
-  double *strength = calloc(E,sizeof(double));
+  *proj1 = malloc(E*sizeof(unsigned int));
+  *proj2 = malloc(E*sizeof(unsigned int));
+  *projW = calloc(E,sizeof(double));
 
   unsigned int k = 0;
   for (i = 0; i < j; i++) {
-    nodes1[k] = projected[i].node1;
-    nodes2[k] = projected[i].node2;
-    strength[k] += projected[i].strength;
+    (*proj1)[k] = projected[i].node1;
+    (*proj2)[k] = projected[i].node2;
+    (*projW)[k] += projected[i].strength;
     if (compare_edges(&projected[i],&projected[i+1]) != 0)
       k++;
     }
+  free(projected);
+
   return E;
 }
