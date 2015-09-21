@@ -43,7 +43,7 @@ Allocate the memory for a partition (nodes included).
  **/
 Partition *
 CreatePartition(unsigned int N, unsigned int M){
-  Partition * part = NULL;
+  Partition *part = NULL;
   int i;
   part = malloc(sizeof(Partition));
   if (part==NULL)
@@ -57,7 +57,7 @@ CreatePartition(unsigned int N, unsigned int M){
   if (part->nodes==NULL || part->modules == NULL)
 	perror("Error while allocating partition component");
 
-  
+
   for(i=0;i<N;i++){
 	part->nodes[i] = malloc(sizeof(Node));
 	if (part->nodes[i]==NULL)
@@ -146,46 +146,6 @@ FreePartition(Partition *part){
   free(part);
   part = NULL;
 }
-
-/**
-Convert a Partition structure to a (legacy) group structure with
-the good bindings to the network net.
-**/
-struct group*
-ConvertPartitionToGroup(Partition *part, struct node_gra *net)
-{
-  struct group *group = NULL, *g = NULL;
-  struct node_gra *node;
-  struct group **glist;
-  unsigned int i;
-
-  // Create the header
-  group = CreateHeaderGroup();
-  g = group;
-
-  // Create a grouplist for faster access.
-  glist = (struct group **) calloc(part->N, sizeof(struct group *));
-  
-  // Create the groups
-  for (i=0;i<part->M;i++){
-	if (part->modules[i]->size != 0){
-	  glist[i] = CreateGroup(g, i);
-	  g = g->next;
-	}
-  }
-
-  // Add the nodes to their groups.
-  node = net;
-  while((node=node->next)!=0){
-	g = glist[part->nodes[node->num]->module];
-	AddNodeToGroup(g, node);
-  }
-
-  // Free memory
-  free(glist);
-  return(CompressPart(group));
-}
-
 
 /**
 The variation in modularity induced by moving a node i from a group G
@@ -489,7 +449,7 @@ CreateStack(unsigned int N){
   if (st==NULL || st->items==NULL)
 	  perror("Error while allocating stack");
   return(st);
-  
+
 }
 
 /**
@@ -551,7 +511,7 @@ AssignNodesToModules(Partition *part, gsl_rng *gen){
 	  part->modules[i]->last = part->nodes[i];
 	}
   }
-  // Otherwise dispatch the nodes at random. 
+  // Otherwise dispatch the nodes at random.
   else{
 	for (i=0; i<part->N; i++){
 	  j = gsl_rng_uniform_int(gen,part->M);
@@ -568,7 +528,7 @@ AssignNodesToModules(Partition *part, gsl_rng *gen){
 		part->modules[j]->size++;
 		part->modules[j]->strength += part->nodes[i]->strength;
 		part->modules[j]->last->next = part->nodes[i];
-		part->nodes[i]->prev = part->modules[j]->last; 
+		part->nodes[i]->prev = part->modules[j]->last;
 		part->modules[j]->last = part->nodes[i];
 	  }
 	}
@@ -627,7 +587,7 @@ PartitionRolesMetrics(Partition *part, AdjaArray *adj, double *connectivity, dou
   for (j=0; j<M; j++)
 	std[j] = sqrt(std[j]/part->modules[j]->size);
 
-  // Compute the z-score. 
+  // Compute the z-score.
   for (i=0; i<N; i++){
 	mod = part->nodes[i]->module;
 	if (std[mod])
@@ -731,12 +691,12 @@ CompressPartition(Partition *part){
   if (newmodules==NULL)
 	  perror("Error while compressing partition");
 
-  
+
   // Free the empty modules and store their ids.
   empty_id = (unsigned int *) calloc(part->nempty,sizeof(unsigned int));
   if (empty_id==NULL)
 	perror("Error while compressing partition");
-	
+
   for (i=0;i<part->M;i++){
 	if (!part->modules[i]->size){
 	  empty_id[j] = i;
