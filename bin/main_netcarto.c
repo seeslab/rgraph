@@ -5,12 +5,8 @@
 #include <search.h>
 
 #include <gsl/gsl_rng.h>
-#include "tools.h"
-#include "louvain.c"
-#include "graph.h"
 #include "io.h"
-#include "modules.h"
-#include "bipartite.h"
+#include "fillpartitions.h"
 #include "sannealing.h"
 #include "partition.h"
 
@@ -44,7 +40,7 @@ main(int argc, char **argv)
   FILE *outF, *inF;
   int rgm;
   unsigned int seed = 1111;
-  
+	unsigned int Ngroups = 0;
   struct binet *binet = NULL;
   struct node_gra *net = NULL;
   struct node_gra *projected = NULL;
@@ -52,24 +48,24 @@ main(int argc, char **argv)
   Partition *part = NULL;
   AdjaArray *adj = NULL;
   gsl_rng *randGen;
-  
+
   double Ti, Tf;
   double Ts = 0.97;
   double fac = 1.0;
   double modularity = 0;
   double modularity_diag = 0;
-  
+
   char fn_array[256];
   char fno_array[256];
-  
+
   char *file_name;
   char *file_name_part;
   char *file_name_out;
-  
+
   char **labels = NULL;
-  
-  unsigned int N = 0, Ngroups=0, nochange_limit;
-  
+
+  unsigned int nochange_limit;
+	unsigned int err;
   double proba_components = .5;
 
   int to_file = 0;
@@ -83,7 +79,6 @@ main(int argc, char **argv)
   int bipartite = 0;
   int clustering = 1;
   int c;
-  int E;
   double *connectivity, *participation;
   int i;
 
@@ -93,13 +88,13 @@ main(int argc, char **argv)
   fprintf(stderr, "This is Netcarto.\n");
 
   //// Arguments parsing
-  
+
   if (argc == 1) {
 	printf(USAGE
 		   "Use netcarto -h for more information.\n");
 	return -1;
-  }  
-  
+  }
+
   else{
 	while ((c = getopt(argc, argv, "hbwtrmaf:s:i:c:o:S:p:C:")) != -1)
 	  switch (c) {
@@ -161,89 +156,50 @@ main(int argc, char **argv)
   /*------------------------------------------------------------------
 	Build the network
     ------------------------------------------------------------------ */
-  fprintf(stderr, "Building the network from input file...\n");  
+  fprintf(stderr, "Read input...\n");
+
   if (from_file == 1) {
-	inF = fopen(file_name, "r");
-	if (inF == NULL){
-		printf("ERROR: No such file or directory (%s). \n", file_name);
-		return(1);
+  	inF = fopen(file_name, "r");
+    if (inF == NULL){
+    		printf("ERROR: No such file or directory (%s). \n", file_name);
+    		return(1);
+  	}
+  }
+  else	inF = stdin;
+
+  unsigned int *nodes1 = NULL,*nodes2 = NULL;
+  unsigned int E,N;
+  double *weights = NULL;
+	err = EdgeListFileInput(inF, weighted, bipartite+invert,
+								 &nodes1, &nodes2, &weights, &labels,
+								 &E, &N);
+	if (Ngroups==0) Ngroups=N;
+
+	if (!bipartite){
+		part = CreatePartition(N,Ngroups);
+		adj = CreateAdjaArray(N,E);
+		err = EdgeListToAdjaArray(nodes1, nodes2,
+															weights, adj, part, 1);
+	}else{
+		ProjectBipartEdgeList(nodes1, nodes2, weights, E,
+		                      &part, &adj);
 	}
-  }
-  else
-	inF = stdin;
-
-  if (bipartite){
-	binet = FBuildNetworkBipart(inF, weighted, add_weight); 
-	if (invert == 1)
-	  InvertBipart(binet);
-	net = binet->net1;
-  }
-  else
-	net = FBuildNetwork(inF,weighted,0,add_weight,1); // No autolink, symmetric.
-  
-  if (from_file)
-	fclose(inF);
-  
-  if (binet == NULL && net == NULL){
-	printf("Error reading input. \n");
-	return(1);
-  }
-  
-  /*
-    ------------------------------------------------------------------
-	Find the modules or load the partition.
-    ------------------------------------------------------------------
-  */
-  N = CountNodes(net);
-  labels = (char**) malloc(N*sizeof(char*));
-  if (labels==NULL){
-	perror("Error while setting labels");
-	exit(1);
-  }
-  struct node_gra *node = net;
-  while ((node=node->next)!=NULL)
-	labels[node->num] = node->label;
-  
-  Ti = 1. / (double)N;
-  Tf = 1e-200;
-  nochange_limit = 25;
-  fprintf(stderr, "# %d nodes to cluster.\n", N);
-  if (!Ngroups)
-	Ngroups = N;
-  
-  part = CreatePartition(N,Ngroups);
-
-  if (!bipartite){
-	// Allocate the memory.
-	E = TotalNLinks(net, 1);
-	adj = CreateAdjaArray(N,E);
-	// Initialization.
-	ComputeCost(net, adj, part);
-  }
-  else{   
-	if (!weighted)
-	  projected = ProjectBipart(binet);
-	else
-	  projected = ProjectBipartWeighted(binet);
-
-	// Allocate the memory for the static graph.
-	E = TotalNLinks(projected, 1);
-	adj = CreateAdjaArray(N,E);
-	
-	// Initialization of the static graph.
-	ComputeCostBipart(binet, adj, part, projected, weighted);
-  }
+  free(nodes1);
+  free(nodes2);
+  free(weights);
+  if (from_file) fclose(inF);
 
   // SIMULATED ANNEALING CLUSTERING
   if (clustering){
-	AssignNodesToModules(part,randGen);
-	
-	GeneralSA(&part, adj, fac,
-			  Ti, Tf, Ts,
-			  proba_components, nochange_limit,
-			  randGen);
-	
-	CompressPartition(part);
+    Ti = 1. / (double)N;
+    Tf = 1e-200;
+    nochange_limit = 25;
+  	AssignNodesToModules(part,randGen);
+  	GeneralSA(&part, adj, fac,
+  			  Ti, Tf, Ts,
+  			  proba_components, nochange_limit,
+  			  randGen);
+  	CompressPartition(part);
   }
 
   // READ PARTITION FROM A FILE.
@@ -262,10 +218,10 @@ main(int argc, char **argv)
 	}
 	printf ("# %d modules read \n",part->M);
   }
-  
+
   modularity = PartitionModularity(part,adj,0);
   modularity_diag = PartitionModularity(part,adj,1);
-  
+
   if(roles){
 	connectivity = (double*) calloc(part->N,sizeof(double));
 	participation = (double*) calloc(part->N,sizeof(double));
@@ -281,7 +237,7 @@ main(int argc, char **argv)
     Output
     ------------------------------------------------------------ */
 
-  // Select output 
+  // Select output
   if (to_file == 1)	{
 	outF = fopen(file_name_out, "w");
 	if (outF == NULL) {
@@ -293,27 +249,26 @@ main(int argc, char **argv)
   // Print output
   fprintf(outF,"# Modularity: %f\n",modularity);
   fprintf(outF,"# Modularity (with diagonal): %f\n",modularity_diag);
-  
+
   if (roles)
 	TabularOutput(outF, labels, part, connectivity, participation);
   else
 	ClusteringOutput(outF, part, labels);
 
-  // Close file if we need to. 
+  // Close file if we need to.
   if (to_file == 1)	fclose(outF);
-  
-  // Free memory
-  if (bipartite)
-	RemoveBipart(binet);
-  else
-  	RemoveGraph(net);
+
+  //Free the memory
   if (roles){
 	free(connectivity);
 	free(participation);
   }
+  for (i = 0; i < N; i++) {
+    free(labels[i]);
+  }
   free(labels);
   FreeAdjaArray(adj);
-  FreePartition(part);  
+  FreePartition(part);
   gsl_rng_free(randGen);
   return 0;
 }

@@ -4,13 +4,9 @@
 #include <string.h>
 #include <gsl/gsl_rng.h>
 
-#include "tools.h"
-#include "graph.h"
-#include "modules.h"
-#include "bipartite.h"
 #include "sannealing.h"
 #include "partition.h"
-#include "costmatrix.h"
+#include "movements.h"
 
 #define VERBOSE
 #ifndef EXPLAIN
@@ -69,7 +65,7 @@ GeneralSA(Partition **ppart, AdjaArray *adj,
 	collective_movements = 2;
   else
 	collective_movements = floor(fac * (double)part->N);
-  
+
   info ("#T\tE\tStop\n");
   /// SIMULATED ANNEALING ///
   for (T=Ti; T > Tf; T = T*Ts) {
@@ -169,7 +165,7 @@ GeneralSA(Partition **ppart, AdjaArray *adj,
 		  // The energy variation when splitting a group is equal to the
 		  // opposite of the energy variation when merging them back.
 		  dE = -dEMergeModules(target,empty,part,adj);
-		  
+
 		  explain("Splitted modules: %d (%d) and %d (%d), %e",
 				  target, part->modules[target]->size,
 				  empty, part->modules[empty]->size,
@@ -179,7 +175,7 @@ GeneralSA(Partition **ppart, AdjaArray *adj,
 		  // Metropolis-Boltzman criterion.
 		  if ((dE >= 0) || (gsl_rng_uniform(gen) < exp(dE/T))){
 			E += dE;
-			explain("... Accepted split\n");		  		  
+			explain("... Accepted split\n");
 		  } else{
 			MergeModules(target,empty,part); // Revert the split.
 			explain("... Reverted split\n");
@@ -187,7 +183,7 @@ GeneralSA(Partition **ppart, AdjaArray *adj,
 		} else { //If one of the module post split is still empty.
 		  explain("Trivial split\n");
 		}
-		
+
 	  } // End of unless there is no empty group (=End of split).
 	} //End of collective movements
 
@@ -201,7 +197,7 @@ GeneralSA(Partition **ppart, AdjaArray *adj,
 		  info ("# Too much rounds without changes (%d)... \n",nochange_count);
 		  // If the current partition is the best so far. Terminate the
 		  // SA by breaking out of the temperature loop.
-		  if (E+EPSILON_MOD >= best_E) break;
+		  if (E+EPSILON_MOD>= best_E) break;
 
 		  // Otherwise, reset the partition to the best one and proceed.
 		  info ("# Restarting from a better place (%e<%e)\n",E,best_E);
@@ -217,7 +213,7 @@ GeneralSA(Partition **ppart, AdjaArray *adj,
 	  info ("# Saving a new best partition (%e)\n",E);
 	  if (best_part!=NULL)
 		FreePartition(best_part);
-	  best_part = CopyPartitionStruct(part);	  
+	  best_part = CopyPartitionStruct(part);
 	  best_E = E;
 	  nochange_count = 0;
 	}
@@ -227,6 +223,7 @@ GeneralSA(Partition **ppart, AdjaArray *adj,
   } // End of the Temperature loop (end of SA).
 
   info ("# End of SA, best partition so far: %e\n",best_E);
+
   FreePartition(part);
   *ppart = best_part;
   return(0);
@@ -305,4 +302,3 @@ SplitModuleSA(unsigned int target, unsigned int empty,
   free(indices);
   return 0;
 }
-
