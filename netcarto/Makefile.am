@@ -1,7 +1,7 @@
 INCLUDES = -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/src
 AM_LDFLAGS = -static
 
-bin_PROGRAMS = netcarto netcarto_legacy
+bin_PROGRAMS = netcarto netcarto-legacy
 
 netcarto_SOURCES = main_netcarto.c
 netcarto_LDADD = $(top_srcdir)/src/librgraph.a 
