@@ -17,7 +17,7 @@
 \t -s SEED: Random number generator seed (positive integer, default 1111),\n\
 \t -i ITER: Iteration factor (recommended 1.0, default 1.0),\n\
 \t -c COOL: Cooling factor (recommended 0.950-0.995, default 0.97),\n\
-\t -S NUM: Number of graph shuffling to compute modularity's P-value (default 0),\n\
+\t -r NUM: Number of graph shuffling to compute modularity's P-value (default 0),\n\
 \t -h : Display this message.\n"
 
 int
