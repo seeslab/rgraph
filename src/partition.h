@@ -1,3 +1,30 @@
+/**
+@file partitions.h
+@author Guilhem Doulcier
+@date 2015
+@license GPLv3+
+@brief Data structure optimized for modularity optimization by SA.
+
+This file contains the definition and useful methods for the
+Partition and AdjaArray (Adjacency Array) data structure which are at
+the core of this implementation of the SA algorithm.
+
+We need an efficient way to:
+1. Compute the modularity variation due to changing the module of a vertex. 
+2. Actually change the module of a vertex.
+3. Compute the modularity variation due to the merging of two modules. 
+4. Actually merge two modules.
+
+The adjacency array and the partition as a list of doubly linked lists
+is an efficient solution to this problem, even if the graph is
+relatively static.
+
+To loop through:
+- All nodes: use the Partition->nodes array.
+- Neighbors of node i: use the AdjaArray->neighbors array between id[i] and id[i+1]-1.
+- Nodes member of a module j: use the doubly linked list partition->module[j]. 
+**/
+
 #ifndef PARTITION_H__
 #define PARTITION_H__
 #include <gsl/gsl_rng.h>

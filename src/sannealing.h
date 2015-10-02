@@ -1,3 +1,21 @@
+/**
+@file sannealing.h
+@author Guilhem Doulcier
+@date 2015
+@license GPLv3+
+@brief Simulated Annealing (Adjacency Arrays implementation)
+
+This file contains a modularity optimization by simulated annealing
+implementation based on adjacency arrays (as defined in
+partitions.c). Its main advantage against the old implementation are:
+
+- It is relatively faster (even if it is keeping the same algorithmic
+complexity, and thus scaling law). 
+
+- It use a single GeneralSA function to do the four possible SA
+  (weighted/unweighted, bipartite or not). The only difference being
+  the way the adjacency array is initialized (see fillpartitions.c).
+**/
 #include <gsl/gsl_rng.h>
 #include "partition.h"
 

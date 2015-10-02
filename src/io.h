@@ -1,3 +1,12 @@
+/**
+@file io.h
+@author Guilhem Doulcier
+@date 2015
+@license GPLv3+
+@brief Read graph from file and output modules and modularity. 
+
+This file contains all the basic i/o functions used in netcarto. 
+**/
 #ifndef IO_H__
 #define IO_H__
 #include <stdlib.h>
