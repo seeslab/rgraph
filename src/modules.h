@@ -112,6 +112,7 @@ void GroupSizeStatistics(struct group *part,
 			 double *theStddev,
 			 double *theMin,
 			 double *theMax);
+struct group *GetEmptyGroup(struct group *part);
 
 /* a la DB Stouffer */
 void MergeGroupsFast(struct group *g1, struct group *g2);

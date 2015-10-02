@@ -51,6 +51,8 @@ AC_CONFIG_FILES(lib/Makefile
 		reliability/Makefile
 		recommender/Makefile
 		conflict/Makefile
+		multiblock/Makefile
+		only_deg/Makefile
 		Makefile)
 
 AC_OUTPUT

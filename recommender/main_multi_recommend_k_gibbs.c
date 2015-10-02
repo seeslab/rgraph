@@ -2,7 +2,7 @@
   -----------------------------------------------------------------------------
   Use:
 
-  multi_recommend_2.out ratings_file_name query_file_name seed
+  multi_recommend_k.out ratings_file_name query_file_name seed
 
   seed is an integer, used to get the random number generator started
   -----------------------------------------------------------------------------
@@ -29,16 +29,18 @@ main(int argc, char **argv)
   struct query **queries=NULL;
   int nquery, q;
   int seed;
-  double *scores;
+  double **scores;
+  int K, k;
 
   /* Command line parameters */
-  if (argc < 3) {
-    printf("\nUse: multi_recommend_2.out observation_file query_file seed\n\n");
+  if (argc < 4) {
+    printf("\nUse: multi_recommend_k_gibbs K observation_file query_file seed\n\n");
     return -1;
   }
-  obsFile = argv[1];
-  queFile = argv[2];
-  seed = atoi(argv[3]);
+  K = atoi(argv[1]);
+  obsFile = argv[2];
+  queFile = argv[3];
+  seed = atoi(argv[4]);
   rand_gen = gsl_rng_alloc(gsl_rng_mt19937);
   gsl_rng_set(rand_gen, seed);
 
@@ -47,7 +49,7 @@ main(int argc, char **argv)
   ratings = ReadRecommenderObservations(infile);
   fclose(infile);
 
-  /* Get the number of queries and build the query set */
+  /* Get the number of queries end build the query set */
   nquery = CountLinesInFile(queFile);
   fprintf(stderr, ">> %d queries\n", nquery);
   infile = fopen(queFile, "r");
@@ -55,16 +57,17 @@ main(int argc, char **argv)
   fclose(infile);
 
   /* Get the scores of the queries and print them */
-/*   scores = MultiLinkScore2State(ratings, */
-/* 				queries, nquery, */
-/* 				10000, rand_gen, 'v', -1); */
-  scores = MultiLinkScore2State(ratings,
-				queries, nquery,
-				10000, rand_gen, 'v', -1);
+  scores = GibbsMultiLinkScoreKState(K, ratings,
+				     queries, nquery,
+				     10000, rand_gen, 'v');
   fprintf(stdout, "\n\n>>> RESULTS\n\n");
   for (q=0; q<nquery; q++) {
-    fprintf(stdout, "%s %s %lf\n",
-	    ((queries[q])->n1)->label, ((queries[q])->n2)->label, scores[q]);
+    fprintf(stdout, "%s %s",
+	    ((queries[q])->n1)->label,
+	    ((queries[q])->n2)->label);
+    for (k=0; k<K; k++)
+      fprintf(stdout, " %lf", scores[k][q]);
+    fprintf(stdout, "\n");
   }
 
   /* Finish */

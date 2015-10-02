@@ -1,22 +1,29 @@
 /*
-  main_betweenness.c
-  $LastChangedDate$
-  $Revision$
+  main_only_degeneration_mb_gibbs.c
 */
 
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
 
+#include <gsl/gsl_rng.h>
+
+#include "tools.h"
 #include "graph.h"
+#include "only_deg.h"
 
 int
 main(int argc, char **argv)
 {
   char *netF;
   FILE *infile=NULL;
+  FILE *outfile=NULL;
   struct node_gra *net=NULL;
-  struct node_gra *p=NULL;
+  gsl_rng *rand_gen;
+  double **newA;
+  struct node_gra *p1, *p2;
+  long int seed;
+  char outFileName[200];
 
   /*
     ---------------------------------------------------------------------------
@@ -24,10 +31,13 @@ main(int argc, char **argv)
     ---------------------------------------------------------------------------
   */
   if (argc < 2) {
-    printf("\nUse: betweenness.out net_file\n\n");
-    return -1;
+    printf("\nUse: only_degeneration_mb net_file seed\n\n");
+    return;
   }
   netF = argv[1];
+  seed = atoi(argv[2]);
+  rand_gen = gsl_rng_alloc(gsl_rng_mt19937);
+  gsl_rng_set(rand_gen, seed);
 
   /*
     ---------------------------------------------------------------------------
@@ -40,19 +50,35 @@ main(int argc, char **argv)
 
   /*
     ---------------------------------------------------------------------------
-    Calculate betweenness
+    Get link reliabilities
     ---------------------------------------------------------------------------
   */
-  CalculateNodeBetweenness(net);
+  newA = GibbsLinkScoreMB_OD(net, 0.0, 10000, rand_gen, 'q');
 
   /*
     ---------------------------------------------------------------------------
-    Output results and finish
+    Output
     ---------------------------------------------------------------------------
   */
-  p = net;
-  while ((p = p->next) != NULL)
-    printf("%s %d %g\n", p->label, NodeDegree(p), p->dvar1);
+  strcpy(outFileName, netF);
+  strcat(outFileName, ".scores");
+  outfile = fopen(outFileName, "w");
+  p1 = net;
+  while ((p1 = p1->next) != NULL) {
+    p2 = p1;
+    while ((p2 = p2->next) != NULL) {
+      fprintf(outfile,
+	      "%g %s %s\n", newA[p1->num][p2->num], p1->label, p2->label);
+    }
+  }
+  fclose(outfile);
+
+  /*
+    ---------------------------------------------------------------------------
+    Finish
+    ---------------------------------------------------------------------------
+  */
   RemoveGraph(net);
+  gsl_rng_free(rand_gen);
   return 0;
 }

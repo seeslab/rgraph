@@ -12,7 +12,7 @@
 
 #include "tools.h"
 #include "graph.h"
-#include "missing.h"
+#include "sparse_missing.h"
 
 int
 main(int argc, char **argv)
@@ -33,7 +33,7 @@ main(int argc, char **argv)
   */
   if (argc < 2) {
     printf("\nUse: links net_file seed\n\n");
-    return -1;
+    return;
   }
   netF = argv[1];
   seed = atoi(argv[2]);
@@ -54,31 +54,40 @@ main(int argc, char **argv)
     Get link reliabilities
     ---------------------------------------------------------------------------
   */
-  newA = LinkScore(net, 0.0, 10000, rand_gen, 'v');
+  newA = SparseGibbsLinkScore(net, 10000, rand_gen, 'q');
 
   /*
     ---------------------------------------------------------------------------
     Output
     ---------------------------------------------------------------------------
   */
-  outfile1 = fopen("missing.dat", "w");
-  outfile2 = fopen("spurious.dat", "w");
+  /* outfile1 = fopen("missing.dat", "w"); */
+  /* outfile2 = fopen("spurious.dat", "w"); */
+  /* p1 = net; */
+  /* while ((p1 = p1->next) != NULL) { */
+  /*   p2 = p1; */
+  /*   while ((p2 = p2->next) != NULL) { */
+  /*     if (IsThereLink(p1, p2) == 0) { */
+  /* 	fprintf(outfile1, */
+  /* 		"%g %s %s\n", newA[p1->num][p2->num], p1->label, p2->label); */
+  /*     } */
+  /*     else { */
+  /* 	fprintf(outfile2, */
+  /* 		"%g %s %s\n", newA[p1->num][p2->num], p1->label, p2->label); */
+  /*     } */
+  /*   } */
+  /* } */
+  /* fclose(outfile1); */
+  /* fclose(outfile2); */
+
   p1 = net;
   while ((p1 = p1->next) != NULL) {
     p2 = p1;
     while ((p2 = p2->next) != NULL) {
-      if (IsThereLink(p1, p2) == 0) {
-	fprintf(outfile1,
+	fprintf(stdout,
 		"%g %s %s\n", newA[p1->num][p2->num], p1->label, p2->label);
-      }
-      else {
-	fprintf(outfile2,
-		"%g %s %s\n", newA[p1->num][p2->num], p1->label, p2->label);
-      }
     }
   }
-  fclose(outfile1);
-  fclose(outfile2);
 
   /*
     ---------------------------------------------------------------------------

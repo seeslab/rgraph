@@ -16,6 +16,8 @@
 #include "modules.h"
 #include "recommend.h"
 
+#define EPSILON 1.e-6
+
 /*
   ---------------------------------------------------------------------
   Missing links
@@ -24,7 +26,8 @@
 int ExponentialRootF(const gsl_vector *params, void *points, gsl_vector *f);
 double CalculateDecay(int nnod, double x1, double y1, double x2, double y2);
 double PartitionH(struct group *part, double linC);
-void LinkScoreMCStep(double *H,
+void LinkScoreMCStep(int factor,
+		     double *H,
 		     double linC,
 		     struct node_gra **nlist,
 		     struct group **glist,
@@ -34,6 +37,7 @@ void LinkScoreMCStep(double *H,
 		     int *n2gList,
 		     double **LogChooseList,
 		     int LogChooseListSize,
+		     double *LogFactList, int LogFactListSize,
 		     gsl_rng *gen);
 int GetDecorrelationStep(double *H,
 			 double linC,
@@ -45,6 +49,7 @@ int GetDecorrelationStep(double *H,
 			 int *n2gList,
 			 double **LogChooseList,
 			 int LogChooseListSize,
+			 double *LogFactList, int LogFactListSize,
 			 gsl_rng *gen,
 			 char verbose_sw);
 void ThermalizeLinkScoreMC(int decorStep,
@@ -58,6 +63,7 @@ void ThermalizeLinkScoreMC(int decorStep,
 			   int *n2gList,
 			   double **LogChooseList,
 			   int LogChooseListSize,
+			   double *LogFactList, int LogFactListSize,
 			   gsl_rng *gen,
 			   char verbose_sw);
 double **LinkScore(struct node_gra *net,
@@ -80,7 +86,9 @@ struct group **PartitionSampling(struct node_gra *net,
 				 double linC,
 				 int nIter,
 				 gsl_rng *gen,
-				 char verbose_sw);
+				 char verbose_sw,
+				 int burnin,
+				 double thinning);
 
 /*
   ---------------------------------------------------------------------
@@ -139,6 +147,41 @@ double **LSMultiLinkScoreKState(int K,
 
 
 
+/*
+  ---------------------------------------------------------------------
+  Link reliability Gibbs sampling
+  ---------------------------------------------------------------------
+*/
+void GibbsLinkScoreStep(double *H,
+			double linC,
+			struct node_gra **nlist,
+			struct group **glist,
+			struct group *part,
+			int nnod,
+			int **G2G,
+			int *n2gList,
+			double **LogChooseList,
+			int LogChooseListSize,
+			double *LogFactList, int LogFactListSize,
+			gsl_rng *gen);
+void GibbsThermalizeLinkScore(double *H,
+			      double linC,
+			      struct node_gra **nlist,
+			      struct group **glist,
+			      struct group *part,
+			      int nnod,
+			      int **G2G,
+			      int *n2gList,
+			      double **LogChooseList,
+			      int LogChooseListSize,
+			      double *LogFactList, int LogFactListSize,
+			      gsl_rng *gen,
+			      char verbose_sw);
+double **GibbsLinkScore(struct node_gra *net,
+			double linC,
+			int nIter,
+			gsl_rng *gen,
+			char verbose_sw);
 
 
 

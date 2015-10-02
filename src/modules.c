@@ -1179,6 +1179,28 @@ GroupSizeStatistics(struct group *part,
   return;
 }
 
+
+/*
+  ---------------------------------------------------------------------
+  Returns the first empty group in a partition. If no groups are empty,
+  returns NULL.
+  ---------------------------------------------------------------------
+  */
+struct group *
+GetEmptyGroup(struct group *part)
+{
+  struct group *g;
+  g = part;
+  while ((g=g->next) != NULL) {
+    if (g->size == 0) {
+      return g;
+    }
+  }
+  return NULL;
+}
+
+
+
 /*
   ---------------------------------------------------------------------
   ---------------------------------------------------------------------

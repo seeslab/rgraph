@@ -1,51 +1,41 @@
-#include <stdlib.h>
+/*
+  main_reliability_links_mb_gibbs_OR.c
+*/
+
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include <gsl/gsl_rng.h>
+
 #include "tools.h"
 #include "graph.h"
-#include "layout.h"
+#include "multiblock.h"
 
 int
 main(int argc, char **argv)
 {
-  long seed;
   char *netF;
-  int method;
-  FILE *inFile;
-  struct node_gra *net = NULL;
+  FILE *infile=NULL;
+  FILE *outfileAND=NULL, *outfileOR=NULL;
+  struct node_gra *net=NULL;
   gsl_rng *rand_gen;
-  int S, L;
-  int nsteps;
-  double step, damp;
+  double **newA_OR;
+  struct node_gra *p1, *p2;
+  long int seed;
+  char outFileNameOR[200];
 
   /*
     ---------------------------------------------------------------------------
     Command line parameters
     ---------------------------------------------------------------------------
   */
-  if (argc < 7) {
-    printf("\nUse: netlayout.out net_file_name seed step(-1) nsteps damping(-1) 1(2d)/2(2dp)/3(3d)\n\n");
-    return -1;
+  if (argc < 2) {
+    printf("\nUse: reliability_links_mb_OR net_file seed\n\n");
+    return;
   }
-
   netF = argv[1];
   seed = atoi(argv[2]);
-  step = atof(argv[3]);
-  if (step < 0.0 )
-    step = 0.05; // Default step
-  nsteps = atoi(argv[4]);
-  damp = atof(argv[5]);
-  if (damp < 0.0 )
-    damp = 0.05; // Default damping
-  method = atoi(argv[6]);
-
-  /*
-    ---------------------------------------------------------------------------
-    Initialize the random number generator
-    ---------------------------------------------------------------------------
-  */
   rand_gen = gsl_rng_alloc(gsl_rng_mt19937);
   gsl_rng_set(rand_gen, seed);
 
@@ -54,37 +44,38 @@ main(int argc, char **argv)
     Build the network
     ---------------------------------------------------------------------------
   */
-  inFile=fopen(netF, "r");
-  net = FBuildNetwork(inFile, 0, 0, 0, 1);
-  fclose(inFile);
-  S = CountNodes(net);
-  L = TotalNLinks(net, 1);
+  infile = fopen(netF, "r");
+  net = FBuildNetwork(infile, 0, 0, 0, 1);
+  fclose(infile);
 
   /*
     ---------------------------------------------------------------------------
-    Layout the graph
+    Get link reliabilities
     ---------------------------------------------------------------------------
   */
-  if (method == 3) {
-    MDGraphLayout3D(net, damp, step, nsteps, rand_gen, 0);
-  }
-  else if (method == 2) {
-    MDGraphLayout2Dp(net, damp, step, nsteps, rand_gen, 0);
-  }
-  else {
-    MDGraphLayout(net, damp, step, nsteps, rand_gen, 0);
-  }
+  newA_OR = ORGibbsLinkScoreMB(net, 0.0, 10000, rand_gen, 'q');
 
   /*
     ---------------------------------------------------------------------------
-    Output coordinates
+    Output
     ---------------------------------------------------------------------------
   */
-  PrintNodeCoordinates(stdout, net);
+  strcpy(outFileNameOR, netF);
+  strcat(outFileNameOR, ".OR_scores");
+  outfileOR = fopen(outFileNameOR, "w");
+  p1 = net;
+  while ((p1 = p1->next) != NULL) {
+    p2 = p1;
+    while ((p2 = p2->next) != NULL) {
+      fprintf(outfileOR,
+	      "%g %s %s\n", newA_OR[p1->num][p2->num], p1->label, p2->label);
+    }
+  }
+  fclose(outfileOR);
 
   /*
     ---------------------------------------------------------------------------
-    Free memory
+    Finish
     ---------------------------------------------------------------------------
   */
   RemoveGraph(net);

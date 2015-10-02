@@ -30,7 +30,7 @@ main(int argc, char **argv)
   */
   if (argc < 3) {
     printf("\nUse: netcompare.out net_file_A net_file_B\n\n");
-    return;
+    return -1;
   }
   netFA = argv[1];
   netFB = argv[2];

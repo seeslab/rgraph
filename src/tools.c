@@ -357,7 +357,8 @@ Choose(int n, int k)
 double
 LogChoose(int a, int b)
 {
-  return (double)logl(Choose(a, b));
+  return gsl_sf_lnchoose(a, b);
+  /* return (double)logl(Choose(a, b)); */
 }
 
 /*
@@ -511,6 +512,86 @@ FastLogFact(int r, double *LogFactList, int LogFactListSize)
     return gsl_sf_lnfact(r);
 }
 
+/*
+  ---------------------------------------------------------------------
+  Initialize a vector to be used by FastLogGamma
+  ---------------------------------------------------------------------
+*/
+double *
+InitializeFastLogGamma(int LogGammaListSize, double x)
+{
+  double *LogGammaList;
+  int i;
+
+  LogGammaList = allocate_d_vec(LogGammaListSize);
+  for (i=0; i<LogGammaListSize; i++)
+    LogGammaList[i] = gsl_sf_lngamma(i+x);
+
+  return LogGammaList;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Free a vector used by FastLogGamma
+  ---------------------------------------------------------------------
+*/
+void
+FreeFastLogGamma(double *LogGammaList)
+{
+  free_d_vec(LogGammaList);
+  return;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Fast log of the gamm function: if r is small enough, it returns the
+  result from previously tabulated values, otherwise, it calculates
+  the value. CAUTION!!!! At the begining, the LogGammaList vector MUST
+  BE initialized to log(gamma(i+x)) values (RECOMMENDED: Use
+  InitializeFastLogGamma for that purpose).
+  ---------------------------------------------------------------------
+*/
+double
+FastLogGamma(int r, double *LogGammaList, int LogGammaListSize, double x)
+{
+  if (r < LogGammaListSize)
+    return LogGammaList[r];
+  else
+    return gsl_sf_lngamma(r+x);
+}
+
+
+
+/*
+  ---------------------------------------------------------------------
+  Get the matrix of harmonic numbers up to HarmonicListSize
+  ---------------------------------------------------------------------
+*/
+double *
+InitializeHarmonicList(int HarmonicListSize)
+{
+  double *HarmonicList;
+  int i, j;
+
+  HarmonicList = allocate_d_vec(HarmonicListSize);
+  HarmonicList[0] = 0.0;
+  for (i=1; i<HarmonicListSize; i++)
+    HarmonicList[i] = HarmonicList[i-1] + 1. / (double)i;
+
+  return HarmonicList;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Free a used by FastHarmonic
+  ---------------------------------------------------------------------
+*/
+void
+FreeHarmonicList(double *HarmonicList)
+{
+  free_d_vec(HarmonicList);
+  return;
+}
 
 /*
   -----------------------------------------------------------------------------

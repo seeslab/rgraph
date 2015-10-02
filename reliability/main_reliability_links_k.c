@@ -36,7 +36,7 @@ main(int argc, char **argv)
   */
   if (argc < 3) {
     printf("\nUse: reliability_links_k K net_file seed\n\n");
-    return;
+    return -1;
   }
   K = atoi(argv[1]);
   netF = argv[2];

@@ -164,6 +164,7 @@ ReadQueries(FILE *inFile, int nQueries, struct binet *binet)
   struct query *q=NULL;
   int nq;
   struct node_gra *n1=NULL, *n2=NULL;
+  int dummy;
 
   /* Create the search dictionaries */
   dict1 = MakeLabelDict(binet->net1);
@@ -174,7 +175,7 @@ ReadQueries(FILE *inFile, int nQueries, struct binet *binet)
 
   /* Go through the file and create the queries */
   for (nq=0; nq<nQueries; nq++) {
-    fscanf(inFile, "%s %s\n", &node1[0], &node2[0]);
+    dummy = fscanf(inFile, "%s %s\n", &node1[0], &node2[0]);
     n1 = GetNodeDict(node1, dict1);
     /* add to binet if absent */
     if (n1 == NULL) {
@@ -1835,6 +1836,658 @@ MultiLinkScoreKState(int K,
 	FPrintPartition(outfile, part2, 1);
 	fclose(outfile);
 	break;
+      }
+    }
+  }  /* End of iter loop */
+
+  /* Normalize the scores */
+  for (k=0; k<K; k++)
+    for (q=0; q<nquery; q++)
+      score[k][q] /= (double)norm;
+
+  /* Remap the queries to the original network */
+  dict1 = MakeLabelDict(ratings->net1);
+  dict2 = MakeLabelDict(ratings->net2);
+  for (q=0; q<nquery; q++) {
+    querySet[q]->n1 = GetNodeDict(querySet[q]->n1->label, dict1);
+    querySet[q]->n2 = GetNodeDict(querySet[q]->n2->label, dict2);
+  }
+  FreeLabelDict(dict1);
+  FreeLabelDict(dict2);
+
+  /* Free dynamically allocated memory */
+  RemovePartition(part1);
+  RemovePartition(part2);
+  free(glist1);
+  free(glist2);
+  free(nlist1);
+  free(nlist2);
+  for (k=0; k<K; k++) {
+    free_i_mat(G1G2[k], nnod1);
+    free_i_mat(G2G1[k], nnod2);
+    free_i_mat(N1G2[k], nnod1);
+    free_i_mat(N2G1[k], nnod2);
+  }
+  FreeFastLog(LogList);
+  FreeFastLogFact(LogFactList);
+  RemoveBipart(ratingsClean);
+
+  /* Done */
+  return score;
+}
+
+
+/*
+  -----------------------------------------------------------------------------
+  -----------------------------------------------------------------------------
+  GIBBS SAMPLING
+  -----------------------------------------------------------------------------
+  -----------------------------------------------------------------------------
+*/
+
+/*
+  -----------------------------------------------------------------------------
+  Do a Gibbs sampling Monte Carlo step for the K-state recommender
+  system.
+  -----------------------------------------------------------------------------
+*/
+void
+GibbsStepKState(int K,
+		double *H,
+		struct node_gra **nlist1, struct node_gra **nlist2,
+		struct group **glist1, struct group **glist2,
+		struct group *part1, struct group *part2,
+		int nnod1, int nnod2,
+		int *ng1, int *ng2,
+		int **N1G2[], int **N2G1[],
+		int **G1G2[], int **G2G1[],
+		double *LogList, int LogListSize,
+		double *LogFactList, int LogFactListSize,
+		gsl_rng *gen)
+{
+  double *dH=NULL;
+  struct group *oldg, *newg, *g, *grootother, *grootnode;
+  struct group ***glistnode, ***glistother;
+  int ***N2G[K], ***N2Ginv[K];
+  int ***G2G[K], ***G2Ginv[K];
+  int move;
+  struct node_gra *node=NULL;
+  struct node_lis *nei=NULL;
+  int n, nk;
+  int oldgnum, newgnum;
+  int i, nnod, ngroupnode, ngroupother;
+  int *ng; /* Number of non-empty groups (for labeled-group correction) */
+  int k;
+  double dHoo, dHon, dHno, dHnn, dHsam, dHempty;
+  int target;
+  double cum=0.0, norm=0.0, dice=0.0;
+  /* Shortlist of groups that we consider as possible
+     destinations. Groups not in this list are empty for sure, so we
+     count all of them together in 1 single step. Note that, during a
+     step, we may have to add groups to this list (groups that were
+     initially empty but got filled) but we never remove groups from
+     it (even if they loose all their nodes during a step). slgXsize
+     is the size of slgX. */
+  int *slg1=NULL, *slg2=NULL, *slg=NULL, *slgother=NULL;
+  int slg1size, slg2size, *slgsize, *slgothersize, slgn;
+  int isinlist;
+
+  /* Preliminaries */
+  dH = allocate_d_vec(max(nnod1, nnod2));
+  slg1 = allocate_i_vec(nnod1);  // Shortlist of groups (part 1)
+  g = part1;
+  slg1size = 0;
+  while ((g=g->next) != NULL)
+    if (g->size > 0)
+      slg1[slg1size++] = g->label;
+  slg2 = allocate_i_vec(nnod2);  // Shortlist of groups (part 2)
+  g = part2;
+  slg2size = 0;
+  while ((g=g->next) != NULL)
+    if (g->size > 0)
+      slg2[slg2size++] = g->label;
+
+  /*** THE MOVES ***/
+  for (move=0; move<(nnod1+nnod2); move++) {
+    if (move < nnod1) {
+      /* User move */
+      for (k=0; k<K; k++) {
+	G2G[k] = &G1G2[k];    /* Group-to-group links */
+	G2Ginv[k] = &G2G1[k];
+	N2G[k] = &N1G2[k];    /* Node-to-group links */
+	N2Ginv[k] = &N2G1[k];
+      }
+      nnod = nnod1;
+      ng = ng1;
+      ngroupnode = nnod1;
+      ngroupother = nnod2;
+      node = nlist1[move];
+      oldgnum = node->inGroup;
+      oldg = glist1[oldgnum];
+      glistnode = &glist1;
+      glistother = &glist2;
+      grootnode = part1;
+      grootother = part2;
+      slg = slg1;
+      slgsize = &slg1size;
+      slgother = slg2;
+      slgothersize = &slg2size;
+    }
+    else {
+      /* Item move */
+      for (k=0; k<K; k++) {
+	G2G[k] = &G2G1[k];    /* Group-to-group links */
+	G2Ginv[k] = &G1G2[k];
+	N2G[k] = &N2G1[k];    /* Node-to-group links */
+	N2Ginv[k] = &N1G2[k];
+      }
+      nnod = nnod2;
+      ng = ng2;
+      ngroupnode = nnod2;
+      ngroupother = nnod1;
+      node = nlist2[move - nnod1];
+      oldgnum = node->inGroup;
+      oldg = glist2[oldgnum];
+      glistnode = &glist2;
+      glistother = &glist1;
+      grootnode = part2;
+      grootother = part1;
+      slg = slg2;
+      slgsize = &slg2size;
+      slgother = slg1;
+      slgothersize = &slg1size;
+    }
+
+    /** FIXED CONTRIBUTIONS FOR THIS NODE **/
+    norm = 0.0;
+    dHoo = 0.0;
+    dHno = 0.0;
+    for (slgn=0; slgn<(*slgothersize); slgn++) {
+      g = (*glistother)[slgother[slgn]];
+      if (g->size > 0) {  /* group is not empty */
+	/* old configuration, old group */
+	n = 0;
+	for (k=0; k<K; k++)
+	  n += (*G2G)[k][oldgnum][g->label];
+	dHoo += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
+	for (k=0; k<K; k++) {
+	  nk = (*G2G[k])[oldgnum][g->label];
+	  dHoo += -FastLogFact(nk, LogFactList, LogFactListSize);
+	}
+
+	/* new configuration, old group */
+	n = 0;
+	for (k=0; k<K; k++)
+	  n += (*G2G)[k][oldgnum][g->label] - (*N2G)[k][node->num][g->label];
+	dHno += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
+	for (k=0; k<K; k++) {
+	  nk = (*G2G)[k][oldgnum][g->label] - (*N2G)[k][node->num][g->label];
+	  dHno += -FastLogFact(nk, LogFactList, LogFactListSize);
+	}
+      }
+    }
+
+    /** DH FOR EACH POSSIBLE DESTINATION OF THIS NODE AMONG GROUPS IN
+	THE SHORTLIST **/
+    for (i=0; i<(*slgsize); i++) {
+      dHon = 0.0;
+      dHnn = 0.0;
+      newgnum = slg[i];
+      newg = (*glistnode)[newgnum];
+      for (slgn=0; slgn<(*slgothersize); slgn++) {
+	g = (*glistother)[slgother[slgn]];
+	if (g->size > 0) {  /* group is not empty */
+	  /* old configuration, new group */
+	  n = 0;
+	  for (k=0; k<K; k++)
+	    n += (*G2G)[k][newgnum][g->label];
+	  dHon += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
+	  for (k=0; k<K; k++) {
+	    nk = (*G2G)[k][newgnum][g->label];
+	    dHon += -FastLogFact(nk, LogFactList, LogFactListSize);
+	  }
+	  /* new configuration, new group */
+	  n = 0;
+	  for (k=0; k<K; k++)
+	    n += (*G2G)[k][newgnum][g->label] + (*N2G)[k][node->num][g->label];
+	  dHnn += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
+	  for (k=0; k<K; k++) {
+	    nk = (*G2G)[k][newgnum][g->label] + (*N2G)[k][node->num][g->label];
+	    dHnn += -FastLogFact(nk, LogFactList, LogFactListSize);
+	  }
+	}
+      }
+      /* add the labeled-group sampling correction, if necessary */
+      if (oldg->size == 1 && newg->size > 0)       // loose 1 group
+	dHsam = gsl_sf_lnfact(nnod - *ng) - gsl_sf_lnfact(nnod - (*ng - 1));
+      else if (oldg->size > 1 && newg->size == 0)  // gain 1 group
+	dHsam = gsl_sf_lnfact(nnod - *ng) - gsl_sf_lnfact(nnod - (*ng + 1));
+      else
+	dHsam = 0.0;
+      /* total energy change for this move and normalization */
+      if (newgnum == oldgnum)
+	dH[newgnum] = 0.0;
+      else
+	dH[newgnum] = -dHoo + dHno - dHon + dHnn + dHsam;
+      norm += exp(-dH[newgnum]);
+    }
+
+    /** DH FOR AN EMPTY DESTINATION GROUP FOR THIS NODE **/
+    dHon = 0.0;
+    dHnn = 0.0;
+    for (slgn=0; slgn<(*slgothersize); slgn++) {
+      g = (*glistother)[slgother[slgn]];
+      if (g->size > 0) {  /* group is not empty */
+	/* old configuration, new group */
+	dHon += FastLogFact(K - 1, LogFactList, LogFactListSize);
+	/* new configuration, new group */
+	n = 0;
+	for (k=0; k<K; k++)
+	  n += (*N2G)[k][node->num][g->label];
+	dHnn += FastLogFact(n + K - 1, LogFactList, LogFactListSize);
+	for (k=0; k<K; k++) {
+	  nk = (*N2G)[k][node->num][g->label];
+	  dHnn += -FastLogFact(nk, LogFactList, LogFactListSize);
+	}
+      }
+    }
+    /* add the labeled-group sampling correction, if necessary */
+    if (oldg->size > 1)  // gain 1 group
+      dHsam = gsl_sf_lnfact(nnod - *ng) - gsl_sf_lnfact(nnod - (*ng + 1));
+    else
+      dHsam = 0.0;
+    /* total energy change for this move and normalization */
+    dHempty = -dHoo + dHno - dHon + dHnn + dHsam;
+    norm += (ngroupnode - (*slgsize)) * exp(-dHempty);
+
+    /** CHOOSE THE MOVE **/
+    dice = norm * gsl_rng_uniform(gen);
+    if (dice > (norm - (ngroupnode - (*slgsize)) * exp(-dHempty))) {
+      /* Select an empty group */
+      newg = GetEmptyGroup(grootnode);
+      newgnum = newg->label;
+      dH[newgnum] = dHempty;
+      /* Add newg to shortlist (if it's not there already!) */
+      isinlist = 0;
+      for (slgn=0; slgn<(*slgsize); slgn++)
+	if (newgnum == slg[slgn])
+	  isinlist = 1;
+      if (isinlist == 0)
+	slg[(*slgsize)++] = newgnum;
+    }
+    else {
+      /* Select group in shortlist */
+      target = 0;
+      cum = 0.0;
+      while (cum < dice)
+	cum += exp(-dH[slg[target++]]);
+      newgnum = slg[target - 1];
+      newg = (*glistnode)[newgnum];
+    }
+
+    /* Make the move and update matrices */
+    MoveNode(node, oldg, newg);
+    *H = *H + dH[newgnum];
+    for (i=0; i<ngroupother; i++) {   /* update G2G links */
+      for (k=0; k<K; k++) {
+	(*G2G[k])[oldgnum][i] -= (*N2G[k])[node->num][i];
+	(*G2G[k])[newgnum][i] += (*N2G[k])[node->num][i];
+	(*G2Ginv[k])[i][oldgnum] -= (*N2G[k])[node->num][i];
+	(*G2Ginv[k])[i][newgnum] += (*N2G[k])[node->num][i];
+      }
+    }
+    nei = node->neig;            /* update N2Ginv links */
+    while ((nei = nei->next) != NULL) {
+      for (k=0; k<K; k++) {
+	if (nei->weight == (double)k) {
+	  (*N2Ginv[k])[nei->ref->num][oldgnum] -= 1;
+	  (*N2Ginv[k])[nei->ref->num][newgnum] += 1;
+	}
+      }
+    }
+    if (oldgnum != newgnum) { /* update number of non-empty groups */
+      if (oldg->size == 0) 
+	(*ng) -= 1;
+      if (newg->size == 1)
+	(*ng) +=1;
+    }
+  } /* Moves completed: done! */
+
+  /* Clean up */
+  free_d_vec(dH);
+  free_i_vec(slg1);
+  free_i_vec(slg2);
+
+  return;
+}
+
+
+/*
+  ---------------------------------------------------------------------
+  Thermalize the Gibbs sampling Markov chain
+  ---------------------------------------------------------------------
+*/
+void
+GibbsThermalizeKState(int K,
+		      double *H,
+		      struct node_gra **nlist1, struct node_gra **nlist2,
+		      struct group **glist1, struct group **glist2,
+		      struct group *part1, struct group *part2,
+		      int nnod1, int nnod2,
+		      int *ng1, int *ng2,
+		      int **N1G2[], int **N2G1[],
+		      int **G1G2[], int **G2G1[],
+		      double *LogList, int LogListSize,
+		      double *LogFactList, int LogFactListSize,
+		      gsl_rng *gen,
+		      char verbose_sw)
+{
+  double HMean0=1.e10, HStd0=1.e-10, HMean1, HStd1, *Hvalues;
+  int rep, nrep=20;
+  int equilibrated=0;
+
+  Hvalues = allocate_d_vec(nrep);
+  
+  do {
+    /* MC steps */
+    for (rep=0; rep<nrep; rep++) {
+      GibbsStepKState(K, H, nlist1, nlist2,
+		      glist1, glist2, part1, part2,
+		      nnod1, nnod2, ng1, ng2,
+		      N1G2, N2G1,
+		      G1G2, G2G1,
+		      LogList, LogListSize,
+		      LogFactList, LogFactListSize,
+		      gen);
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "%lf %d %d\n", *H, *ng1, *ng2);
+	break;
+      }
+      Hvalues[rep] = *H;
+    }
+
+    /* Check for equilibration */
+    HMean1 = mean(Hvalues, nrep);
+    HStd1 = stddev(Hvalues, nrep);
+    if (HMean0 - HStd0 / sqrt(nrep) < HMean1 + HStd1 / sqrt(nrep)) {
+      equilibrated++;
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "#\tequilibrated (%d/5) H=%lf\n",
+		equilibrated, HMean1);
+	break;
+      }
+    }
+    else {
+      switch (verbose_sw) {
+      case 'q':
+	break;
+      default:
+	fprintf(stderr, "#\tnot equilibrated yet H0=%g+-%g H1=%g+-%g\n",
+		HMean0, HStd0 / sqrt(nrep), HMean1, HStd1 / sqrt(nrep));
+	break;
+      }
+      HMean0 = HMean1;
+      HStd0 = HStd1;
+      equilibrated = 0;
+    }
+
+  } while (equilibrated < 5);
+  
+  /* Clean up */
+  free_d_vec(Hvalues);
+
+  return;
+}
+
+
+/*
+  -----------------------------------------------------------------------------
+  Return the score p(A_ij=1|A^O) of a collection {(i,j)} querySet of
+  links, for a 2-state system. The ratings are a bipartite network
+  with links (corresponding to observations) that have values 0 or 1.
+  -----------------------------------------------------------------------------
+*/
+double **
+GibbsMultiLinkScoreKState(int K,
+			  struct binet *ratings,
+			  struct query **querySet, int nquery,
+			  int nIter,
+			  gsl_rng *gen,
+			  char verbose_sw)
+{
+  int nnod1=CountNodes(ratings->net1), nnod2=CountNodes(ratings->net2);
+  int nn1, nn2;
+  struct node_gra *net1=NULL, *net2=NULL;
+  struct group *part1=NULL, *part2=NULL;
+  struct node_gra *p1=NULL, *p2=NULL, *node=NULL;
+  struct node_gra **nlist1=NULL, **nlist2=NULL;
+  struct group **glist1=NULL, **glist2=NULL;
+  struct group *lastg=NULL;
+  double H, H0;
+  int iter;
+  double **score;
+  int i, j;
+  int **N1G2[K], **N2G1[K];
+  int **G1G2[K], **G2G1[K];
+  int LogListSize = 5000;
+  double *LogList=InitializeFastLog(LogListSize);
+  int LogFactListSize = 10000;
+  double *LogFactList=InitializeFastLogFact(LogFactListSize);
+  struct node_lis *n1=NULL, *n2=NULL;
+  int norm = 0;
+  int dice;
+  int n, nk;
+  void *dict1=NULL, *dict2=NULL;
+  struct binet *ratingsClean=NULL;
+  int q;
+  int ng1, ng2;
+  FILE *outfile=NULL;
+  int k, k2;
+
+  /*
+    PRELIMINARIES
+  */
+
+  /* Create a ratings bipartite network that DOES NOT contain whatever
+     observations are in the query set. Map the queries to the new
+     network */
+  ratingsClean = CopyBipart(ratings);
+  dict1 = MakeLabelDict(ratingsClean->net1);
+  dict2 = MakeLabelDict(ratingsClean->net2);
+  for (q=0; q<nquery; q++) {
+    querySet[q]->n1 = GetNodeDict(querySet[q]->n1->label, dict1);
+    querySet[q]->n2 = GetNodeDict(querySet[q]->n2->label, dict2);
+    if (IsThereLink(querySet[q]->n1, querySet[q]->n2) == 1) {
+      RemoveLink(querySet[q]->n1, querySet[q]->n2, 1);
+    }
+  }
+  FreeLabelDict(dict1);
+  FreeLabelDict(dict2);
+
+  /* Initialize scores */
+  score = allocate_d_mat(K, nquery);
+  for (k=0; k<K; k++)
+    for (q=0; q<nquery; q++)
+      score[k][q] = 0.0;
+
+  /* Map nodes and groups to a list for faster access */
+  fprintf(stderr, ">> Mapping nodes and groups to lists...\n");
+  nlist1 = (struct node_gra **) calloc(nnod1, sizeof(struct node_gra *));
+  glist1 = (struct group **) calloc(nnod1, sizeof(struct group *));
+  lastg = part1 = CreateHeaderGroup();
+  p1 = net1 = ratingsClean->net1;
+  while ((p1 = p1->next) != NULL) {
+    nlist1[p1->num] = p1;
+    lastg = glist1[p1->num] = CreateGroup(lastg, p1->num);
+  }
+  nlist2 = (struct node_gra **) calloc(nnod2, sizeof(struct node_gra *));
+  glist2 = (struct group **) calloc(nnod2, sizeof(struct group *));
+  lastg = part2 = CreateHeaderGroup();
+  p2 = net2 = ratingsClean->net2;
+  while ((p2 = p2->next) != NULL) {
+    nlist2[p2->num] = p2;
+    lastg = glist2[p2->num] = CreateGroup(lastg, p2->num);
+  }
+
+  /* Place nodes in random partitions */
+  fprintf(stderr, ">> Placing nodes in initial partitions...\n");
+  p1 = net1;
+  ResetNetGroup(net1);
+  while ((p1 = p1->next) != NULL) {
+    AddNodeToGroup(glist1[p1->num], p1);
+  }
+  p2 = net2;
+  ResetNetGroup(net2);
+  while ((p2 = p2->next) != NULL) {
+    AddNodeToGroup(glist2[p2->num], p2);
+  }
+
+  /* Get the initial group-to-group links matrix */
+  fprintf(stderr, ">> Getting the initial group-to-group links matrix...\n");
+  for (k=0; k<K; k++) {
+    G1G2[k] = allocate_i_mat(nnod1, nnod2);
+    G2G1[k] = allocate_i_mat(nnod2, nnod1);
+    for (i=0; i<nnod1; i++) {
+      for (j=0; j<nnod2; j++) {
+  	G1G2[k][i][j] = G2G1[k][j][i] =
+  	  NWeightG2GLinks(glist1[i], glist2[j], (double)k);
+      }
+    }
+  }
+
+  /* Get the initial node-to-group links matrix */
+  fprintf(stderr, ">> Getting the initial node-to-group links matrix...\n");
+  for (k=0; k<K; k++) {
+    N1G2[k] = allocate_i_mat(nnod1, nnod2);
+    N2G1[k] = allocate_i_mat(nnod2, nnod1);
+    for (i=0; i<nnod1; i++) {
+      for (j=0; j<nnod2; j++) {
+  	N1G2[k][i][j] = NWeightLinksToGroup(nlist1[i], glist2[j], (double)k);
+  	N2G1[k][j][i] = NWeightLinksToGroup(nlist2[j], glist1[i], (double)k);
+      }
+    }
+  }
+
+  /* Get the initial number of non-empty groups */
+  ng1 = NNonEmptyGroups(part1);
+  ng2 = NNonEmptyGroups(part2);
+
+  /*
+    GET READY FOR THE SAMPLING
+  */
+  H = HKState(K, part1, part2);
+
+  /* Thermalization */
+  switch (verbose_sw) {
+  case 'q':
+    break;
+  default:
+    fprintf(stderr, "#\n#\n# THERMALIZING\n");
+    fprintf(stderr, "# ------------\n");
+    break;
+  }
+  GibbsThermalizeKState(K, &H,
+  			nlist1, nlist2, glist1, glist2,
+  			part1, part2,
+  			nnod1, nnod2, &ng1, &ng2,
+  			N1G2, N2G1,
+  			G1G2, G2G1,
+  			LogList, LogListSize,
+  			LogFactList, LogFactListSize,
+  			gen, verbose_sw);
+  
+  /*
+    SAMPLIN' ALONG
+  */
+  H0 = H;
+  for (iter=0; iter<nIter; iter++) {
+    GibbsStepKState(K, &H, nlist1, nlist2,
+		    glist1, glist2, part1, part2,
+		    nnod1, nnod2, &ng1, &ng2,
+		    N1G2, N2G1,
+		    G1G2, G2G1,
+		    LogList, LogListSize,
+		    LogFactList, LogFactListSize,
+		    gen);
+    switch (verbose_sw) {
+    case 'q':
+      break;
+    case 'v':
+      fprintf(stderr, "%d %lf %d %d\n", iter, H, ng1, ng2);
+      break;
+    case 'd':
+      fprintf(stderr, "%d %lf %lf\n", iter, H, HKState(K, part1, part2));
+      /* FPrintPartition(stderr, part1, 0); */
+      /* FPrintPartition(stderr, part2, 0); */
+      break;
+    }
+
+    /* Check if the energy has gone below a certain threshold and, if
+       so, reset energies and start over */
+    if ((H0 - H) > 400.0) {
+      switch (verbose_sw) {
+      case 'q':
+  	break;
+      default:
+  	fprintf(stderr,
+  		"# System was not properly thermalized: starting over :(\n\n");
+  	break;
+      }
+      iter = 0;
+      H0 = H;
+      norm = 0;
+      for (k=0; k<K; k++) {
+  	for (q=0; q<nquery; q++) {
+  	  score[k][q] = 0.0;
+  	}
+      }
+    }
+
+    /* Update normalization */
+    norm += 1;
+
+    /* Update the scores */
+    for (k=0; k<K; k++) {
+      for (q=0; q<nquery; q++) {
+  	nk = G1G2[k][querySet[q]->n1->inGroup][querySet[q]->n2->inGroup];
+  	n = 0;
+  	for (k2=0; k2<K; k2++)
+  	  n += G1G2[k2][querySet[q]->n1->inGroup][querySet[q]->n2->inGroup];
+  	score[k][q] += (float)(nk + 1) / (float)(n + K);
+      }
+    }
+
+    /* Output temporary scores and partitions */
+    if (iter % 100 == 0) {
+      switch (verbose_sw) {
+      case 'q':
+  	break;
+      default:
+  	outfile = fopen("scores.tmp", "w");
+  	for (q=0; q<nquery; q++) {
+  	  fprintf(outfile, "%s %s",
+  		  ((querySet[q])->n1)->label,
+  		  ((querySet[q])->n2)->label);
+  	  for (k=0; k<K; k++) {
+  	    fprintf(outfile, " %lf",
+  		    score[k][q]/(double)norm);
+  	  }
+  	  fprintf(outfile, "\n");
+  	}
+  	fclose(outfile);
+  	outfile = fopen("part1.tmp", "w");
+  	FPrintPartition(outfile, part1, 1);
+  	fclose(outfile);
+  	outfile = fopen("part2.tmp", "w");
+  	FPrintPartition(outfile, part2, 1);
+  	fclose(outfile);
+  	break;
       }
     }
   }  /* End of iter loop */

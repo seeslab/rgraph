@@ -64,6 +64,13 @@ double FastLog(int a, double *LogList, int LogListSize);
 double *InitializeFastLogFact(int LogFactListSize);
 void FreeFastLogFact(double *LogFactList);
 double FastLogFact(int a, double *LogFactList, int LogFactListSize);
+double *InitializeFastLogGamma(int LogGammaListSize, double x);
+void FreeFastLogGamma(double *LogGammaList);
+double FastLogGamma(int r, double *LogGammaList,
+		    int LogGammaListSize, double x);
+
+double *InitializeHarmonicList(int HarmonicListSize);
+void FreeHarmonicList(double *HarmonicList);
 
 /*
   ---------------------------------------------------------------------
