@@ -11,8 +11,8 @@
 #include "partition.h"
 
 #define USAGE "Usage:\n\
-\tnetcarto [-f FILE] [-o FILE] [-s SEED] [-i ITER] [-c COOL] [-S NUM] [-wmr]\n\
-\tnetcarto [-f FILE] [-o FILE] [-s SEED] [-i ITER] [-c COOL] [-S NUM] [-wmr] -b [-t]\n\
+\tnetcarto [-f FILE] [-o FILE] [-s SEED] [-i ITER] [-c COOL] [-wmr]\n\
+\tnetcarto [-f FILE] [-o FILE] [-s SEED] [-i ITER] [-c COOL] [-wmr] -b [-t]\n\
 \tnetcarto [-f FILE] [-o FILE] [-p FILE] [-w]\n\
 \tnetcarto [-f FILE] [-o FILE] [-p FILE] [-w] -b [-t]\n\
 \tnetcarto  -h\n"
@@ -24,14 +24,10 @@
 \t -i ITER: Iteration factor (recommended 1.0, default 1.0),\n\
 \t -c COOL: Cooling factor (recommended 0.950-0.995, default 0.97),\n\
 \t -p FILE: Partition file name to load and compute modularity and roles onto, \n\
-\t -S NUM: Number of graph shuffling to compute modularity's P-value (default 0),\n\
-\t -T THRESHOLD: [with -L only] Louvain's method threshold (default is 0.00),\n\
-\t -C PROBA: Proba of using connected components for the splits rather than SA. \n\
 \t -w : Read edge weights from the input's third column and uses the weighted modularity,\n\
 \t -b : Use bipartite modularity,\n\
 \t -r : Compute modularity roles,\n\
 \t -t : [with -b only] Find modules for the second column (default: first),\n\
-\t -a : Sum the weights if an edges is defined several times (default: ignore subsequent definitions).\n\
 \t -h : Display this message.\n"
 
 int
