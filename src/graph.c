@@ -1382,7 +1382,7 @@ CountNodes(struct node_gra *p)
 
 
 // ---------------------------------------------------------------------
-// Counts the degree of a node
+// Get the degree of a node
 // ---------------------------------------------------------------------
 
 unsigned int NodeDegree(struct node_gra *node)
