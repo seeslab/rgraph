@@ -124,56 +124,91 @@ network analysis programs. Sorry, as of now no documentation is
 available, but you may want to take a look at the header files and try
 to figure things out.
 
-
 ### netcarto
 
 Given a network, the program netcarto identifies
-modules---i.e. densely connected groups of nodes in the network---and
-classifies nodes according to their roles, as defined in Refs. [1, 2].
+modules ---i.e. densely connected groups of nodes in the network--- and
+classifies nodes according to their roles, as defined in Guimera (2005).
 
 In case you use the results of the program in a publication, please
 cite the following papers:
 
-1. Guimera, R. & Amaral, L.A.N., Functional cartography of complex
-   metabolic networks, Nature 433, 895-900 (2005).
+> Guimera, R. & Amaral, L.A.N., Functional cartography of complex
+> metabolic networks, Nature 433, 895-900 (2005).
 
-2. Guimera, R. & Amaral, L.A.N., Cartography of complex networks:
-   modules and universal roles, J. Stat. Mech.-Theory Exp.,
-   art. no. P02001 (2005).
+> Guimera, R. & Amaral, L.A.N., Cartography of complex networks:
+> modules and universal roles, J. Stat. Mech.-Theory Exp.,
+> art. no. P02001 (2005).
 
-For the comparison to randomized networks, please cite:
+**Important note about the new implenentation**
 
-3. Guimera, R., Sales-Pardo, M. & Amaral, L.A.N., Modularity from
-   fluctuations in random graphs and complex networks, Phys. Rev. E
-   70, art. no. 025101 (2004).
-
+In fall 2015 we added a new, equivalent implementation of the
+simulated annealing algorithm based on adjacency arrays. This new
+implementation is faster and can treat weighted and unweighted graphs
+seamlessly. However it has been less tested yet. **If correctness is
+crucial**, we encourage you to verify your results with the previous
+implementation accessible with the `netcarto-legacy` command. Please
+report us all bugs or unexpected behavior, it will be greatly
+appreciated.
 
 **Input parameters**
 
-To run the program, type netcarto.exe in the command line or
-double-click on the icon in Windows. The program will prompt for the
-following parameters:
+The synopsis of the command is:
+```
+Usage:
+	netcarto [-f FILE] [-o FILE] [-s SEED] [-i ITER] [-c COOL] [-wmr]
+	netcarto [-f FILE] [-o FILE] [-s SEED] [-i ITER] [-c COOL] [-wmr] -b [-t]
+	netcarto [-f FILE] [-o FILE] [-p FILE] [-w]
+	netcarto [-f FILE] [-o FILE] [-p FILE] [-w] -b [-t]
+	netcarto  -h
+Arguments:
+	 -f FILE: Input network file name (default: '-', standard input),
+	 -o FILE: Output file name (default: '-', standard output),
+	 -s SEED: Random number generator seed (positive integer, default 1111),
+	 -i ITER: Iteration factor (recommended 1.0, default 1.0),
+	 -c COOL: Cooling factor (recommended 0.950-0.995, default 0.97),
+	 -p FILE: Partition file name to load and compute modularity and roles onto, 
+	 -w : Read edge weights from the input's third column and uses the weighted modularity,
+	 -b : Use bipartite modularity,
+	 -r : Compute modularity roles,
+	 -t : [with -b only] Find modules for the second column (default: first),
+	 -h : Display this synopsis.
+```
 
-- Seed for the random number generator: Must be a positive
+- Seed for the random number generator (`-s`): Must be a positive
   integer. Since the module identification algorithm is stochastic,
   different runs will yield, in general, slightly different different
   modules. Two runs with the same seed, though, should give the exact
   same results.
 
-- Name of the network file: Name of the file that contains the
+- Name of the network file (`-f`): Name of the file that contains the
   network. The file must be a list of links with the format:
 
+```
   n1 n2
   n3 n4
   .  .
   .  .
   .  .
-
+  ```
+  
   This represents a network with a link between nodes n1 and n2,
   another between nodes n3 and n4, and so on. Nodes must be separated
   by spaces.
 
-- Iteration factor (f): At each temperature of the simulated annealing
+If you use the weighted definition of modularity (with the -w flag),
+the file must contain an additional third column giving the weight of
+each link:
+
+```
+     n1 m1 w1
+     n2 m2 w2
+      .  .  .
+      .  .  .
+      .  .  .
+```
+
+- Iteration factor (`-i`): At each temperature of the simulated annealing
   (SA), the program performs fN^2 individual-node updates (involving
   the movement of a single node from one module to another) and fN
   collective updates (involving the merging of two modules and the
@@ -185,7 +220,7 @@ following parameters:
   iterations is imposed at each temperature, so that when f is very
   small, the minimum number will be used instead of fN^2 or fN.
 
-- Cooling factor (c): After the desired number of updates is done at a
+- Cooling factor (`-c`): After the desired number of updates is done at a
   certain temperature T, the system is cooled down to a new
   temperature T'=cT, where c is the cooling factor. the cooling factor
   must be strictly larger than 0 and strictly smaller than 1. In
@@ -194,49 +229,118 @@ following parameters:
   are [0.990, 0.999], although smaller values (0.95 or even 0.9) may
   be needed for large and/or dense networks.
 
-- Number of randomizations: After modules and roles are identified in
-  the original network, there is the option to calculate the value of
-  the modularity in a random graph with the same degree (connectivity)
-  distribution as the original network. As discussed in [3], this test
-  is necessary to establish whether the modular structure of the
-  original network is significant or not. Calculation of the
-  modularity for each random network will take approximately the same
-  time as for the original network. If you do not want to run any
-  randomization, just enter 0 here.
+- Compute modularity roles (`-r`): If this flag is specified, the
+  program will compute for each node the *connectivity* (within-module
+  z-score of edge weights) and *participation coefficient* (evenness
+  of linked modules). Those two values are used to give the modularity
+  role of the nodes. Nodes with a low connectivity (<2.5) are
+  classified between ultra peripherals (R1), peripheral (R2),
+  connectors (R3) or kinless (R4) according to their increasing
+  participation coefficient. Nodes with high connectivity are
+  classified as peripheral (R5), connectors (R6) or kinless (R7)
+  hubs. Note that with the `-b` flag (denoting bipartite networks),
+  those roles are computed on the projected graph.
+
+Netcarto **can** treat bipartite graphs in a different way if you use
+the `-b` flag. It will produce a partition of one of the side
+according to their shared neighbors. Please refer to (and cite) those article for
+more information (unweighted and weighted formula respectively):
+
+> Guimera, R., Sales-Pardo, M. & Amaral, L.A.N., Module 
+> identification in bipartite and directed networks, Phys. Rev. E 76,
+> 036102 (2007)
+
+> Stouffer, D.B., Sales-Pardo, M., Sirer, M.I. & Bascompte J.,
+> Evolutionary conservation of species' roles in food webs, Science
+> 335, 1489-1492 (2012).
+
+- Bipartite `-b`: This flag sepcifies that the input graph is
+  bipartite. The two component of the bipartite network must be on
+  different columns. If the same name is used in both columns, it will
+  spawn two nodes (one in each component).
+
+- Invert `-t`: If this flag is specified the program will identify
+  modules in the first second column of the input file.
 
 
 **Program output**
 
 After entering these parameters, the algorithm will start to identify
-the modules in the network. As the SA proceeds, the program prints
-three columns on the screen, which indicate the inverse of the
-temperature, the modularity at that temperature, and the temperature
-itself, respectively. This provides you with a fast way to check if
-the process is too slow or, conversely, if it is fast and the accuracy
-can be increased. The program will stop when the modularity remains
-unchanged during 25 different temperatures. In general, finding a good
-partition requires decreasing the temperature several orders of
-magnitude. Thus, as a rule of thumb, if the time between one
-temperature and the next is larger than a second, the program will
-likely take days to complete (this, however, will also depend on the
-cooling factor). Of course, there is nothing wrong with long runs, as
-long as you are willing to wait!
+the modules in the network. As the SA proceeds, the program displays
+three columns (in the standard error stream), which indicate the the
+temperature, the modularity at that temperature, and the stopping
+criterion (current streak of steps without significant increase in
+modularity), respectively. This provides you with a fast way to check
+if the process is too slow or, conversely, if it is fast and the
+accuracy can be increased. If you want to hide those information you
+can redirect the error stream:
 
-When the SA for the original network finishes, the program calculates
-the role of each node almost instantly and outputs the following
-files:
+```
+bipartmod_cl -f network.dat 2> /dev/null
+```
 
-- network.net: a Pajek file containing the giant component of the
+Then come the main program output (in the standard output or in a file
+if you used the `-o` option). Two versions are possible depending on
+the options you used.
+
+By default, the program output the modularity value (with and without
+the diagonal term) and then the modules in a *compact format*. Each
+module is outputed as a single line, and node label are separated by
+tabulations. This format is the one used in input by the `-p` option.
+
+```
+ # Modularity: 0.469592
+ # Modularity (with diagonal): 0.419790
+ Actor_11	Actor_5	Actor_17	Actor_6	Actor_7	
+ Actor_22	Actor_12	Actor_14	Actor_13	Actor_20	Mr_Hi	Actor_2	Actor_8	Actor_3	Actor_18	Actor_4	
+ Actor_28	Actor_24	Actor_26	Actor_25	Actor_29	Actor_32	
+ Actor_9	Actor_31	John_A	Actor_10	Actor_30	Actor_27	Actor_16	Actor_19	Actor_23	Actor_21	Actor_15	Actor_33	
+```
+
+If modularity-roles were computed (`-r` flag), the program displays a
+*tabular output*. Each line correspond to a node, with values
+separated by tabulations. The fields are: label, module id, role,
+participation coefficient (P) and within-module degree (z). Note that
+for bipartite networks `-b` flag, those last three values are computed
+on the projected network.
+
+```
+Mynode          1   R3  0.6500      -1.440
+Another_node    1   R2  0.277778    -2.445675
+```
+
+### netcarto-legacy
+
+The original implementation of netcarto is still accessible trhough
+the `netcarto-legacy` executable. The command line options are almost
+the same than the current `netcarto` program use `-h` for
+precisions), you can also get an interactive version if you start it
+without arguments.
+
+This implementation offers the additional feature to compute
+modularity of randomizations of the original network (option
+`-r`). This test is necessary to establish whether the modular
+structure of the original network is significant or not. Calculation
+of the modularity for each random network will take approximately the
+same time as for the original network. Please refer to (and cite) this
+article about this feature:
+
+> Guimera, R., Sales-Pardo, M. & Amaral, L.A.N., Modularity from
+> fluctuations in random graphs and complex networks, Phys. Rev. E 70,
+> art. no. 025101 (2004).
+
+The program output the following files:
+- `network.net`: a Pajek file containing the giant component of the
   network (for information on Pajek, visit
   http://vlado.fmf.uni-lj.si/pub/networks/pajek/).
 
-- modules.clu: a Pajek partition containing the modules as identified
+- `modules.clu`: a Pajek partition containing the modules as identified
   by the algorithm.
 
-- roles.clu: a Pajek partition containing the roles as identified
+- `roles.clu`: a Pajek partition containing the roles as identified
   by the algorithm.
 
-- modules.dat: A text file containing some basic information about the
+- `modules.dat`: A text file containing some basic information about the
   modules (can be edited with any text editor such as NotePad, or
   imported in Excel as a csv file). The format of the file is as
   follows. Each line corresponds to a different module. The first
@@ -249,7 +353,7 @@ files:
   columns correspond to the list of nodes in the module. The last line
   of the file contains the value of the modularity for this partition.
 
-- roles.dat: A text file containing some basic information about the
+- `roles.dat`: A text file containing some basic information about the
   roles (can be edited with any text editor such as NodePad, or
   imported in Excel as a csv file). The format of the file is as
   follows. Each line corresponds to a different role. The first number
@@ -261,104 +365,15 @@ files:
   fifth columns). Then there is a "---" and the next columns
   correspond to the list of nodes with that role.
 
-- node_prop.dat: A text file with four columns. The first one is the
+- `node_prop.dat`: A text file with four columns. The first one is the
   number of the node. The second is the degree (number of links) of
   the node. The third is the participation coefficient as defined in
   [1, 2]. The fourth one is the within-module relative degree, as
   defined in [1, 2].
 
-After all of this, the program starts to calculate the modularity for
-as many randomizations as you have selected, printing on the screen,
-as before, the inverse of the temperature, the modularity, and the
-temperature. Once all randomizations are done, the program creates one
-last file that contains the modularity of the original network, the
-average modularity of the randomized networks, and the standard
-deviation of the modularity of the randomized networks.
-
-
-### netcarto_cl
-
-netcarto_cl is equivalent to netcarto, but arguments are passed
-directly from the command line (so that it is easier to script around
-the executable). Additionally, netcarto_cl allows you to fix the
-initial temperature. Please read the netcarto documentation to learn
-more about netcarto_cl.
-
-The arguments need to be passed in the following order:
-
-> netcarto_cl net_file_name seed T_ini iteration_factor cooling_factor
-  #_randomizations
-
-T_ini, iteration_factor, and cooling_factor can be set to -1 to use
-the defaults (2/size_of_network, 1.0, and 0.995, respectively).
-
-
-### bipartmod
-
-Given a bipartite network, the program returns a partition of the
-nodes in one of the sets of nodes (the 'actors' or the 'teams')
-obtained according to the algorithm described in:
-
-4.  Guimera, R., Sales-Pardo, M. & Amaral, L.A.N., Module
-identification in bipartite and directed networks, Phys. Rev. E 76,
-036102 (2007)
-
-In case you use the results of the program in a publication, please
-cite the paper above.
-
-
-**Input parameters**
-
-The program will prompt for the following parameters:
-
-- Seed for the random number generator: Must be a positive
-  integer. Since the module identification algorithm is stochastic,
-  different runs will yield, in general, slightly different different
-  modules. Two runs with the same seed, though, should give the exact
-  same results.
-
-- Name of the network file: Name of the file that contains the
-  network. The file must be a list of links with the format:
-
-  n1 n2
-  n3 n4
-  .  .
-  .  .
-  .  .
-
-  This represents a network with a link between nodes n1 and n2,
-  another between nodes n3 and n4, and so on. Nodes must be separated
-  by spaces.
-
-- Iteration factor (f): At each temperature of the simulated annealing
-  (SA), the program performs fN^2 individual-node updates (involving
-  the movement of a single node from one module to another) and fN
-  collective updates (involving the merging of two modules and the
-  split of a module). The number "f" is the iteration factor. Large
-  values of f (1 or larger) will result, in general, in better results
-  (higher modularities) and longer execution times. The recommended
-  range for f is [0.1, 1], although smaller values may be needed for
-  large and/or dense networks. Note, also, that a minimum number of
-  iterations is imposed at each temperature, so that when f is very
-  small, the minimum number will be used instead of fN^2 or fN.
-
-- Cooling factor (c): After the desired number of updates is done at a
-  certain temperature T, the system is cooled down to a new
-  temperature T'=cT, where c is the cooling factor. the cooling factor
-  must be strictly larger than 0 and strictly smaller than 1. In
-  general, values close to one will result in better results and
-  longer execution times. Recommended values of the cooling factor f
-  are [0.990, 0.999], although smaller values (0.95 or even 0.9) may
-  be needed for large and/or dense networks.
-
-- Invert (0 or 1): If 0 (conversely, 1), the program will identify
-  modules in the first (second) set of nodes, that is, the first
-  (second) column in the input file.
-
-**Program output**
-
-The program returns a file modules_bipart.dat, which is formally
-identical to the modules.dat described above for netcarto.
+- `randomized_mod.dat`; the average modularity of the randomized
+  networks, and the standard deviation of the modularity of the
+  randomized network.
 
 
 ### reliability

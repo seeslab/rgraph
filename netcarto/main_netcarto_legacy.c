@@ -1,75 +1,101 @@
-/*
-  main_netcarto_cl.c
-  $LastChangedDate: 2007-09-13 10:24:20 -0500 (Thu, 13 Sep 2007) $
-  $Revision: 94 $
-
-  Similar to netcarto, but arguments are given in the command line
-  (plus initial temperature can be freely specified).
-*/
-
 #include <stdio.h>
 #include <math.h>
+#include <unistd.h>
 #include <stdlib.h>
-
+ 
 #include <gsl/gsl_rng.h>
 #include "tools.h"
 #include "graph.h"
 #include "modules.h"
 
+#define USAGE "Usage:\n\
+\tnetcarto_legacy [-f FILE] [-s SEED] [-i ITER] [-c COOL] [-S SHUF]\n\
+\tnetcarto_legacy  -h\n"
+
+#define ARGUMENTS "Arguments:\n\
+\t -f FILE: Input network file name (default: '-', standard input),\n\
+\t -s SEED: Random number generator seed (positive integer, default 1111),\n\
+\t -i ITER: Iteration factor (recommended 1.0, default 1.0),\n\
+\t -c COOL: Cooling factor (recommended 0.950-0.995, default 0.97),\n\
+\t -r NUM: Number of graph shuffling to compute modularity's P-value (default 0),\n\
+\t -h : Display this message.\n"
+
 int
 main(int argc, char **argv)
 {
-  long seed;
+  long seed = 1111;
   FILE *inFile,*outFile;
   struct node_gra *net = NULL;
   struct node_gra *netran = NULL;
   struct node_gra *p = NULL;
   int S;
+  int c;
   struct group *part = NULL;
   struct group *roles = NULL;
   int i,t1;
-  int rep;
+  int rep = 0;
   double realmod;
   double ranmodav, ranmodst;
   double *ranmodlis;
-  double Tsched, Ti, Tf = -1.0;
-  double iterfac;
-  char *netF;
+  double Tsched = 0.995, Tf = 0.0;
+  double iterfac = 1.0;
   gsl_rng *rand_gen;
-
-
+  char *netF;
   /*
     ------------------------------------------------------------
     Prompt for user-defined parameters
     ------------------------------------------------------------
   */
-  if (argc < 7) {
-    printf("\nUse: netcarto_cl net_file_name seed T_ini iteration_factor");
-    printf(" cooling_factor randomizations\n\n");
-    return -1;
-  }
+  printf ("%d\n",argc);
+  if (argc == 1) {
 
-  netF = argv[1];
-  seed = atoi(argv[2]);
-  Ti = atof(argv[3]);
-  iterfac = atof(argv[4]);
-  Tsched = atof(argv[5]);
-  rep = atoi(argv[6]);
-  
-  /* Default values */
-  if (iterfac < 0.0)
-    iterfac = 1.0;
-  if (Tsched < 0.0)
-    Tsched = 0.995;
+  printf("\n# Enter random number seed (POSITIVE integer): ");
+  scanf("%d", &seed);
+
+  printf("\n# Enter the name of the network file: ");
+  scanf("%s", &netF);
+
+  printf("\n# Enter iteration factor (recommended 1.0): ");
+  scanf("%lf", &iterfac);
+
+  printf("\n# Enter the cooling factor (recommended 0.950-0.995): ");
+  scanf("%lf", &Tsched);
+
+  printf("\n# Enter the number of randomizations: ");
+  scanf("%d", &rep);
+  } else {
+while ((c = getopt(argc, argv, "hf:s:i:c:r:")) != -1)
+	  switch (c) {
+	  case 'h':
+		printf(USAGE ARGUMENTS);
+		return -1;
+		break;
+	  case 'f':
+		netF = optarg;
+		break;
+	  case 's':
+		seed = atoi(optarg);
+		break;
+	  case 'r':
+		rep = atoi(optarg);
+		break;
+	  case 'i':
+		iterfac = atof(optarg);
+		break;
+	  case 'c':
+		Tsched = atof(optarg);
+		break;
+	  }
+  }
+  ranmodlis = allocate_d_vec(rep);
 
   /*
     ------------------------------------------------------------
-    Initialize the random number generator and some vectors
+    Initialize the random number generator
     ------------------------------------------------------------
   */
   rand_gen = gsl_rng_alloc(gsl_rng_mt19937);
   gsl_rng_set(rand_gen, seed);
-  ranmodlis = allocate_d_vec(rep);
 
   /*
     ------------------------------------------------------------
@@ -83,8 +109,6 @@ main(int argc, char **argv)
   fclose(inFile);
 
   S = CountNodes(net);
-  if (Ti < 0.0)
-    Ti = 2.0 / (double)S; /* Default initial temperature */
   fprintf(stderr, "\n# The network has %d nodes\n", S);
 
   /*
@@ -96,7 +120,7 @@ main(int argc, char **argv)
   fprintf(stderr, "\n# 1/T\tM\tT\n");
 
   part = SACommunityIdent(net,
-			  Ti, Tf, Tsched,
+			  2.0 / (double)S, Tf, Tsched,
 			  iterfac, 0, 'o', 1, 's', rand_gen);
 
   outFile = fopen("modules.dat", "w");
@@ -104,7 +128,7 @@ main(int argc, char **argv)
   realmod = Modularity(part);
   fprintf(outFile, "# Modularity = %g\n", realmod);
   fclose(outFile);
-  
+
   FPrintPajekFile("network.net", net, 0, 0, 1);
   FPrintPajekPartitionFile("modules.clu", net);
 
@@ -117,7 +141,7 @@ main(int argc, char **argv)
   p = net;
   while ((p = p->next) != NULL) {
     fprintf(outFile,"%s %d %lf %lf\n",
-	    p->label, CountLinks(p),
+	    p->label, NodeDegree(p),
 	    ParticipationCoefficient(p),
 	    WithinModuleRelativeDegree(p, part));
   }
@@ -134,7 +158,7 @@ main(int argc, char **argv)
   outFile = fopen("roles.dat","w");
   FPrintPartition(outFile, roles, 0);
   fclose(outFile);
-  
+
   MapPartToNet(roles, net);
   FPrintPajekPartitionFile("roles.clu", net);
 
@@ -184,6 +208,5 @@ main(int argc, char **argv)
   RemoveGraph(net);
   if (netran != NULL)
     RemoveGraph(netran);
-  
   return 0;
 }

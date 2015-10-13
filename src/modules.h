@@ -20,8 +20,8 @@ struct group{
   int totlinks;     /* total number of links of the nodes in the group */
   int inlinks;      /* links inside the group */
   int outlinks;     /* links outside the group */
-  double totlinksW; /* wighted links of the nodes in the group */
-  double inlinksW;  /* wighted links inside the group */
+  double totlinksW; /* weighted links of the nodes in the group */
+  double inlinksW;  /* weighted links inside the group */
   double outlinksW; /* weighted links outside the group */
 
   double coorX;
@@ -69,8 +69,15 @@ struct node_lis *AddNodeToGroup(struct group *g, struct node_gra *node);
 struct node_lis *AddNodeToGroupSoft(struct group *g, char *label);
 int RemoveNodeFromGroup(struct group *g, struct node_gra *node);
 int MoveNode(struct node_gra *node,
-	     struct group *old,
-	     struct group *new);
+      	     struct group *old,
+			 struct group *new);
+
+/* a la DB Stouffer */
+struct node_lis *AddNodeToGroupFast(struct group *g, struct node_gra *node);
+int RemoveNodeFromGroupFast(struct group *g, struct node_gra *node);
+int MoveNodeFast(struct node_gra *node,
+		 struct group *old,
+		 struct group *new);
 
 /*
   ---------------------------------------------------------------------
@@ -91,6 +98,7 @@ int NLinksToGroup(struct node_gra* node, struct group *g);
 int NWeightLinksToGroup(struct node_gra* node, struct group *g, double w);
 int NLinksToGroupByNum(struct node_gra* node, int gLabel);
 double StrengthToGroup(struct node_gra* node, struct group *g);
+double StrengthToGroupByNum(struct node_gra* node, int gLabel);
 int NG2GLinks(struct group *g1, struct group *g2);
 int NWeightG2GLinks(struct group *g1, struct group *g2, double w);
 double NG2GLinksWeight(struct group *g1, struct group *g2);
@@ -106,6 +114,9 @@ void GroupSizeStatistics(struct group *part,
 			 double *theMax);
 struct group *GetEmptyGroup(struct group *part);
 
+/* a la DB Stouffer */
+void MergeGroupsFast(struct group *g1, struct group *g2);
+
 /*
   ---------------------------------------------------------------------
   Network-partition operations
@@ -117,6 +128,9 @@ void MapPartToNet(struct group *part, struct node_gra *net);
 void MapPartToNetSoft(struct group *part, struct node_gra *net);
 struct group *ClustersPartition(struct node_gra *net);
 void RemoveInterGroupLinks(struct node_gra *net);
+
+/* a la DB Stouffer */
+void MapPartToNetFast(struct group *part, struct node_gra *net);
 
 /*
   ---------------------------------------------------------------------
@@ -131,7 +145,7 @@ void FPrintPajekPartitionFile(char *fname, struct node_gra *net);
   Partition comparison
   ---------------------------------------------------------------------
 */
-double MutualInformation(struct group *part1, struct group *part2);
+double MutualInformation(struct group *part1, struct group *part2, int label_sw);
 double CorrectlyClassified(struct group *refpart,
 			   struct group *actpart);
 
@@ -142,18 +156,6 @@ double CorrectlyClassified(struct group *refpart,
 */
 double Modularity(struct group *part);
 double ModularityWeight(struct group *part);
-struct group *SAGroupSplit(struct group *targ,
-			   double Ti, double Tf, double Ts,
-			   int cluster_sw,
-			   gsl_rng *gen);
-struct group *SACommunityIdent(struct node_gra *net,
-			       double Ti, double Tf, double Ts,
-			       double fac,
-			       int ngroup,
-			       char initial_sw,
-			       int collective_sw,
-			       char output_sw,
-			       gsl_rng *gen);
 
 /*
   ---------------------------------------------------------------------
@@ -161,9 +163,16 @@ struct group *SACommunityIdent(struct node_gra *net,
   ---------------------------------------------------------------------
 */
 double ParticipationCoefficient(struct node_gra *node);
+double WeightedParticipationCoefficient(struct node_gra *node,
+										struct group *part);
 double WithinModuleRelativeDegree(struct node_gra *node,
-				  struct group *group);
+								  struct group *group);
+double WithinModuleRelativeStrength(struct node_gra *node,
+									struct group *group);
+
 struct group *CatalogRoleIdent(struct node_gra *net,
+							   struct group *comm);
+struct group *CatalogRoleIdentStrength(struct node_gra *net,
 			       struct group *comm);
 
 

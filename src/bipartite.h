@@ -60,6 +60,7 @@ struct binet *CopyBipart(struct binet *binet);
 struct binet *InvertBipart(struct binet *net);
 int NLinksBipart(struct binet *binet);
 struct node_gra *ProjectBipart(struct binet *binet);
+struct node_gra *ProjectBipartWeighted(struct binet *binet);
 struct binet *RandomizeBipart(struct binet *binet,
 			     double times, gsl_rng *gen);
 
@@ -74,6 +75,8 @@ void FPrintPajekFileBipart(char *fname,
 			   int weight_sw);
 
 void FPrintBipart (FILE *outf, struct binet *binet, int weight_sw);
+void FPrintTabNodesBipart(FILE *outf, struct binet *network,  struct group *modules, int degree_based, int weighted);
+
 
 /*
   ---------------------------------------------------------------------
@@ -82,39 +85,12 @@ void FPrintBipart (FILE *outf, struct binet *binet, int weight_sw);
 */
 double ModularityBipart(struct binet *binet, struct group *part);
 double ModularityBipartWeighted(struct binet *binet, struct group *part);
-void SAGroupSplitBipart(struct group *target_g, struct group *empty_g,
-			double Ti, double Tf, double Ts,
-			double cluster_prob, 
-			double **cmat, double msfac,
-			gsl_rng *gen);
-void SAGroupSplitBipartWeighted(struct group *target_g, struct group *empty_g,
-			double Ti, double Tf, double Ts,
-			double cluster_prob, 
-      double *strength,
-      double **swwmat, double Wafac,
-			gsl_rng *gen);
-struct group *SACommunityIdentBipart(struct binet *binet,
-				     double Ti, double Tf, double Ts,
-				     double fac,
-				     int ngroup,
-				     char initial_sw,
-				     int collective_sw,
-				     char output_sw,
-				     gsl_rng *gen);
-struct group *SACommunityIdentBipartWeighted(struct binet *binet,
-				     double Ti, double Tf, double Ts,
-				     double fac,
-				     int ngroup,
-				     char initial_sw,
-				     int collective_sw,
-				     char output_sw,
-				     gsl_rng *gen);
+double ModularityBipartWeightedFast(struct binet *binet, struct group *part, double **swwmat);
 double ParticipationCoefficientBipart(struct node_gra *node);
 void StatisticsParticipationCoefficientBipart(struct node_gra *net,
 					      double *theMean,
 					      double *theStddev,
 					      double *theMin,
 					      double *theMax);
-
 
 #endif /* !RGRAPH_BIPARTITE_H */

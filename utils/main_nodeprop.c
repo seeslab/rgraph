@@ -52,7 +52,7 @@ main(int argc, char **argv)
   */
   p = net;
   while ((p = p->next) != NULL)
-    printf("%s %d %g\n", p->label, CountLinks(p), p->dvar1);
+    printf("%s %d %g\n", p->label, NodeDegree(p), p->dvar1);
   RemoveGraph(net);
   return 0;
 }

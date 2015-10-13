@@ -2,7 +2,9 @@
 AC_INIT(rgraph, [2.0.1], [roger.guimera@gmail.com])
 AC_REVISION($Revision$)
 AM_INIT_AUTOMAKE
-LT_INIT(disable-static)
+LT_INIT
+AC_DISABLE_STATIC
+AC_PROG_LIBTOOL
 
 # Create the config.h.in
 AC_CONFIG_SRCDIR([config.h.in])
@@ -10,10 +12,9 @@ AC_CONFIG_HEADER(config.h)
 AC_CONFIG_MACRO_DIR([m4])
 
 # Checks for programs.
-#AC_PROG_CXX
 AC_PROG_CC
 gl_EARLY
-#AC_PROG_CPP
+AC_PROG_AWK
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
@@ -31,10 +32,8 @@ gl_INIT
 # Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_STDBOOL
-AC_CHECK_HEADER(stdlib.h)
-AC_CHECK_HEADER(string.h)
-AC_CHECK_HEADER(gsl/gsl_vector.h, , AC_MSG_ERROR([Necessary GSL header not found]))
-AC_CHECK_HEADER(gsl/gsl_rng.h, , AC_MSG_ERROR([Necessary GSL header not found]))
+AC_CHECK_HEADERS([stdlib.h string.h])
+AC_CHECK_HEADERS([gsl/gsl_vector.h gsl/gsl_rng.h], , AC_MSG_ERROR([Necessary GSL headers not found]))
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
@@ -42,13 +41,12 @@ AC_C_CONST
 
 # Checks for library functions.
 AC_FUNC_MALLOC
-AC_CHECK_FUNCS([floor sqrt])
+AC_CHECK_FUNCS([floor pow sqrt])
 
 AC_CONFIG_FILES(lib/Makefile
 		src/Makefile
 		test/Makefile
 		netcarto/Makefile
-		bipartmod/Makefile
 		utils/Makefile
 		reliability/Makefile
 		recommender/Makefile
@@ -56,4 +54,5 @@ AC_CONFIG_FILES(lib/Makefile
 		multiblock/Makefile
 		only_deg/Makefile
 		Makefile)
-AC_OUTPUT()
+
+AC_OUTPUT

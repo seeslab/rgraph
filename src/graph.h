@@ -1,14 +1,11 @@
 /*
   graph.h
-  $LastChangedDate$
-  $Revision$
 */
 
 #ifndef RGRAPH_GRAPH_H
 #define RGRAPH_GRAPH_H 1
 
-//#include <search.h>
-#include "lib/search.h"
+#include <search.h>
 #include <gsl/gsl_rng.h>
 
 #define MAX_LABEL_LENGTH 100
@@ -30,8 +27,9 @@ struct node_gra{
   int inGroup;             // group to which the node belongs
   int ivar1;               // number of packets currently at the node
   double dvar1;            // rush variable to store doubles
-  int trans;               // translation of the node (for
-			   // visualization)
+  int trans;               // translation of the node (for visualization)
+  unsigned int degree;     // The length of neig (to speed up modularity computation). 
+  double strength;		   // the sum of all link weights (to speed up modularity calculations)
 };
 
 /*
@@ -57,8 +55,7 @@ struct node_lis{
 */
 struct node_tree{
   char *label;                  // label of the node
-  struct node_gra *ref;         // pointer to the corresponding
-				// node_gra
+  struct node_gra *ref;         // pointer to the corresponding node_gra
 };
 
 // ---------------------------------------------------------------------
@@ -117,9 +114,7 @@ void *MakeLabelDict(struct node_gra *net);
   Node, link, and graph removal
   ---------------------------------------------------------------------
 */
-void FreeNodeTree(struct node_tree *ntree,
-		  VISIT value,
-		  int level);
+void FreeNodeTree(struct node_tree *ntree);
 void FreeNodeLis(struct node_lis *p);
 void FreeAdjacencyList(struct node_lis *p);
 void FreeNode(struct node_gra *node);
@@ -242,14 +237,15 @@ struct node_gra *RandomizeSymmetricNetwork(struct node_gra *net,
   ---------------------------------------------------------------------
 */
 int CountNodes(struct node_gra *p);
-int CountLinks(struct node_gra *node);
-double SumWeights(struct node_gra *node);
+unsigned int NodeDegree(struct node_gra *node);
+//double SumWeights(struct node_gra *node);
 double AverageDegree(struct node_gra *root,
 		     int symmetric_sw);
 double AverageSquaredDegree(struct node_gra *root);
 int TotalNLinks(struct node_gra *p,
 		int symmetric_sw);
 double NodeStrength(struct node_gra *node);
+
 
 /* Distance and related functions */
 void FPrintDistanceHistogram(FILE *file,

@@ -305,9 +305,9 @@ GetDecorrelationStepMB(double *H,
 		 LogFactList, LogFactListSize, HarmonicList,
 		 gen);
       if (step == x1)
-	y1 = MutualInformation(partRef, part);
+		y1 = MutualInformation(partRef, part,0);
     }
-    y2 = MutualInformation(partRef, part);
+    y2 = MutualInformation(partRef, part,0);
     RemovePartition(partRef);
     decay[rep] = 2. * CalculateDecay(nnod, x1, y1, x2, y2);
     switch (verbose_sw) {
@@ -935,9 +935,9 @@ ORGetDecorrelationStepMB(double *H,
 		 LogFactList, LogFactListSize, HarmonicList,
 		 gen);
       if (step == x1)
-	y1 = MutualInformation(partRef, part);
+		y1 = MutualInformation(partRef, part,0);
     }
-    y2 = MutualInformation(partRef, part);
+    y2 = MutualInformation(partRef, part,0);
     RemovePartition(partRef);
     decay[rep] = 2. * CalculateDecay(nnod, x1, y1, x2, y2);
     switch (verbose_sw) {

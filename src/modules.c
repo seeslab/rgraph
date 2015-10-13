@@ -1,5 +1,4 @@
 /*
-  modules.c
   $LastChangedDate$
   $Revision$
 */
@@ -94,7 +93,7 @@ CreateGroup(struct group *part, int label)
   ((part->next)->nodeList)->ref = NULL;
   ((part->next)->nodeList)->btw = -1.0;
   ((part->next)->nodeList)->weight = -1.0;
-  
+
   return part->next;
 }
 
@@ -106,6 +105,35 @@ CreateGroup(struct group *part, int label)
   ---------------------------------------------------------------------
   ---------------------------------------------------------------------
 */
+/**
+Read a partition from a file, the file should contain a line by
+module, with the names of the nodes separated by tabulations.
+ **/
+struct group*
+FReadPartition(FILE *inF){
+  char label[MAX_LABEL_LENGTH];
+  char sep[2];
+  int noReadItems = 0;
+
+  struct group *g = NULL;
+  struct group *part = NULL;
+  int npart = 0, nfields = 0;
+
+  part = CreateHeaderGroup();
+  g = CreateGroup(part, npart);
+
+  while (!feof(inF)){
+	nfields=fscanf(inF,"%[^\t\n]%[\t\n]",&label,&sep);
+	if (nfields) {
+	  AddNodeToGroupSoft(g, label);
+	  if(sep[0]=='\n'){
+		npart++;
+		g = CreateGroup(part, npart);
+	  }
+	}
+  }
+  return(part);
+}
 
 /*
   ---------------------------------------------------------------------
@@ -120,6 +148,7 @@ FCreatePartition(FILE *inF)
   struct group *g = NULL;
   struct group *part = NULL;
   int npart = 0;
+  int noReadItems;
 
   /* Create the header of the partition */
   part = CreateHeaderGroup();
@@ -128,10 +157,16 @@ FCreatePartition(FILE *inF)
   while (!feof(inF)) {
     g = CreateGroup(part, npart);
     npart++;
-    fscanf(inF, "%s\n", &label[0]);
+    noReadItems = fscanf(inF, "%s\n", &label[0]);
+	if (noReadItems != 1)
+	  printf ("Failed to read input, incorrect field number (%d != 1)\n",noReadItems);
+
     while (strcmp(label, separator) != 0) {
       AddNodeToGroupSoft(g, label);
-      fscanf(inF, "%s\n", &label[0]);
+      noReadItems = fscanf(inF, "%s\n", &label[0]);
+	  if (noReadItems != 1)
+		printf ("Failed to read input, incorrect field number (%d != 1)\n",noReadItems);
+
     }
   }
 
@@ -198,7 +233,7 @@ CreateEquiNPartitionSoft(int ngroups, int gsize)
       AddNodeToGroupSoft(g, label);
     }
   }
-  
+
   /* Done */
   return part;
 }
@@ -310,13 +345,13 @@ AddNodeToGroup(struct group *g, struct node_gra *node)
   (p->next)->status = 0;
   (p->next)->next = NULL;
   (p->next)->ref = node;
-  
+
   (p->next)->btw=0.0;  /* initalising rush variable to 0.0; */
   (p->next)->weight=0.0;  /* initalising rush variable to 0.0; */
 
   /* Update the properties of the group */
   g->size++;
-  totlink = CountLinks(node);
+  totlink = NodeDegree(node);
   inlink = NLinksToGroup(node, g);
   totweight = NodeStrength(node);
   inweight = StrengthToGroup(node, g);
@@ -326,6 +361,44 @@ AddNodeToGroup(struct group *g, struct node_gra *node)
   g->totlinksW += totweight - inweight;
   g->inlinksW += inweight;
   g->outlinksW = g->totlinksW - g->inlinksW;
+
+  /* Update the properties of the node */
+  node->inGroup = g->label;
+
+  /* Done */
+  return p->next;
+}
+
+/**
+@brief Add a node to a graph without fully updating the group properties.
+@author DB Stouffer
+
+Like AddNodeToGroup() but the group properties totlinks, inlinks,
+outlinks and their weighted counterpart are not updated.
+**/
+struct node_lis *
+AddNodeToGroupFast(struct group *g, struct node_gra *node)
+{
+  struct node_lis *p = g->nodeList;
+
+  /* Go to the end of the list of nodes in the group */
+  while (p->next != NULL)
+    p = p->next;
+
+  /* Create the node_lis and point it to the node */
+  p->next = (struct node_lis *)calloc(1, sizeof(struct node_lis));
+  (p->next)->node = node->num;
+  (p->next)->nodeLabel = (char *) calloc(MAX_LABEL_LENGTH, sizeof(char));
+  strcpy((p->next)->nodeLabel, node->label);
+  (p->next)->status = 0;
+  (p->next)->next = NULL;
+  (p->next)->ref = node;
+
+  (p->next)->btw=0.0;  /* initalising rush variable to 0.0; */
+  (p->next)->weight=0.0;  /* initalising rush variable to 0.0; */
+
+  /* Partially update the properties of the group */
+  g->size++;
 
   /* Update the properties of the node */
   node->inGroup = g->label;
@@ -374,7 +447,7 @@ AddNodeToGroupSoft(struct group *g, char *label)
    successfully removed and 0 if the node is not found in the group.
    ---------------------------------------------------------------------
 */
-int 
+int
 RemoveNodeFromGroup(struct group *g, struct node_gra *node)
 {
   struct node_lis *p = g->nodeList;
@@ -385,7 +458,7 @@ RemoveNodeFromGroup(struct group *g, struct node_gra *node)
   /* Find the node */
   while ((p->next != NULL) && ((p->next)->ref != node))
     p = p->next;
-  
+
   if (p->next == NULL)
     return 0;
   else{
@@ -396,7 +469,7 @@ RemoveNodeFromGroup(struct group *g, struct node_gra *node)
 
     /* Update the properties of the group */
     g->size--;
-    totlink = CountLinks(node);
+    totlink = NodeDegree(node);
     inlink = NLinksToGroup(node, g);
     totweight = NodeStrength(node);
     inweight = StrengthToGroup(node, g);
@@ -406,6 +479,42 @@ RemoveNodeFromGroup(struct group *g, struct node_gra *node)
     g->totlinksW -= totweight - inweight;
     g->inlinksW -= inweight;
     g->outlinksW = g->totlinksW - g->inlinksW;
+
+    /* Done */
+    return 1;
+  }
+}
+
+/**
+@brief Remove a node from a group without fully updating the group properties.
+@author DB Stouffer
+
+Returns 1 if the node has been successfully removed and 0 if the node
+is not found in the group.
+
+Like RemoveNodeFromGroup() but the group properties totlinks, inlinks,
+outlinks and their weighted counterpart are not updated.
+*/
+int
+RemoveNodeFromGroupFast(struct group *g, struct node_gra *node)
+{
+  struct node_lis *p = g->nodeList;
+  struct node_lis *temp;
+
+  /* Find the node */
+  while ((p->next != NULL) && ((p->next)->ref != node))
+    p = p->next;
+
+  if (p->next == NULL)
+    return 0;
+  else{
+    temp = p->next;
+    p->next = (p->next)->next;
+    free(temp->nodeLabel);
+    free(temp);
+
+    /* Partially update the properties of the group */
+    g->size--;
 
     /* Done */
     return 1;
@@ -428,6 +537,25 @@ MoveNode(struct node_gra *node, struct group *old, struct group *new)
   return 1;
 }
 
+/**
+@brief Move a node from a group without fully updating the group properties.
+@author DB Stouffer
+
+Returns 1 if the node has been successfully removed and 0 if the node
+is not in the old group.
+
+Like MoveNode() but the group properties totlinks, inlinks,
+outlinks and their weighted counterpart are not updated.
+*/
+int
+MoveNodeFast(struct node_gra *node, struct group *old, struct group *new)
+{
+  if (RemoveNodeFromGroupFast(old,node) == 0)
+    return 0;
+
+  AddNodeToGroupFast(new, node);
+  return 1;
+}
 
 /*
   ---------------------------------------------------------------------
@@ -599,7 +727,7 @@ BlockModel(struct group *part, char type_sw, int list_sw)
   int links = 0;
   int nodes = 0;
   double prob;
-  double bij, av, sig;
+  double bij=0, av, sig;
 
   /* Count the total number of nodes and links, and the average
      linking probability */
@@ -679,8 +807,6 @@ BlockModel(struct group *part, char type_sw, int list_sw)
       }
     }
   }
-
-  return;
 }
 
 /*
@@ -739,6 +865,9 @@ NLinksToGroupByNum(struct node_gra* node, int gLabel)
   return inlink;
 }
 
+
+
+
 /*
   ---------------------------------------------------------------------
   Weight of links from a node to a given group
@@ -753,7 +882,24 @@ StrengthToGroup(struct node_gra* node, struct group *g)
   while ((nei = nei->next) != NULL)
     if ((nei->ref)->inGroup == g->label)
       inlink += nei->weight;
-  
+
+  return inlink;
+}
+
+/**
+Weight of links from a node to a given group, based on the label of
+the group only.
+**/
+double
+StrengthToGroupByNum(struct node_gra* node, int gLabel)
+{
+  struct node_lis *nei = node->neig;
+  double inlink = 0.0;
+
+  while ((nei = nei->next) != NULL)
+    if ((nei->ref)->inGroup == gLabel)
+      inlink += nei->weight;
+
   return inlink;
 }
 
@@ -770,7 +916,7 @@ NG2GLinks(struct group *g1, struct group *g2)
 
   while ((p = p->next) != NULL)
     nlink += NLinksToGroup(p->ref, g2);
- 
+
   if (g1 == g2)
     return nlink / 2;
   else
@@ -791,7 +937,7 @@ NWeightG2GLinks(struct group *g1, struct group *g2, double w)
 
   while ((p = p->next) != NULL)
     nlink += NWeightLinksToGroup(p->ref, g2, w);
- 
+
   if (g1 == g2)
     return nlink / 2;
   else
@@ -808,7 +954,7 @@ NG2GLinksWeight(struct group *g1, struct group *g2)
 {
   struct node_lis *p = g1->nodeList;
   double nlink = 0.0;
-  
+
   while ((p = p->next) != NULL)
     nlink += StrengthToGroup(p->ref, g2);
 
@@ -830,6 +976,17 @@ MergeGroups(struct group *g1, struct group *g2)
 
   while (p->next != NULL)
     MoveNode((p->next)->ref, g1, g2);
+  return;
+}
+
+/* a la DB Stouffer */
+void
+MergeGroupsFast(struct group *g1, struct group *g2)
+{
+  struct node_lis *p = g1->nodeList;
+
+  while (p->next != NULL)
+    MoveNodeFast((p->next)->ref, g1, g2);
   return;
 }
 
@@ -975,7 +1132,7 @@ BuildNetFromGroupNeig(struct group *group)
       }
     }
   }
-  
+
   CleanAdjacencies(net);
   RewireAdjacencyByNum(net);
 
@@ -1002,7 +1159,7 @@ GroupSizeStatistics(struct group *part,
 
   /* Allocate memory */
   sizes = allocate_d_vec(nGroups);
-  
+
   /* Get group sizes */
   while ((g = g->next) != NULL) {
     if (g->size > 0) {
@@ -1010,7 +1167,7 @@ GroupSizeStatistics(struct group *part,
       count++;
     }
   }
-  
+
   /* Get the statistical properties */
   (*theMean) = mean(sizes, nGroups);
   (*theStddev) = stddev(sizes, nGroups);
@@ -1054,10 +1211,10 @@ GetEmptyGroup(struct group *part)
 
 /*
   ---------------------------------------------------------------------
-  Reset the inGroup attribute of all the nodes in a network 
+  Reset the inGroup attribute of all the nodes in a network
   ---------------------------------------------------------------------
 */
-void 
+void
 ResetNetGroup(struct node_gra *net)
 {
   while ((net = net->next) != NULL)
@@ -1116,7 +1273,7 @@ MapPartToNet(struct group *part, struct node_gra *net)
   while ((g = g->next) != NULL) {
     nod = g->nodeList;
     while ((nod = nod->next) != NULL) {
-      totlink = CountLinks(nod->ref);
+      totlink = NodeDegree(nod->ref);
       inlink = NLinksToGroup(nod->ref,g);
       totlinkW = NodeStrength(nod->ref);
       inlinkW = StrengthToGroup(nod->ref, g);
@@ -1132,6 +1289,75 @@ MapPartToNet(struct group *part, struct node_gra *net)
     g->totlinksW -= g->inlinksW;
     g->outlinksW = g->totlinksW - g->inlinksW;
   }
+
+  /* Free memory allocated locally */
+  FreeLabelDict(nodeDict);
+
+  // Done
+  return;
+}
+
+/* a la DB Stouffer */
+void
+MapPartToNetFast(struct group *part, struct node_gra *net)
+{
+  struct group *g = NULL;
+  struct node_lis *nod;
+  int totlink, inlink;
+  double totlinkW, inlinkW;
+  void *nodeDict = NULL;
+  struct node_gra *node = NULL;
+
+  /* Reset the group of all nodes */
+  ResetNetGroup(net);
+
+  /* Create the nodeDict for fast access to nodes by label */
+  nodeDict = MakeLabelDict(net);
+
+  /* Go through the groups, reset attributes, and point pointers */
+  g = part;
+  while ((g = g->next) != NULL) {
+    g->totlinks = 0;
+    g->inlinks = 0;
+    g->outlinks = 0;
+    g->totlinksW = 0.0;
+    g->inlinksW = 0.0;
+    g->outlinksW = 0.0;
+
+    nod = g->nodeList;
+    while ((nod = nod->next) != NULL) {
+      /* Get the node_gra by label */
+      node = GetNodeDict(nod->nodeLabel, nodeDict);
+
+      /* Update the properties of the group */
+      nod->ref = node;
+      nod->node = node->num;
+      /* Update the properties of the node */
+      node->inGroup = g->label;
+    }
+  }
+
+  /* Count links in groups */
+/*  g = part;
+  while ((g = g->next) != NULL) {
+    nod = g->nodeList;
+    while ((nod = nod->next) != NULL) {
+      totlink = NodeDegree(nod->ref);
+      inlink = NLinksToGroup(nod->ref,g);
+      totlinkW = NodeStrength(nod->ref);
+      inlinkW = StrengthToGroup(nod->ref, g);
+      g->totlinks += totlink;
+      g->inlinks += inlink;
+      g->totlinksW += totlinkW;
+      g->inlinksW += inlinkW;
+    }
+    g->inlinks /= 2;
+    g->totlinks -= g->inlinks;
+    g->outlinks = g->totlinks - g->inlinks;
+    g->inlinksW /= 2.0;
+    g->totlinksW -= g->inlinksW;
+    g->outlinksW = g->totlinksW - g->inlinksW;
+  }*/
 
   /* Free memory allocated locally */
   FreeLabelDict(nodeDict);
@@ -1180,7 +1406,7 @@ MapPartToNetSoft(struct group *part, struct node_gra *net)
       node = (*(struct node_tree **)tfind((void *)treeNode,
 					  &nodeDict,
 					  NodeTreeLabelCompare))->ref;
-      FreeNodeTree(treeNode, preorder, 0);
+      FreeNodeTree(treeNode);
       /* Update the properties of the node */
       node->inGroup = g->label;
     }
@@ -1316,7 +1542,7 @@ FPrintPartition(FILE *outf, struct group *partition, int list_sw)
 		g->label+1, g->size, g->totlinks, g->inlinks, g->outlinks,
 		g->totlinksW, g->inlinksW, g->outlinksW);
       }
-      
+
       /* Print nodes */
       p = g->nodeList;
       while ((p = p->next) != NULL) {
@@ -1330,7 +1556,7 @@ FPrintPartition(FILE *outf, struct group *partition, int list_sw)
       if (list_sw == 0)
 	fprintf(outf, "\n");
       else
-	fprintf(outf, "//\n");
+	fprintf(outf, "///\n");
     }
   } /* End of loop over groups in the partition */
 
@@ -1374,7 +1600,7 @@ FPrintPajekPartitionFile(char *fname, struct node_gra *net)
   ---------------------------------------------------------------------
 */
 double
-MutualInformation(struct group *part1, struct group *part2)
+MutualInformation(struct group *part1, struct group *part2, int label_sw)
 {
   struct group *g1 = NULL, *g2 = NULL;
   struct node_lis *n1 = NULL, *n2 = NULL;
@@ -1420,7 +1646,7 @@ MutualInformation(struct group *part1, struct group *part2)
 	if (g2->size > 0) {
 
 	  S2 = g2->size;
-      
+
 	  /*
 	    Compute overlap
 	  */
@@ -1429,7 +1655,7 @@ MutualInformation(struct group *part1, struct group *part2)
 	  while ((n1 = n1->next) != NULL) {
 	    n2 = g2->nodeList;
 	    while ((n2 = n2->next) != NULL) {
-	      if (n1->node == n2->node) {
+	      if ((label_sw == 0 && n1->node == n2->node ) || (label_sw == 1 && strcmp(n1->nodeLabel,n2->nodeLabel) == 0)) {
 		S12++;
 		break;
 	      }
@@ -1610,9 +1836,266 @@ ModularityWeight(struct group *part)
       (g->inlinksW + g->totlinksW) *
       (g->inlinksW + g->totlinksW) /
       (links2 * links2);
-  
+
   return modul;
 }
+
+
+/*
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+  Roles
+  ---------------------------------------------------------------------
+  ---------------------------------------------------------------------
+*/
+
+/*
+  ---------------------------------------------------------------------
+  Calculate the participation coefficient of a node
+  ---------------------------------------------------------------------
+*/
+double
+ParticipationCoefficient(struct node_gra *node)
+{
+  struct node_lis *nei = node->neig;
+  int toGroup;
+  double P = 0.0;
+  int nlink = NodeDegree(node);
+
+  // Go through the neighbors.
+  if (nlink != 0) {
+    while ((nei = nei->next) != NULL) {
+      toGroup = NLinksToGroupByNum(node, nei->ref->inGroup);
+      P += (double)toGroup / (double)(nlink * nlink);
+    }
+    P = 1.0 - P;
+  }
+
+  /* Done */
+  return P;
+}
+
+
+/**
+
+Compute the weighted participation coefficient of a node.
+P_i = 1 - sum_{modules m}(strength_{im} / strength_i)**2
+
+with:
+- strength_i = sum of this node edges weigth.
+- strength_{im} = sum of this node edges weigth.
+
+**/
+double
+WeightedParticipationCoefficient(struct node_gra *node,  struct group *part)
+{
+  double toGroup;
+  double P = 0.0;
+  double strength = NodeStrength(node);
+  double squared_st = strength*strength;
+  //  printf ("%s: %f \n",node->label,strength);
+  int nlink = NodeDegree(node);
+  struct group *group=NULL;
+
+  group = part;
+  if (nlink != 0) {
+	while ((group=group->next) != NULL){
+      toGroup = StrengthToGroup(node, group);
+      P += (toGroup*toGroup) / squared_st;
+    }
+
+    P = 1.0 - P;
+  }
+  //printf ("\n");
+
+  return P;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Calculate the within-module relative degree of a node. The network
+  must be properly mapped to the partition under consideration.
+  ---------------------------------------------------------------------
+*/
+double
+WithinModuleRelativeDegree(struct node_gra *node, struct group *part)
+{
+  struct node_lis *p;
+  double z;
+  struct group *group=NULL;
+
+  int inDegree;
+  double kmean = 0.0, k2mean = 0.0, kstd;
+
+  /* Find the group of the node */
+  group = part;
+  while (group->label != node->inGroup)
+    group = group->next;
+
+  /* Go through all the nodes in the group and calculate mean and
+     standard deviation of the within-module degrees */
+  p = group->nodeList;
+  while ((p = p->next) != NULL) {
+    inDegree = NLinksToGroup(p->ref, group);
+    kmean += (double)inDegree;
+    k2mean += (double)inDegree * (double)inDegree;
+  }
+  kmean /= (double)(group->size);
+  k2mean /= (double)(group->size);
+  kstd = sqrt(k2mean - kmean * kmean);
+
+  /* Calculate the z-score */
+  if (kstd == 0.0)
+    z = 0.0;
+  else
+    z = ((double)NLinksToGroup(node, group) - kmean) / kstd;
+  return z;
+}
+
+
+
+
+/**
+Compute the the within-module relative strengh of a node.
+
+Warning: The network must be properly mapped to the partition under
+consideration.
+**/
+double
+WithinModuleRelativeStrength(struct node_gra *node, struct group *part)
+{
+  struct node_lis *p;
+  double z;
+  struct group *group=NULL;
+
+  double inStrength;
+  double kmean = 0.0, k2mean = 0.0, kstd = 0.0;
+
+  // Find the group of the node
+  group = part;
+  while (group->label != node->inGroup)
+    group = group->next;
+
+  // Go through all the nodes in the group and calculate mean and
+  // standard deviation of the within-module strength
+  p = group->nodeList;
+  while ((p = p->next) != NULL) {
+    inStrength = StrengthToGroup(p->ref, group);
+    kmean += (double)inStrength;
+    k2mean += (double)inStrength * (double)inStrength;
+  }
+  kmean /= (double)(group->size);
+  k2mean /= (double)(group->size);
+  kstd = sqrt(k2mean - kmean * kmean);
+
+  // Calculate the z-score
+  if (kstd == 0.0)
+    z = 0.0;
+  else
+    z = ((double)StrengthToGroup(node, group) - kmean) / kstd;
+  return z;
+}
+
+
+/*
+  ---------------------------------------------------------------------
+  Create a role partition according to the roles defined in Guimera &
+  Amaral, Nature (2005). CAUTION: At the end of the process, the
+  network is mapped onto the role partition.
+  ---------------------------------------------------------------------
+*/
+struct group *
+CatalogRoleIdent(struct node_gra *net, struct group *mod)
+{
+  struct group *roles = NULL;
+  struct node_lis *p;
+  int nroles = 7;
+  int dest_group;
+  int i;
+  struct group *glist[7];
+  struct group *g;
+  double z, P;
+
+  /* Create the groups */
+  roles = CreateHeaderGroup();
+  MapPartToNet(mod, net);
+  glist[0] = CreateGroup(roles, 0);
+  for (i=1; i<nroles; i++) {
+    glist[i] = CreateGroup(glist[i-1],i);
+  }
+
+  /* Go through all the groups and assign roles to all the nodes */
+  g = mod;
+  while ((g = g->next) != NULL) {
+    p = g->nodeList;
+    while ((p = p->next) != NULL) {
+      P = ParticipationCoefficient(p->ref);
+      z = WithinModuleRelativeDegree(p->ref, g);
+	  dest_group = GetRole(P,z);
+
+      /* Add (softly) the node to the role group */
+      AddNodeToGroupSoft(glist[dest_group], p->ref->label);
+    } /* End of loop over nodes in this module */
+  } /* End of loop over modules */
+
+  /* Map the role partition onto the network and return*/
+  MapPartToNet(roles, net);
+  return roles;
+}
+
+/*
+  ---------------------------------------------------------------------
+  Create a role partition using the strength of the nodes rather than
+  their degree.
+
+  CAUTION: At the end of the process, the
+  network is mapped onto the role partition.
+  ---------------------------------------------------------------------
+*/
+struct group *
+CatalogRoleIdentStrength(struct node_gra *net, struct group *mod)
+{
+  struct group *roles = NULL;
+  struct node_lis *p;
+  int nroles = 7;
+  int dest_group;
+  int i;
+  struct group *glist[7];
+  struct group *g;
+  double z, P;
+
+  /* Create the groups */
+  roles = CreateHeaderGroup();
+  MapPartToNet(mod, net);
+  glist[0] = CreateGroup(roles, 0);
+  for (i=1; i<nroles; i++) {
+    glist[i] = CreateGroup(glist[i-1],i);
+  }
+
+  /* Go through all the groups and assign roles to all the nodes */
+  g = mod;
+  while ((g = g->next) != NULL) {
+    p = g->nodeList;
+    while ((p = p->next) != NULL) {
+	  P = WeightedParticipationCoefficient(p->ref,mod);
+	  z = WithinModuleRelativeStrength(p->ref, g);
+	  dest_group = GetRole(P,z);
+
+      /* Add (softly) the node to the role group */
+      AddNodeToGroupSoft(glist[dest_group], p->ref->label);
+    } /* End of loop over nodes in this module */
+  } /* End of loop over modules */
+
+  /* Map the role partition onto the network and return*/
+  MapPartToNet(roles, net);
+  return roles;
+}
+
+
+
+
+///////////////////////// SIMULATED ANNEALING //////////////////////////
+
 
 /*
   ---------------------------------------------------------------------
@@ -1702,7 +2185,7 @@ SAGroupSplit(struct group *targ,
     p = net;
     while ((p = p->next) != NULL) {
       nodeList[nnod] = p;
-      totallinks += CountLinks(p);
+      totallinks += NodeDegree(p);
       nnod++;
       
       des = floor(gsl_rng_uniform(gen) * 2.0);
@@ -1726,7 +2209,7 @@ SAGroupSplit(struct group *targ,
 	  /* Calculate the change of energy */
 	  inold = NLinksToGroup(nodeList[target],glist[oldg]);
 	  innew = NLinksToGroup(nodeList[target],glist[newg]);
-	  nlink = CountLinks(nodeList[target]);
+	  nlink = NodeDegree(nodeList[target]);
 	  
 	  dE = 0.0;
 	  dE -= (double)(2 * glist[oldg]->inlinks) /
@@ -1805,7 +2288,7 @@ SACommunityIdent(struct node_gra *net,
   int i;
   struct group *part = NULL;
   struct group *split = NULL, *g = NULL;
-  struct group **glist, *lastg;
+  struct group **glist = NULL, *lastg;
   struct node_gra **nlist;
   struct node_gra *p;
   struct node_lis *nod;
@@ -1856,7 +2339,7 @@ SACommunityIdent(struct node_gra *net,
       glist[p->num] = CreateGroup(part, p->num);
       nlist[p->num] = p;
       AddNodeToGroup(glist[p->num], p);
-      totallinks += CountLinks(p);
+      totallinks += NodeDegree(p);
     }
     break;
 
@@ -1869,7 +2352,7 @@ SACommunityIdent(struct node_gra *net,
       nlist[p->num] = p;
       dice = floor(gsl_rng_uniform(gen)* (double)ngroup);
       AddNodeToGroup(glist[dice], p);
-      totallinks += CountLinks(p);
+      totallinks += NodeDegree(p);
     }
     break;
   }
@@ -1934,7 +2417,7 @@ SACommunityIdent(struct node_gra *net,
       /* Calculate the change of energy */
       inold = NLinksToGroup(nlist[dice], glist[oldg]);
       innew = NLinksToGroup(nlist[dice], glist[newg]);
-      nlink = CountLinks(nlist[dice]);
+      nlink = NodeDegree(nlist[dice]);
       dE = 0.0;
       dE -= (double)(2 * glist[oldg]->inlinks) /
 	(double)totallinks -
@@ -2149,170 +2632,6 @@ SACommunityIdent(struct node_gra *net,
   return CompressPart(part);
 }
 
-
-/*
-  ---------------------------------------------------------------------
-  ---------------------------------------------------------------------
-  Roles
-  ---------------------------------------------------------------------
-  ---------------------------------------------------------------------
-*/
-
-/*
-  ---------------------------------------------------------------------
-  Calculate the participation coefficient of a node
-  ---------------------------------------------------------------------
-*/
-double
-ParticipationCoefficient(struct node_gra *node)
-{
-  struct node_lis *nei = node->neig;
-  int toGroup;
-  double P = 0.0;
-  int nlink = CountLinks(node);
-
-  /* Go through the neighbors */
-  if (nlink != 0) {
-    while ((nei = nei->next) != NULL) {
-      toGroup = NLinksToGroupByNum(node, nei->ref->inGroup);
-      P += (double)toGroup / (double)(nlink * nlink);
-    }
-    P = 1.0 - P;
-  }
-
-  /* Done */
-  return P;
-}
-
-/*
-  ---------------------------------------------------------------------
-  Calculate the within-module relative degree of a node. The network
-  must be properly mapped to the partition under consideration.
-  ---------------------------------------------------------------------
-*/
-double
-WithinModuleRelativeDegree(struct node_gra *node, struct group *part)
-{
-  struct node_lis *p;
-  double z;
-  struct group *group=NULL;
-
-  int inDegree;
-  double kmean = 0.0, k2mean = 0.0, kstd;
-
-  /* Find the group of the node */
-  group = part;
-  while (group->label != node->inGroup)
-    group = group->next;
-
-  /* Go through all the nodes in the group and calculate mean and
-     standard deviation of the within-module degrees */
-  p = group->nodeList;
-  while ((p = p->next) != NULL) {
-    inDegree = NLinksToGroup(p->ref, group);
-    kmean += (double)inDegree;
-    k2mean += (double)inDegree * (double)inDegree;
-  }
-  kmean /= (double)(group->size);
-  k2mean /= (double)(group->size);
-  kstd = sqrt(k2mean - kmean * kmean);
-  
-  /* Calculate the z-score */
-  if (kstd == 0.0)
-    z = 0.0;
-  else
-    z = ((double)NLinksToGroup(node, group) - kmean) / kstd;
-  return z;
-}
-
-/*
-  ---------------------------------------------------------------------
-  Create a role partition according to the roles defined in Guimera &
-  Amaral, Nature (2005). CAUTION: At the end of the process, the
-  network is mapped onto the role partition.
-  ---------------------------------------------------------------------
-*/
-struct group *
-CatalogRoleIdent(struct node_gra *net, struct group *mod)
-{
-  struct group *roles = NULL;
-  struct node_lis *p;
-  int nroles = 7;
-  int dest_group;
-  int i;
-  struct group *glist[7];
-  struct group *g;
-  double z, P;
-
-  /* Create the groups */
-  roles = CreateHeaderGroup();
-  MapPartToNet(mod, net);
-  glist[0] = CreateGroup(roles, 0);
-  for (i=1; i<nroles; i++) {
-    glist[i] = CreateGroup(glist[i-1],i);
-  }
-  
-  /* Go through all the groups and assign roles to all the nodes */
-  g = mod;
-  while ((g = g->next) != NULL) {
-    p = g->nodeList;
-    while ((p = p->next) != NULL) {
-      P = ParticipationCoefficient(p->ref);
-      z = WithinModuleRelativeDegree(p->ref, g);
-      if (z < 2.5) {  /* Node is not a hub */
-	if (P < 0.050)
-	  dest_group = 0;
-	else if (P < 0.620)
-	  dest_group = 1;
-	else if (P < 0.800)
-	  dest_group = 2;
-	else
-	  dest_group = 3;
-      }
-      else {  /* Node is a hub */
-	if (P < 0.300)
-	  dest_group = 4;
-	else if (P < 0.750)
-	  dest_group = 5;
-	else
-	  dest_group = 6;
-      }
-      
-      /* Add (softly) the node to the role group */
-      AddNodeToGroupSoft(glist[dest_group], p->ref->label);
-    } /* End of loop over nodes in this module */
-  } /* End of loop over modules */
-
-  /* Map the role partition onto the network and return*/
-  MapPartToNet(roles, net);
-  return roles;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* RecursivePlotHier(FILE *nodes,FILE *links,FILE *sizes,struct group *part,int parentlabel,int *lastlabel,double scale) */
 /* { */
 /*   struct group *g = part; */
@@ -2321,7 +2640,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*     g = g->next; */
 
 /*     *lastlabel += 1; */
-    
+
 /*     fprintf(nodes,"%d \"\"      ellipse x_fact %g y_fact %g\n",*lastlabel,scale*sqrt(g->size),scale*sqrt(g->size)); */
 /*     fprintf(links,"%d   %d   1\n",*lastlabel,parentlabel); */
 
@@ -2330,9 +2649,9 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*     if(g->offspr != NULL){ */
 /*       RecursivePlotHier(nodes,links,sizes,g->offspr,*lastlabel,lastlabel,scale); */
 /*     } */
-    
+
 /*   } */
-  
+
 /* } */
 
 /* PlotPajekHierarchy(struct group *hier,double max_rad) */
@@ -2413,7 +2732,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   while(p->next != NULL){ */
 /*     p = p->next; */
 /*     nlist[nnod] = p; */
-/*     totallinks += CountLinks(p); */
+/*     totallinks += NodeDegree(p); */
 /*     nnod++; */
 
 /*     des = floor(gsl_rng_uniform(gen)*2.0); */
@@ -2442,7 +2761,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       // Calculate the change of energy */
 /*       inold = NLinksToGroup(nlist[target],glist[oldg]); */
 /*       innew = NLinksToGroup(nlist[target],glist[newg]); */
-/*       nlink = CountLinks(nlist[target]); */
+/*       nlink = NodeDegree(nlist[target]); */
 
 /*       Anew = A - glist[newg]->size + innew + */
 /* 	glist[oldg]->size - inold; */
@@ -2504,8 +2823,8 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   trans[p->num] = 0; */
 /*   glist[0] = CreateGroup(part,0); */
 /*   AddNodeToGroup(glist[0],p); */
-/*   totallinks += CountLinks(p); */
-  
+/*   totallinks += NodeDegree(p); */
+
 /*   for( i=1; i<nnod; i++ ) { */
 /*     p = p->next; */
 
@@ -2513,7 +2832,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*     trans[p->num] = i; */
 /*     glist[i] = CreateGroup(glist[i-1],i); */
 /*     AddNodeToGroup(glist[i],p); */
-/*     totallinks += CountLinks(p); */
+/*     totallinks += NodeDegree(p); */
 /*   } */
 
 /*   // Number of iterations at each temperature */
@@ -2550,7 +2869,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*     printf("%g %lf %g\n",1.0/T, energy, T); */
 
 /*     for ( i=0; i < cicle1; i++ ){ */
-      
+
 /*       /////////////////////////////// */
 /*       // Propose an individual change */
 /*       /////////////////////////////// */
@@ -2563,7 +2882,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       // Calculate the change of energy */
 /*       inold = NLinksToGroup(nlist[target],glist[oldg]); */
 /*       innew = NLinksToGroup(nlist[target],glist[newg]); */
-/*       nlink = CountLinks(nlist[target]); */
+/*       nlink = NodeDegree(nlist[target]); */
 
 /*       Anew = A + (-glist[newg]->size + innew + */
 /* 			glist[oldg]->size - 1 - inold); */
@@ -2603,17 +2922,17 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	// Merge ///////////////////////////////////////////// */
 /* 	target = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /* 	g1 = nlist[target]->inGroup; */
-	
+
 /* 	if(glist[g1]->size < nnod){ */
 
 /* 	  do{ */
 /* 	    target = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /* 	    g2 = nlist[target]->inGroup; */
 /* 	  }while( g1 == g2 ); */
-	
+
 /* 	  // Calculate the change of energy */
 /* 	  nlink = NG2GLinks(glist[g1],glist[g2]); */
-	  
+
 /* 	  Anew = A - 2.0 * ( glist[g1]->totlinks * */
 /* 			     glist[g2]->totlinks - nlink ); */
 /* 	  Bnew = B - 2.0 * nlink; */
@@ -2625,7 +2944,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	    dE = 1.0; */
 /* 	  else */
 /* 	    dE = Anew * Dnew / (Bnew * Cnew) - A * D / (B * C); */
-	
+
 /* 	  // Accept the change according to Metroppolis */
 /* 	  if( (dE >= 0.0) || ( gsl_rng_uniform(gen) < exp(dE/T) ) ){ */
 /* 	    MergeGroups(glist[g1],glist[g2]); */
@@ -2669,7 +2988,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	  // Calculate the change of energy */
 /* 	  // Calculate the change of energy */
 /* 	  nlink = NG2GLinks(glist[g1],glist[g2]); */
-	  
+
 /* 	  Anew = A - 2.0 * ( glist[g1]->totlinks * */
 /* 			     glist[g2]->totlinks - nlink ); */
 /* 	  Bnew = B - 2.0 * nlink; */
@@ -2678,7 +2997,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	  Dnew = D + 2.0 * nlink; */
 
 /* 	  dE = Anew * Dnew / (Bnew * Cnew) - A * D / (B * C); */
-	
+
 /* 	  // Accept the change according to "inverse" Metroppolis. */
 /* 	  // Inverse means that the algor is applied to the split */
 /* 	  // and NOT to the merge! */
@@ -2703,7 +3022,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
 /*   printf("energy = %lf\n",energy); */
 /*   printf("%d %d %d %d\n",A,B,C,D); */
-  
+
 /*   return CompressPart(part); */
 /* } */
 
@@ -2715,7 +3034,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   double role = 0.0; */
 /*   struct group *glist[max_size]; */
 /*   int i,j; */
-  
+
 /*   while ( g->next != NULL ){ */
 /*     g = g->next; */
 /*     glist[g->label] = g; */
@@ -2726,7 +3045,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
 /*     if (glist[i]->size > 0) */
 /*       for ( j=i; j<nnod; j++ ){ */
-      
+
 /* 	if (glist[j]->size > 0) */
 /* 	  role += pow( */
 /* 		      pow( eij[Map2Array(i,j,nnod)] / (double)links - */
@@ -2772,7 +3091,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
 /*     if (glist[i]->size > 0) */
 /*       for ( j=i; j<ngroup; j++ ){ */
-      
+
 /* 	if (glist[j]->size > 0) */
 /* 	  role += pow( */
 /* 		      pow( eij[Map2Array(i,j,ngroup)] / (double)links - */
@@ -2816,15 +3135,15 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   nlist[0] = p; */
 /*   glist[0] = CreateGroup(part,0); */
 /*   AddNodeToGroup(glist[0],p); */
-/*   totallinks += CountLinks(p); */
-  
+/*   totallinks += NodeDegree(p); */
+
 /*   for( i=1; i<nnod; i++ ) { */
 /*     p = p->next; */
 
 /*     nlist[i] = p; */
 /*     glist[i] = CreateGroup(glist[i-1],i); */
 /*     AddNodeToGroup(glist[i],p); */
-/*     totallinks += CountLinks(p); */
+/*     totallinks += NodeDegree(p); */
 /*   } */
 
 /*   // Calculate the initial value of eij */
@@ -2843,7 +3162,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   count = 0; */
 
 /*   while( T > Tf && count < limit){ */
-    
+
 /*     if (fabs(energyant - energy) / fabs(energy) < 1.e-6) */
 /*       count++; */
 /*     else{ */
@@ -2856,7 +3175,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* /\*     printf("%g %lf %lf %g\n",1.0/T, energy, BlockModularity(part,alpha), T); *\/ */
 
 /*     for ( k=0; k < (fac*nnod*nnod); k++ ){ */
-      
+
 /*       /////////////////////////////// */
 /*       // Propose an individual change */
 /*       /////////////////////////////// */
@@ -2956,7 +3275,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   } */
 
 /*   printf("BlockModularity = %lf\n",BlockModularity(part,alpha)); */
-  
+
 /*   return part; */
 /* } */
 
@@ -2970,7 +3289,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   int i, j; */
 /*   int npair; */
 /*   double p; */
-  
+
 /*   // Initialize the degeneration matrix */
 /*   Ng = CountNonEmptyGroups(part); */
 /*   max = SizeLargestGroup(part); */
@@ -3053,7 +3372,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   int **degen; */
 /*   int Ng, max, dim; */
 /*   int i, j; */
-  
+
 /*   // Initialize the degeneration matrix */
 /*   Ng = CountNonEmptyGroups(part); */
 /*   max = SizeLargestGroup(part); */
@@ -3082,7 +3401,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   } */
 
 /*   p = (double)nlink / (double)npair; */
-  
+
 /*   // Calculate eij */
 /*   g1 = part; */
 /*   while(g1->next != NULL){ */
@@ -3179,7 +3498,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   for (i=0; i<nnod; i++) { */
 /*     p = p->next; */
 /*     nlist[i] = p; */
-/*     totallinks += CountLinks(p); */
+/*     totallinks += NodeDegree(p); */
 
 /*     target = floor(gsl_rng_uniform(gen) * (double)ngroup); */
 /*     AddNodeToGroup(glist[target],p); */
@@ -3200,7 +3519,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   count = 0; */
 
 /*   while( T > Tf && count < limit){ */
-    
+
 /*     if (energyant == energy) */
 /*       count++; */
 /*     else{ */
@@ -3257,7 +3576,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	  eij[Map2Array(newg,(nod->ref)->inGroup,ngroup)] -= 1; */
 /* 	} */
 /*       } */
-     
+
 /*     } */
 
 /*     T = T * Ts; */
@@ -3309,7 +3628,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       } */
 
 /*       PrintPajekGraphTranslation(root); */
-  
+
 /*       RemoveGraph(root_loc); */
 /*     } */
 
@@ -3409,9 +3728,9 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   g = part; */
 /*   while (g->next != NULL){ */
 /*     g = g->next; */
- 
+
 /*     trans[g->label] = count++; */
-    
+
 /*     fprintf(outf,"%d \"%d\"      ellipse x_fact %g y_fact %g\n", */
 /* 	    count, g->label+1, */
 /* 	    scale * sqrt(g->size), scale * sqrt(g->size)); */
@@ -3425,7 +3744,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   while (g->next != NULL){ */
 /*     g = g->next; */
 /*     g2 = g; */
-  
+
 /*     while (g2->next != NULL){ */
 /*       g2 = g2->next; */
 
@@ -3451,7 +3770,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       g2 = g2->next; */
 
 /*       nlink = NG2GLinks(g,g2); */
-      
+
 /*       if (nlink > 0) { */
 /* 	fprintf(outf,"%d %d %g w %g\n", trans[g->label]+1, */
 /* 		trans[g2->label]+1, 4.9 * (double)(nlink-minnlink) / */
@@ -3487,7 +3806,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   // set the inGroup field of the nodes according to the role partition */
 /*   MapPartToNet(gpart,net); */
 /*   MapPartToNet(rpart,net); */
-  
+
 /*   // Place each node in a partition */
 /*   g = gpart; */
 /*   while (g->next != NULL) { */
@@ -3604,7 +3923,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
 /* 	// increase the size of the parent module, too */
 /* 	g2->size += 1; */
-	
+
 /* 	// place the special node at random inside the parent module */
 /* 	anode->coorX = xcent + */
 /* 	  0.5 * (double)(size * (gsl_rng_uniform(gen) - 0.5)); */
@@ -3616,7 +3935,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	// The coordinates are now stored both in the node and */
 /* 	// in the corresponding group in the xfigpart partition */
 /*       } */
-      
+
 /*       else{ // if the node is not special, add to the main group */
 /* 	AddNodeToGroup(g2,anode); */
 /*       } */
@@ -3643,10 +3962,10 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	iter = nspec * iterfac; */
 
 /* 	for (i=0; i<iter; i++){ */
-	  
+
 /* 	  target = floor(gsl_rng_uniform(gen) * (double)nspec); */
 /* 	  agroup = specialg[target]; */
-	
+
 /* 	  do{ */
 /* 	    dx = 0.01 * (double)(size * (gsl_rng_uniform(gen) - 0.5)); */
 /* 	    dy = 0.01 * (double)(size * (gsl_rng_uniform(gen) - 0.5)); */
@@ -3655,9 +3974,9 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 			(agroup->coorY + dy - ycent) * */
 /* 			(agroup->coorY + dy - ycent) ); */
 /* 	  }while (dis+fac > 0.9*(double)size); */
-      
+
 /* 	  Ei = Ef = 0; */
-	
+
 /* 	  // Contribution I: Hard discs with other special nodes */
 /* 	  for (j=0; j<nspec; j++){ */
 /* 	    agroup2 = specialg[j]; */
@@ -3690,7 +4009,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 			(agroup->coorY - g3->coorY) * */
 /* 			(agroup->coorY - g3->coorY) ); */
 /* 	    Ei += 1.e-6 * NG2GLinks(agroup,g3) * dis * dis; */
-	    
+
 /* 	    // New energy */
 /* 	    dis = sqrt( (agroup->coorX + dx - g3->coorX) * */
 /* 			(agroup->coorX + dx - g3->coorX) + */
@@ -3710,7 +4029,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	for (j=0; j<nspec; j++){ */
 /* 	  agroup2 = specialg[j]; */
 /* 	  g3 = specialg[j]; */
-	  
+
 /* 	  xcent = floor(agroup2->coorX); */
 /* 	  ycent = floor(agroup2->coorY); */
 
@@ -3738,7 +4057,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 		    xcent+83, ycent+83, xcent-83, ycent+83, */
 /* 		    xcent-83, ycent-83); */
 /* 	  } */
-	    
+
 /* 	  fprintf(outf, */
 /* 		  "4 0 0 35 0 16 12 0.0000 4 135 390 %d %d %d\\001\n", */
 /* 		  xcent, ycent, g3->label+1); */
@@ -3758,18 +4077,18 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
 /*   // THE LAST GROUP NEEDS TO BE DONE SEPARATELY!!!!!!! */
 /*   if (nspec > 0) { */
-    
+
 /*     size = floor( 0.5 + fac * sqrt(parentg->size) ); */
 /*     xcent = floor( 0.5 + parentg->coorX); */
 /*     ycent = floor( 0.5 + parentg->coorY); */
-    
+
 /*     iter = nspec * iterfac; */
 
 /*     for (i=0; i<iter; i++){ */
-	  
+
 /*       target = floor(gsl_rng_uniform(gen) * (double)nspec); */
 /*       agroup = specialg[target]; */
-      
+
 /*       do{ */
 /* 	dx = 0.01 * (double)(size * (gsl_rng_uniform(gen) - 0.5)); */
 /* 	dy = 0.01 * (double)(size * (gsl_rng_uniform(gen) - 0.5)); */
@@ -3778,9 +4097,9 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 		    (agroup->coorY + dy - ycent) * */
 /* 		    (agroup->coorY + dy - ycent) ); */
 /*       }while (dis+fac > 0.9*(double)size); */
-      
+
 /*       Ei = Ef = 0; */
-      
+
 /*       // Contribution I: Hard discs with other special nodes */
 /*       for (j=0; j<nspec; j++){ */
 /* 	agroup2 = specialg[j]; */
@@ -3790,7 +4109,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 		    (agroup->coorY - agroup2->coorY) * */
 /* 		    (agroup->coorY - agroup2->coorY) ); */
 /* 	if (dis < 2*fac) Ei += 100; */
-	
+
 /* 	// New energy */
 /* 	dis = sqrt( (agroup->coorX + dx - agroup2->coorX) * */
 /* 		    (agroup->coorX + dx - agroup2->coorX) + */
@@ -3798,22 +4117,22 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 		    (agroup->coorY + dy - agroup2->coorY) ); */
 /* 	if (dis < 2*fac) Ef += 100; */
 /*       } */
-      
+
 /*       // Contribution II: Springs in links */
 /*       g3 = xfigpart; */
 /*       while (g3->next != NULL) { */
 /* 	g3 = g3->next; */
-	
+
 /* 	if (g3 == parentg) // skip parent module */
 /* 	  g3 = g3->next; */
-	
+
 /* 	// Old energy */
 /* 	dis = sqrt( (agroup->coorX - g3->coorX) * */
 /* 		    (agroup->coorX - g3->coorX) + */
 /* 		    (agroup->coorY - g3->coorY) * */
 /* 		    (agroup->coorY - g3->coorY) ); */
 /* 	Ei += 1.e-6 * NG2GLinks(agroup,g3) * dis * dis; */
-	
+
 /* 	// New energy */
 /* 	dis = sqrt( (agroup->coorX + dx - g3->coorX) * */
 /* 		    (agroup->coorX + dx - g3->coorX) + */
@@ -3821,27 +4140,27 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 		    (agroup->coorY + dy - g3->coorY) ); */
 /* 	Ef += 1.e-6 * NG2GLinks(agroup,g3) * dis * dis; */
 /*       } */
-      
+
 /*       // Stepest descend acceptance */
 /*       if (Ef <= Ei){ */
 /* 	agroup->coorX += dx; */
 /* 	agroup->coorY += dy; */
 /*       } */
 /*     } */
-    
+
 /*     // Plot the special nodes */
 /*     for (j=0; j<nspec; j++){ */
 /*       agroup2 = specialg[j]; */
 /*       g3 = specialg[j]; */
-      
+
 /*       xcent = floor(agroup2->coorX); */
 /*       ycent = floor(agroup2->coorY); */
-      
+
 /*       g3->coorX = (double)xcent; */
 /*       g3->coorY = (double)ycent; */
-      
+
 /*       role = (int)floor(g3->coorZ + 0.5); */
-      
+
 /*       if ( role == 2 || role == 3 ){ */
 /* 	fprintf(outf, */
 /* 		"2 5 0 1 0 -1 38 0 -1 0.000 0 0 -1 0 0 5\n"); */
@@ -3851,7 +4170,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 		xcent+89, ycent+77, xcent-89, ycent+77, */
 /* 		xcent-89, ycent-77); */
 /*       } */
-      
+
 /*       if ( role == 5 || role == 6 ){ */
 /* 	fprintf(outf, */
 /* 		"2 5 0 1 0 -1 38 0 -1 0.000 0 0 -1 0 0 5\n"); */
@@ -3861,7 +4180,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 		xcent+83, ycent+83, xcent-83, ycent+83, */
 /* 		xcent-83, ycent-83); */
 /*       } */
-      
+
 /*       fprintf(outf, */
 /* 	      "4 0 0 35 0 16 12 0.0000 4 135 390 %d %d %d\\001\n", */
 /* 	      xcent, ycent, g3->label+1); */
@@ -3888,7 +4207,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*     g3 = g2; */
 /*     while (g3->next != NULL){ */
 /*       g3 = g3->next; */
-      
+
 /*       if (g3->size > 1 ) active = 1; */
 
 /*       // determine the origin of the line */
@@ -3911,7 +4230,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	  starty = floor(0.5 + g2->coorY + sign * */
 /* 			 sin(theta) * fac * sqrt(g2->size)); */
 /* 	} */
-	
+
 /*       // determine the destination of the line */
 /* 	if (g3->size == 1) { */
 /* 	  endx = g3->coorX; */
@@ -3924,7 +4243,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	    sign = -1; */
 /* 	  else */
 /* 	    sign = +1; */
-	  
+
 /* 	  endx = floor(0.5 + g3->coorX + sign * */
 /* 		       cos(theta) * fac * sqrt(g3->size)); */
 /* 	  endy = floor(0.5 + g3->coorY + sign * */
@@ -3952,7 +4271,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	if ( nlink > 0 ) { */
 /* 	  printf("%d (%d) - %d (%d): %d links\n", */
 /* 		 g2->label+1,g2->size,g3->label+1,g3->size,nlink); */
-	  
+
 /* 	  fprintf(outf,"2 1 0 %d %d 7 45 0 -1 0.000 0 0 -1 0 0 2\n", */
 /* 		  (int)(ceil)(linefac * (double)nlink), color); */
 /* 	  fprintf(outf,"\t %d %d %d %d\n", startx, starty, endx, endy); */
@@ -4015,7 +4334,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       coun = 0; */
 /*       while(p->next !=  NULL){ */
 /* 	p = p->next; */
-	
+
 /* 	l = p->neig; */
 /* 	while(l->next !=  NULL){ */
 /* 	  l = l->next; */
@@ -4060,15 +4379,15 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       if ( randomizable == 1 ) { */
 /* 	// Randomize the links */
 /* 	for(i = 0; i<niter; i++){ */
-	  
+
 /* 	  // select the 4 different nodes */
 /* 	  do{ */
 /* 	    target1 = floor(gsl_rng_uniform(gen) * (double)nlink); */
 /* 	    n1 = ori[target1]; */
 /* 	    n2 = des[target1]; */
-	   
+
 /* /\* 	    printf("%d-%d\n", n1->num+1, n2->num+1); *\/ */
- 
+
 /* 	    target2 = floor(gsl_rng_uniform(gen) * (double)nlink); */
 /* 	    if ( (g1 == g2) && (gsl_rng_uniform(gen) < 0.5) ) { */
 /* 	      n4 = ori[target2]; */
@@ -4170,7 +4489,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       coun = 0; */
 /*       while(p->next !=  NULL){ */
 /* 	p = p->next; */
-	
+
 /* 	l = p->neig; */
 /* 	while(l->next !=  NULL){ */
 /* 	  l = l->next; */
@@ -4222,7 +4541,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	      fprintf(stderr, "%d-%d %d-%d\n", */
 /* 		      n1->num+1, n2->num+1, n3->num+1, n4->num+1); */
 /* 	    } */
-	    
+
 /* 	    // Undo the switch */
 /* 	    RemoveLink(n1, n4); */
 /* 	    RemoveLink(n2, n3); */
@@ -4237,19 +4556,19 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       if ( randomizable == 1 ) { */
 /* 	// Randomize the links */
 /* 	for(i = 0; i<niter; i++){ */
-	  
+
 /* 	  do { // loop to make sure that the switch does not break the */
 /* 	       // network into disconnected components */
 /* 	    next = 0; */
-	    
+
 /* 	    // select the 4 different nodes */
 /* 	    do{ */
 /* 	      target1 = floor(gsl_rng_uniform(gen) * (double)nlink); */
 /* 	      n1 = ori[target1]; */
 /* 	      n2 = des[target1]; */
-	   
+
 /* /\* 	    printf("%d-%d\n", n1->num+1, n2->num+1); *\/ */
- 
+
 /* 	      target2 = floor(gsl_rng_uniform(gen) * (double)nlink); */
 /* 	      if ( (g1 == g2) && (gsl_rng_uniform(gen) < 0.5) ) { */
 /* 		n4 = ori[target2]; */
@@ -4379,7 +4698,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* int IsNodeInGroup(struct node_gra *node, struct group *mod) */
 /* { */
 /*   struct node_lis *p = mod->nodeList; */
-  
+
 /*   while ((p = p->next) != NULL) */
 /*     if (p->ref == node) */
 /*       return 1; */
@@ -4425,7 +4744,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	 (NLinksToGroup(p, mod) > 0) ) */
 /*       nnod ++; */
 /*   } */
-      
+
 /*   // Open the files  */
 /*   fit1 = fopen(netF, "w"); */
 /*   fit2 = fopen(parF, "w"); */
@@ -4547,7 +4866,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   while(p->next != NULL){ */
 /*     p = p->next; */
 /*     nlist[nnod] = p; */
-/*     totallinks += CountLinksWeight(p); */
+/*     totallinks += NodeDegreeWeight(p); */
 /*     nnod++; */
 
 /*     des = floor(gsl_rng_uniform(gen)*2.0); */
@@ -4569,9 +4888,9 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	newg = 0; */
 
 /*       // Calculate the change of energy */
-/*       inold = CountLinksWeightInGroup(nlist[target],glist[oldg]); */
-/*       innew = CountLinksWeightInGroup(nlist[target],glist[newg]); */
-/*       nlink = CountLinksWeight(nlist[target]); */
+/*       inold = NodeDegreeWeightInGroup(nlist[target],glist[oldg]); */
+/*       innew = NodeDegreeWeightInGroup(nlist[target],glist[newg]); */
+/*       nlink = NodeDegreeWeight(nlist[target]); */
 
 /*       dE = 0.0; */
 
@@ -4594,7 +4913,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	(double)(glist[oldg]->totlinksW + glist[oldg]->inlinksW - */
 /* 		 nlink ) / */
 /* 	((double)totallinks * (double)totallinks); */
-      
+
 /*       dE += (double)(2*glist[newg]->inlinksW + 2*innew) / */
 /* 	(double)totallinks - */
 /* 	(double)(glist[newg]->totlinksW + glist[newg]->inlinksW + */
@@ -4655,7 +4974,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 
 /*   if ( ngroups > 1 && gsl_rng_uniform(gen) < prob) { // Network is not */
 /* 						   // connected */
-    
+
 /*     // Merge groups randomly until only two are left */
 /*     while (ngroups > 2) { */
 /*       // Select two random groups */
@@ -4663,7 +4982,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       do { */
 /* 	g2 = ceil(gsl_rng_uniform(gen)* (double)ngroups); */
 /*       } while (g2 == g1); */
-      
+
 /*       glist[0] = split; */
 /*       for(i=0; i<g1; i++) */
 /* 	glist[0] = glist[0]->next; */
@@ -4687,15 +5006,15 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*     split = CreateHeaderGroup(); */
 /*     glist[0] = CreateGroup(split,0); */
 /*     glist[1] = CreateGroup(split,1); */
-    
+
 /*     // Randomly assign the nodes to the groups */
 /*     p = net; */
 /*     while(p->next != NULL){ */
 /*       p = p->next; */
 /*       nlist[nnod] = p; */
-/*       totallinks += CountLinksWeight(p); */
+/*       totallinks += NodeDegreeWeight(p); */
 /*       nnod++; */
-      
+
 /*       des = floor(gsl_rng_uniform(gen)*2.0); */
 /*       AddNodeToGroup(glist[des],p); */
 /*     } */
@@ -4706,7 +5025,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*     if ( totallinks > 0 ) { */
 /*       T = Ti; */
 /*       while( T > Tf){ */
-      
+
 /* 	for (i=0; i< nnod; i++){ */
 /* 	  target = floor(gsl_rng_uniform(gen) * (double)nnod); */
 /* 	  oldg = nlist[target]->inGroup; */
@@ -4716,18 +5035,18 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	    newg = 0; */
 
 /* 	  // Calculate the change of energy */
-/* 	  inold = CountLinksWeightInGroup(nlist[target],glist[oldg]); */
-/* 	  innew = CountLinksWeightInGroup(nlist[target],glist[newg]); */
-/* 	  nlink = CountLinksWeight(nlist[target]); */
-	  
+/* 	  inold = NodeDegreeWeightInGroup(nlist[target],glist[oldg]); */
+/* 	  innew = NodeDegreeWeightInGroup(nlist[target],glist[newg]); */
+/* 	  nlink = NodeDegreeWeight(nlist[target]); */
+
 /* 	  dE = 0.0; */
-	  
+
 /* 	  dE -= (double)(2 * glist[oldg]->inlinksW) / */
 /* 	    (double)totallinks - */
 /* 	    (double)(glist[oldg]->totlinksW+glist[oldg]->inlinksW) * */
 /* 	    (double)(glist[oldg]->totlinksW+glist[oldg]->inlinksW) / */
 /* 	    ((double)totallinks * (double)totallinks); */
-	  
+
 /* 	  dE -= (double)(2 * glist[newg]->inlinksW) / */
 /* 	    (double)totallinks - */
 /* 	    (double)(glist[newg]->totlinksW+glist[newg]->inlinksW) * */
@@ -4741,7 +5060,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	    (double)(glist[oldg]->totlinksW + glist[oldg]->inlinksW - */
 /* 		     nlink ) / */
 /* 	    ((double)totallinks * (double)totallinks); */
-      
+
 /* 	  dE += (double)(2*glist[newg]->inlinksW + 2*innew) / */
 /* 	    (double)totallinks - */
 /* 	    (double)(glist[newg]->totlinksW + glist[newg]->inlinksW + */
@@ -4814,8 +5133,8 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   trans[p->num] = 0; */
 /*   glist[0] = CreateGroup(part,0); */
 /*   AddNodeToGroup(glist[0],p); */
-/*   totallinks += CountLinksWeight(p); */
-  
+/*   totallinks += NodeDegreeWeight(p); */
+
 /*   for( i=1; i<nnod; i++ ) { */
 /*     p = p->next; */
 
@@ -4823,7 +5142,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*     trans[p->num] = i; */
 /*     glist[i] = CreateGroup(glist[i-1],i); */
 /*     AddNodeToGroup(glist[i],p); */
-/*     totallinks += CountLinksWeight(p); */
+/*     totallinks += NodeDegreeWeight(p); */
 /*   } */
 
 /*   // Number of iterations at each temperature */
@@ -4865,24 +5184,24 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	// Merge ///////////////////////////////////////////// */
 /* 	target = floor(gsl_rng_uniform(gen) * nnod); */
 /* 	g1 = nlist[target]->inGroup; */
-	
+
 /* 	if(glist[g1]->size < nnod){ */
 
 /* 	  do{ */
 /* 	    target = floor(gsl_rng_uniform(gen) * nnod); */
 /* 	    g2 = nlist[target]->inGroup; */
 /* 	  }while( g1 == g2 ); */
-	
+
 /* 	  // Calculate the change of energy */
 /* 	  nlink = NG2GLinksWeight(glist[g1],glist[g2]); */
-	  
+
 /* 	  dE = 0.0; */
-	  
+
 /* 	  dE -= (double)(2*glist[g1]->inlinksW) / (double)totallinks - */
 /* 	    (double)((glist[g1]->totlinksW + glist[g1]->inlinksW) * */
 /* 		     (glist[g1]->totlinksW + glist[g1]->inlinksW) ) / */
 /* 	    (double)(totallinks * totallinks ); */
-	
+
 /* 	  dE -= (double)(2*glist[g2]->inlinksW) / (double)totallinks - */
 /* 	    (double)((glist[g2]->totlinksW + glist[g2]->inlinksW) * */
 /* 		     (glist[g2]->totlinksW + glist[g2]->inlinksW) ) / */
@@ -4896,7 +5215,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	    (double)(glist[g1]->totlinksW + glist[g1]->inlinksW + */
 /* 		     glist[g2]->totlinksW + glist[g2]->inlinksW ) / */
 /* 	    (double)(totallinks*totallinks); */
-	
+
 /* 	  // Accept the change according to Metroppolis */
 /* 	  if( (dE >= 0.0) || ( gsl_rng_uniform(gen) < exp(dE/T) ) ){ */
 /* 	    MergeGroups(glist[g1],glist[g2]); */
@@ -4938,9 +5257,9 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	  // Try to re-merge the two groups */
 /* 	  // Calculate the change of energy */
 /* 	  nlink = NG2GLinksWeight(glist[target],glist[empty]); */
-	
+
 /* 	  dE = 0.0; */
-	
+
 /* 	  dE -= (double)(2*glist[target]->inlinksW) / */
 /* 	    (double)totallinks - */
 /* 	    (double)((glist[target]->totlinksW + */
@@ -4948,7 +5267,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 		     (glist[target]->totlinksW + */
 /* 		      glist[target]->inlinksW) ) / */
 /* 	    (double)(totallinks * totallinks ); */
-	
+
 /* 	  dE -= (double)(2*glist[empty]->inlinksW) / */
 /* 	    (double)totallinks - */
 /* 	    (double)((glist[empty]->totlinksW + */
@@ -4969,7 +5288,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 		     glist[empty]->totlinksW + */
 /* 		     glist[empty]->inlinksW) / */
 /* 	    (double)(totallinks*totallinks); */
-	
+
 /* 	  // Accept the change according to "inverse" Metroppolis. */
 /* 	  // Inverse means that the algor is applied to the split */
 /* 	  // and NOT to the merge! */
@@ -4986,7 +5305,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*     } // End of if merge == 1 */
 
 /*     for ( i=0; i < cicle1; i++ ){ */
-      
+
 /*       /////////////////////////////// */
 /*       // Propose an individual change */
 /*       /////////////////////////////// */
@@ -4997,9 +5316,9 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*       }while(newg == oldg); */
 
 /*       // Calculate the change of energy */
-/*       inold = CountLinksWeightInGroup(nlist[target],glist[oldg]); */
-/*       innew = CountLinksWeightInGroup(nlist[target],glist[newg]); */
-/*       nlink = CountLinksWeight(nlist[target]); */
+/*       inold = NodeDegreeWeightInGroup(nlist[target],glist[oldg]); */
+/*       innew = NodeDegreeWeightInGroup(nlist[target],glist[newg]); */
+/*       nlink = NodeDegreeWeight(nlist[target]); */
 
 /*       dE = 0.0; */
 
@@ -5042,7 +5361,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*   } */
 
 /* /\*   printf("energy = %lf\n",energy); *\/ */
-  
+
 /*   return CompressPart(part); */
 /* } */
 
@@ -5075,19 +5394,19 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /*     new_npart = 0; */
 
 /*     for(i=lastpart; i<(lastpart+npart); i++){ */
-      
+
 /*       g = plist[i]; */
 /*       printf("Considering partition:\n"); */
 /*       PrintGroups(plist[i]); */
 /*       printf("\n"); */
 
 /*       while(g->next != NULL){ */
-	
+
 /* 	g = g->next; */
 
 /* 	// Build the network with only the nodes in the group */
 /* 	nettemp = BuildNetFromGroup(g); */
-	
+
 /* 	if(CountNodes(nettemp) > 1){ */
 
 /* 	  // Find the communities inside this group */
@@ -5127,7 +5446,7 @@ CatalogRoleIdent(struct node_gra *net, struct group *mod)
 /* 	nettemp = NULL; */
 /*       } */
 /*     } */
-    
+
 /*     lastpart = lastpart + npart; */
 /*     npart = new_npart; */
 /*   } */

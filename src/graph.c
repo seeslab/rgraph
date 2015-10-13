@@ -1,20 +1,13 @@
-/*
-  graph.c
-  $LastChangedDate$
-  $Revision$
-*/
-
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-//#include <search.h>
+#include <search.h>
 
 #include <gsl/gsl_rng.h>
 
 #include "tools.h"
 #include "datastruct.h"
 #include "graph.h"
-//#include "lib/search.h"
 
 // ---------------------------------------------------------------------
 // A graph is a collection of nodes. This function creates an empty
@@ -38,6 +31,8 @@ CreateHeaderGraph()
   temp->ivar1 = -1;
   temp->dvar1 = -1.;
   temp->trans = -1;
+  temp->strength = 0;
+  temp->degree = 0;
 
   return temp;
 }
@@ -64,8 +59,7 @@ CreateNodeGraph(struct node_gra *p, char *label)
   (p->next)->num = p->num + 1;
   (p->next)->state = 0;
   (p->next)->next = NULL;
-  (p->next)->neig =
-    (struct node_lis *) calloc(1, sizeof(struct node_lis));
+  (p->next)->neig = (struct node_lis *) calloc(1, sizeof(struct node_lis));
   ((p->next)->neig)->node = -1;
   ((p->next)->neig)->next = NULL;
   (p->next)->ivar1 = 0;
@@ -75,6 +69,8 @@ CreateNodeGraph(struct node_gra *p, char *label)
   (p->next)->coorZ = -1.0;
   (p->next)->dvar1 = -1.0;
   (p->next)->trans = -1;
+  (p->next)->strength = 0;
+  (p->next)->degree = 0;
 
   return p->next;
 }
@@ -136,6 +132,12 @@ AddAdjacency(struct node_gra *node1,
   }
   // ...otherwise go ahead and try to create the link
   else {
+	// Reset degree/strength of the nodes:
+	node1->degree = 0;
+	node2->degree = 0;
+	node1->strength = 0;
+	node2->strength = 0;
+  	
     adja = node1->neig;
     while (adja->next != NULL) {
       adja = adja->next;
@@ -237,6 +239,11 @@ RewireAdjacencyByLabel(struct node_gra *net)
   // Point the adjacency pointers to the nodes
   p = net;
   while ((p = p->next) != NULL) {
+
+	// Reset degree/strength of the nodes:
+	p->degree = 0;
+	p->strength = 0;
+  
     adja = p->neig;
     while ((adja = adja->next) != NULL) {
       adja->ref = GetNodeDict(adja->nodeLabel, nodeDict);
@@ -271,6 +278,10 @@ RewireAdjacencyByNum(struct node_gra *net)
   // Point the adjacency pointers to the nodes and add the labels
   p = net;
   while ((p = p->next) != NULL) {
+	// Reset degree/strength of the nodes:
+	p->degree = 0;
+	p->strength = 0;
+  	
     adja = p->neig;
     while ((adja = adja->next) != NULL) {
       adja->ref = nlist[adja->node];
@@ -363,12 +374,10 @@ MakeLabelDict(struct node_gra *net)
 // ---------------------------------------------------------------------
 
 // ---------------------------------------------------------------------
-// Frees the memory allocated to a node_tree (needed by
-// tdestroy). VISIT value and int level are not used but are required
-// by tdestroy.
+// Frees the memory allocated to a node_tree.
 // ---------------------------------------------------------------------
 void
-FreeNodeTree(struct node_tree *ntree, VISIT value, int level)
+FreeNodeTree(struct node_tree *ntree)
 {
   free(ntree->label);
   free(ntree);
@@ -410,6 +419,7 @@ FreeNode(struct node_gra *node)
   }
   free(node->label);
   free(node);
+  node = NULL;
   return;
 }
 
@@ -440,6 +450,13 @@ RemoveLink(struct node_gra *n1, struct node_gra *n2,
   struct node_lis *temp1;
   struct node_lis *temp2;
 
+  // Reset degree/strength of the nodes:
+  n1->degree = 0;
+  n2->degree = 0;
+  n1->strength = 0;
+  n2->strength = 0;
+  
+  
   // Link n1-n2
   nn1 = n1->neig;
   while ((nn1->next)->ref != n2) {
@@ -461,15 +478,37 @@ RemoveLink(struct node_gra *n1, struct node_gra *n2,
   }
 }
 
-// ---------------------------------------------------------------------
-// Frees the memory allocated to a label dictionary
-// ---------------------------------------------------------------------
+struct node_t
+{
+  /* Callers expect this to be the first element in the structure - do not
+     move!  */
+  const void *key;
+  struct node_t *left;
+  struct node_t *right;
+  unsigned int red:1;
+};
+
+/**
+@brief Free the memory allocated to a label dictionary.
+
+It recursively walk the binary search tree and free its element.
+
+@param dict A pointer to a dictionnary created with MakeLabelDict().
+*/
 void
 FreeLabelDict(void *dict)
 {
-  tdestroy(dict, FreeNodeTree);
-  return;
+  struct node_t *focal = (struct node_t*) dict;
+  if (focal != NULL){
+	struct node_tree *leaf = (struct node_tree*) focal->key;
+   	FreeLabelDict(focal->left); 
+   	FreeLabelDict(focal->right);
+	FreeNodeTree(leaf);
+	free(focal);
+  } 
 }
+
+
 
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
@@ -504,21 +543,32 @@ FBuildNetwork(FILE *inFile,
   void *node_dict=NULL;
   struct node_tree *n_tree=NULL, *ntree1=NULL, *ntree2=NULL;
   double weight;
+  int noReadItems;
+  char *line = NULL;
+  size_t bufsiz = 0;
+  ssize_t nbytes;
 
   // Create the header of the graph
   root = last_add = CreateHeaderGraph();
-
+  
   // Go through the input file
-  while (!feof(inFile)) {
-    // Read the data
+  while ((nbytes = getline(&line, &bufsiz, inFile)) != -1){
+    /* Read the labels (and weight, if necessary) */
     if (weight_sw == 0) {
-      fscanf(inFile,"%s %s\n", &label1[0], &label2[0]);
-      weight = 1.;
+      noReadItems = sscanf(line, "%s %s", label1, label2);
+	  if(noReadItems != 2){
+		printf ("Failed to read input: not enough fields in line %s (%d!=2). \n",line, noReadItems);
+		return NULL;
+	  }
+	  weight = 1;
     }
     else {
-      fscanf(inFile,"%s %s %lf\n", &label1[0], &label2[0], &weight);
+      noReadItems = sscanf(line,"%s %s %lf", label1, label2, &weight);
+	  if(noReadItems != 3){
+		printf ("Failed to read input: not enough fields in line %s (%d!=3). \n",line, noReadItems);
+		return NULL;
+	  }
     }
-/*     printf("%s %s\n", label1, label2); */
    
     // Check if the nodes already exist, and create them otherwise
     n_tree = CreateNodeTree();
@@ -530,7 +580,7 @@ FBuildNetwork(FILE *inFile,
       ntree1->ref = last_add = CreateNodeGraph(last_add, label1);
     }
     else {
-      FreeNodeTree(n_tree, preorder, 0);
+      FreeNodeTree(n_tree);
     }
     n1 = ntree1->ref;
     
@@ -543,7 +593,7 @@ FBuildNetwork(FILE *inFile,
       ntree2->ref = last_add = CreateNodeGraph(last_add, label2);
     }
     else {
-      FreeNodeTree(n_tree, preorder, 0);
+      FreeNodeTree(n_tree);
     }
     n2 = ntree2->ref;
     
@@ -555,7 +605,8 @@ FBuildNetwork(FILE *inFile,
   }
 
   // Done
-  tdestroy(node_dict, FreeNodeTree);
+  free(line);
+  FreeLabelDict(node_dict);
   return root;
 }
 
@@ -573,7 +624,7 @@ void
 FPrintDegrees(FILE *file, struct node_gra *p)
 {
   while ((p = p->next) !=  NULL)
-    fprintf(file, "%s %d\n", p->label, CountLinks(p));
+    fprintf(file, "%s %d\n", p->label, NodeDegree(p));
 }
 
 // ---------------------------------------------------------------------
@@ -711,7 +762,7 @@ GetNodeDict(char *label, void *dict)
   treeNode = tfind((void *)tempTreeNode,
 		   &dict,
 		   NodeTreeLabelCompare);
-  FreeNodeTree(tempTreeNode, preorder, 0);
+  FreeNodeTree(tempTreeNode);
   
   if (treeNode != NULL)
     return (*(struct node_tree **)treeNode)->ref;
@@ -798,7 +849,7 @@ RemoveIsolatedNodes(struct node_gra *root)
   // Revome isolated nodes
   p = root;
   while (p->next !=  NULL) {
-    if (CountLinks(p->next) ==  0) {
+    if (NodeDegree(p->next) ==  0) {
       temp = p->next;
       p->next = (p->next)->next;
       free(temp);
@@ -834,6 +885,10 @@ CleanAdjacencies(struct node_gra *net)
   // Clean the adjacencies
   p = net;
   while ((p = p->next) != NULL) {
+	// Reset degree/strength of the nodes:
+	p->degree = 0;
+	p->strength = 0;
+  
     nei = p->neig;
     while (nei->next != NULL) {
       if (GetNodeDict(nei->next->nodeLabel, nodeDict) == NULL) {
@@ -1324,34 +1379,22 @@ CountNodes(struct node_gra *p)
   return nodes;
 }
 
-// ---------------------------------------------------------------------
-// Counts the degree of a node
-// ---------------------------------------------------------------------
-int
-CountLinks(struct node_gra *node)
-{
-  struct node_lis *p=node->neig;
-  int count = 0;
 
-  while ((p = p->next) != NULL)
-    count++;
-  return count;
+
+// ---------------------------------------------------------------------
+// Get the degree of a node
+// ---------------------------------------------------------------------
+
+unsigned int NodeDegree(struct node_gra *node)
+{
+  if(!node->degree && node->neig->next != NULL){
+    struct node_lis *p=node->neig;
+    while ((p = p->next) != NULL)
+      node->degree++;
+  }
+  return node->degree;
 }
 
-// ---------------------------------------------------------------------
-// Sums the weights of the connections of a node
-// (returns the strength)
-// ---------------------------------------------------------------------
-double
-SumWeights(struct node_gra *node)
-{
-  struct node_lis *p=node->neig;
-  int strength = 0;
-
-  while ((p = p->next) != NULL)
-    strength += p->weight;
-  return strength;
-}
 
 /*
   ---------------------------------------------------------------------
@@ -1386,7 +1429,7 @@ AverageSquaredDegree(struct node_gra *root)
 
   while ((p = p->next) != NULL) {
     nnod++;
-    k = CountLinks(p);
+    k = NodeDegree(p);
     k2sum += k * k;
   }
 
@@ -1394,19 +1437,20 @@ AverageSquaredDegree(struct node_gra *root)
 
 }
 
-// ---------------------------------------------------------------------
-// Counts the number of links in the network. If symmetric_sw != 0,
-// that is, if the network is symmetric, the number of links is
-// divided by 2.
-// ---------------------------------------------------------------------
+/*
+   ---------------------------------------------------------------------
+   Counts the number of links in the network. If symmetric_sw != 0,
+   that is, if the network is symmetric, the number of links is
+   divided by 2.
+   ---------------------------------------------------------------------
+*/
 int
-TotalNLinks(struct node_gra *p,
-	    int symmetric_sw)
+TotalNLinks(struct node_gra *p, int symmetric_sw)
 {
   int total = 0;
 
   while((p = p->next) != NULL){
-    total += CountLinks(p);
+    total += NodeDegree(p);
   }
   
   if (symmetric_sw == 0)
@@ -1415,19 +1459,21 @@ TotalNLinks(struct node_gra *p,
     return total / 2;
 }
 
-// ---------------------------------------------------------------------
-// Calculates the strength of a node, that is, the sum of the weights
-// of all its links
-// ---------------------------------------------------------------------
+/* 
+   ---------------------------------------------------------------------
+   Calculates the strength of a node, that is, the sum of the weights
+   of all its links
+   ---------------------------------------------------------------------
+*/
 double
 NodeStrength(struct node_gra *node)
 {
-  struct node_lis *p=node->neig;
-  double count = 0.0;
-
-  while ((p = p->next) != NULL)
-    count +=  p->weight;
-  return count;
+  if(!node->strength && node->neig->next != NULL){
+    struct node_lis *p=node->neig;
+    while ((p = p->next) != NULL)
+      node->strength +=  p->weight;
+  }
+  return node->strength;
 }
 
 // ---------------------------------------------------------------------
@@ -1953,7 +1999,7 @@ OneNodeSquareClustering(struct node_gra *node,
   size = &res_size;
   list = CreateHeaderList();
   
-  if(CountLinks(node) == 0)
+  if(NodeDegree(node) == 0)
     return -1;
 
   ResetNodesState(root);
@@ -2009,7 +2055,7 @@ OneNodeSquareClustering(struct node_gra *node,
 void
 CalculateLinkBetweenness(struct node_gra *root)
 {
-  int a,d,nodes,*size,i,counter,size_ant;
+  int a,d,*size,i,counter,size_ant;
   struct node_gra *p = root;
   struct node_bfs *list,*lp;
   double *bet_loc;
@@ -2030,8 +2076,6 @@ CalculateLinkBetweenness(struct node_gra *root)
   counter = 0;
   a = 0;
   size = &a;
-
-  nodes = CountNodes(root);
 
   // set the btw of all links to 0
   while(p->next != NULL){
@@ -2102,7 +2146,7 @@ CalculateLinkBetweenness(struct node_gra *root)
 void
 CalculateBiggestLinkBetweenness(struct node_gra *root,int *n1,int *n2)
 {
-  int a,d,nodes,*size,i,counter,size_ant;
+  int a,d,*size,i,counter,size_ant;
   struct node_gra *p = root;
   struct node_bfs *list,*lp;
   double *bet_loc;
@@ -2123,8 +2167,6 @@ CalculateBiggestLinkBetweenness(struct node_gra *root,int *n1,int *n2)
   counter = 0;
   a = 0;
   size = &a;
-
-  nodes = CountNodes(root);
 
   while(p->next != NULL){
     p = p->next;
@@ -2295,7 +2337,6 @@ NodeBetweennessStatistics(struct node_gra *net,
 {
   int nnod = CountNodes(net);
   double *betws = NULL;
-  int count = 0;
   struct node_gra *p = net;
   
   /* Allocate memory */
@@ -2340,7 +2381,7 @@ Assortativity(struct node_gra *net)
   // Calculate nodes degrees
   p = net;
   while ((p = p->next) != NULL) {
-    deg[p->num] = CountLinks(p);
+    deg[p->num] = NodeDegree(p);
     M += deg[p->num];
   }
 
@@ -2377,7 +2418,7 @@ CalculateKnn(struct node_gra *node)
   int nneig=0, totdeg=0;
 
   while ((p = p->next) != NULL) {
-    totdeg += CountLinks(p->ref);
+    totdeg += NodeDegree(p->ref);
     nneig++;
   }
   
@@ -2967,8 +3008,8 @@ JaccardIndex(struct node_gra *n1, struct node_gra *n2)
   int k1, k2;
 
   /* Degrees of both nodes */
-  k1 = CountLinks(n1);
-  k2 = CountLinks(n2);
+  k1 = NodeDegree(n1);
+  k2 = NodeDegree(n2);
 
   /* Count the number of common neighbors */
   p = n1->neig;
@@ -3006,8 +3047,8 @@ TopologicalOverlap(struct node_gra *n1, struct node_gra *n2)
   int k1, k2;
 
   /* Degrees of both nodes */
-  k1 = CountLinks(n1);
-  k2 = CountLinks(n2);
+  k1 = NodeDegree(n1);
+  k2 = NodeDegree(n2);
 
   /* Determine the node with less neighbors */
   if (k1 < k2) {

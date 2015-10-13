@@ -66,7 +66,7 @@ LaplacianMat(struct node_gra *net)
       return NULL;
     }
     else {
-      L[i][i] = CountLinks(p);
+      L[i][i] = NodeDegree(p);
     }
     for (j=i+1; j<nnod; j++) {
       L[i][j] = -L[i][j];
