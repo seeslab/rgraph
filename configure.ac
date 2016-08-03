@@ -1,5 +1,5 @@
 # Process this file with autoconf to produce a configure script.
-AC_INIT(rgraph, [2.0.1], [roger.guimera@gmail.com])
+AC_INIT(rgraph, [2.2.0], [roger.guimera@gmail.com])
 AC_REVISION($Revision$)
 AM_INIT_AUTOMAKE
 LT_INIT
