@@ -435,6 +435,37 @@ likely to be spurious.
 The "reconstruct" program returns a file net_reconstructed.dat with
 the reconstructed network.
 
+###multiblock
+
+Given a single-layer network observation, the programs in multiblock return the reliability of all node pairs using the model described in our PRX 2016 publication (see below):
+
+1) reliability_links_mb: evaluate the reliability of links using the intersection of two Stochastic Block Models
+
+2) reliability_links_mb_gibbs: evaluate the reliability of links using the intersection of two Stochastic Block Models, with a faster gibbs sampling
+
+3) reliability_links_mb_OR: evaluate the reliability of links using the union of two Stochastic Block Models
+
+4) reliability_links_mb_gibbs_OR: evaluate the reliability of links using the union of two Stochastic Block Models, with a faster gibbs sampling
+
+In case you use the results of the program in a publication, please cite the following paper:
+
+Valles-Catala, T., Massucci, F.A., Guimera, R. & Sales-Pardo, M., Multilayer stochastic block models reveal the multilayer structure of complex networks, Phys. Rev. X 6 , 011036 (2016).
+
+**Input parameters**
+
+The programs take two arguments:
+
+- Name of the network file: Name of the file that contains the network. The file must be a list of links with the format of the test network provided below.
+
+- Seed for the random number generator: Must be a positive integer. Since the reliability algorithms are stochastic, different runs will yield, in general, slightly different different results. Two runs with the same seed, though, should give the exact same results.
+
+**Program output**
+
+The program generates one file: "Name of the network file".AND_scores (OR_scores in case of the OR programs) with all scores for links that are not observed in the network. File has the format:
+
+score12 n1 n2
+score13 n1 n3
+...
 
 ### Utils
 
