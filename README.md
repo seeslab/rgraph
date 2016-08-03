@@ -397,12 +397,13 @@ The programs take two arguments:
 
 - Name of the network file: Name of the file that contains the
   network. The file must be a list of links with the format:
-
+```
   n1 n2
   n3 n4
   .  .
   .  .
   .  .
+  ```
 
   This represents a network with a link between nodes n1 and n2,
   another between nodes n3 and n4, and so on. Nodes must be separated
@@ -419,9 +420,11 @@ The programs take two arguments:
 The "links" program generates two files: missing.dat and
 spurious.dat. Each of these files has the format:
 
+```
 score12 n1 n2
 score13 n1 n3
 ...
+```
 
 missing.dat contains all scores for links that are not observed in the
 network. High scores in missing.dat correspond to links that are
@@ -463,9 +466,11 @@ The programs take two arguments:
 
 The program generates one file: "Name of the network file".AND_scores (OR_scores in case of the OR programs) with all scores for links that are not observed in the network. File has the format:
 
+```
 score12 n1 n2
 score13 n1 n3
 ...
+```
 
 ### Utils
 
